@@ -1,0 +1,42 @@
+{
+  "name": "rescape-ramda",
+  "version": "1.0.0",
+  "description": "Ramda utilities for the Rescape platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "NODE_PATH='source' BABEL_ENV=test jest",
+    "test:watch": "NODE_PATH='static/js' jest --watch",
+    "test:coverage": "cross-env NODE_PATH='static/js' jest --coverage",
+    "start": "node_modules/webpack/bin/webpack.js --watch --colors",
+    "build": "node_modules/webpack/bin/webpack.js",
+    "build:prod": "NODE_ENV='production' node_modules/webpack/bin/webpack.js -p"
+  },
+  "jest": {
+    "modulePaths": [
+      "<rootDir>/source"
+    ],
+    "testPathIgnorePatterns": [
+      "__snapshots__"
+    ],
+    "bail": true
+  },
+  "repository": "git@github.com:calocan/rescape-ramda.git",
+  "author": "Andy Likuski",
+  "license": "ISC",
+  "dependencies": {
+    "data.maybe": "^1.2.2",
+    "data.task": "^3.1.1",
+    "pretty-format": "^20.0.3",
+    "ramda": "^0.24.1",
+    "ramda-fantasy": "^0.8.0",
+    "ramda-maybe": "^0.18.0"
+  },
+  "devDependencies": {
+    "babel-core": "6.25.0",
+    "babel-loader": "7.1.1",
+    "babel-preset-es2015": "6.24.1",
+    "jest": "^20.0.4",
+    "jsdom": "^11.1.0",
+    "webpack": "^3.5.4"
+  }
+}
