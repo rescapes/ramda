@@ -11,7 +11,7 @@
     "ecmaVersion": 8
   },
 
-  "plugins": ["react", "jest"],
+  "plugins": ["jest"],
 
   "rules": {
     "jest/no-disabled-tests": "warn",
@@ -186,18 +186,5 @@
     "max-depth": [2, 3], // specify the maximum depth that blocks can be nested (off by default)
     "max-params": [2, 5], // limits the number of parameters that can be used in the function declaration. (off by default)
     "max-statements": 0, // specify the maximum number of statement allowed in a function (off by default)
-
-    //
-    // eslint-plugin-react
-    //
-    // React specific linting rules for ESLint
-    //
-    "react/display-name": 0, // Prevent missing displayName in a React component definition
-    "react/no-did-mount-set-state": 2, // Prevent usage of setState in componentDidMount
-    "react/no-did-update-set-state": 2, // Prevent usage of setState in componentDidUpdate
-    "react/no-multi-comp": 0, // Prevent multiple component definition per file
-    "react/no-unknown-property": 2, // Prevent usage of unknown DOM property
-    "react/prop-types": 2, // Prevent missing props validation in a React component definition
-    "react/self-closing-comp": 2 // Prevent extra closing tags for components without children
   }
 }

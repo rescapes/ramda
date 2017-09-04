@@ -18,7 +18,9 @@ const prettyFormat = require('pretty-format');
 module.exports.throwIfLeft = either =>
   either.either(
     // Throw if Left
-    leftValue => { throw new Error(leftValue) },
+    leftValue => {
+      throw new Error(leftValue);
+    },
     // Return the Right value
     R.identity
 );
@@ -39,7 +41,7 @@ module.exports.reqPath = R.curry((path, obj) =>
             `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
             'Found no non-nil value of path',
             `of ${path.join('.')} for obj ${prettyFormat(obj)}`
-          ].join(' '))
+          ].join(' '));
       },
       // If right return the value
       R.identity
@@ -56,7 +58,7 @@ module.exports.reqPath = R.curry((path, obj) =>
  * reqPath:: Boolean b = string -> obj -> b or throws
  */
 module.exports.reqPathPropEq = R.curry((path, val, obj) =>
-  reqPathPropEq(path, val,  obj).either(
+  reqPathPropEq(path, val, obj).either(
     leftValue => {
       // If left throw a helpful error
       throw new Error(
@@ -64,7 +66,7 @@ module.exports.reqPathPropEq = R.curry((path, val, obj) =>
           `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
           'Found no non-nil value of path',
           `of ${path.join('.')} for obj ${prettyFormat(obj)}`
-        ].join(' '))
+        ].join(' '));
     },
     // If right return the value
     R.identity

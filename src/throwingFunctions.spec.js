@@ -12,7 +12,6 @@ const pureReqPath = require('./functions').reqPath;
 const {throwIfLeft, reqPath, reqPathPropEq} = require('./throwingFunctions');
 
 describe('throwingFunctions', () => {
-
   test('throwIfLeft', () => {
     // Use a pure function that returns Either. throwIfLeft should throw if the either is an EitherLeft
     expect(throwIfLeft(pureReqPath(['a'], {a: 1}))).toBe(1);
@@ -29,3 +28,4 @@ describe('throwingFunctions', () => {
     expect(() => reqPathPropEq(['a', 'b'], 1, {a: {c: 1}})).toThrow();
   });
 });
+

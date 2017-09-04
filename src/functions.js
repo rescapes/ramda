@@ -21,6 +21,7 @@ const R = require('ramda');
 const Rm = require('ramda-maybe');
 const Task = require('data.task');
 const {Maybe, Either} = require('ramda-fantasy');
+const prettyFormat = require('pretty-format');
 
 /**
  * Return an empty string if the given entity is falsy
@@ -153,10 +154,10 @@ const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
     // accept the right value
     return ((l && l.concat) || (r && r.concat)) || !(R.is(Object, l) && R.is(Object, r)) ?
         r :
-        mergeDeep(l, r) // tail recursive
+        mergeDeep(l, r); // tail recursive
 });
 
-/***
+/**
  * Deep merge values with a custom function that are objects or arrays
  * based on https://github.com/ramda/ramda/pull/1088
  * @params {Function} fn The merge function Left l, Right r:: l -> r -> a
@@ -166,12 +167,12 @@ const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, l, r) => R.mergeWith((l, r) => {
+const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
     // If both objects are arrays or both objects run the merge function
     // Otherwise return r, assuming no l exists
     return ((l && l.concat) && (r && r.concat)) || (R.is(Object, l) && R.is(Object, r)) ?
         mergeDeep(l, r) : // tail recursive
-        r
+        r;
 }));
 
 /**
@@ -200,12 +201,13 @@ const lowercase = module.exports.lowercase = str => R.compose(
 
 /**
  * From https://github.com/substack/camelize/blob/master/index.js
- * @params {String} str The string to camelCase
+ * @param {String} str The string to camelCase
+ * @returns {String} The camel-cased string
  */
 const camelCase = module.exports.camelCase = str =>
   str.replace(
     /[_.-](\w|$)/g,
-    (_,x) => x.toUpperCase()
+    (_, x) => x.toUpperCase()
   );
 
 /**
@@ -257,7 +259,7 @@ const reqPath = module.exports.reqPath = R.curry((path, obj) => {
     Rm.path(path))(obj);
 });
 
-/***
+/**
  * Uses reqPath to resolve the path of an object and compares it to val
  * @param {String} path A lensPath, e.g. ['a', 'b'] or ['a', 2, 'b']
  * @param {*} val The val to do an equality check on
@@ -307,10 +309,12 @@ const promiseToTask = module.exports.promiseToTask = (promise, expectReject = fa
         throw new TypeError(`Expected a Promise, got ${typeof promise}`);
     }
     return new Task((rej, res) => promise.then(res).catch(reject => {
+        /*
         if (!expectReject) {
             console.warn('Unhandled Promise', prettyFormat(reject));
             console.warn(reject.stack);
         }
+        */
         return rej(reject);
     }));
 };
@@ -325,7 +329,7 @@ const mapKeys = module.exports.mapKeys = R.curry((fn, obj) =>
     R.fromPairs(R.map(R.adjust(fn, 0), R.toPairs(obj))));
 
 
-/***
+/**
  * Uses a lens to map keys that are embedded in a data structure
  * The lens must indicate an object whose keys shall be mapped
  * @returns {Object} Object with the keys indicated by the given lens mapped
@@ -338,8 +342,8 @@ const mapKeysForLens = module.exports.mapKeysForLens = R.curry((lens, fn, obj) =
 
 /**
  * Converts default to desired name. Used for requiring defaults
- * @param {Object} module A required module with a default key
  * @param {String} keyName The desired rename of 'default'
+ * @param {Object} module A required module with a default key
  * @returns {Object} The import module with key default changed to keyName
  * @sig mapDefault :: String -> <k,v> -> <k,v>
  */
@@ -347,9 +351,9 @@ const mapDefault = module.exports.mapDefault = (keyName, module) => mapKeys(key 
 /**
  * Converts default to desired name and prefixes others.
  * Used for requiring defaults and renaming others
- * @param {Object} module A required module with a default key
  * @param {String} defaultName The desired rename of 'default'
- * @param {String} prefixName The desired prefix for others. Camel Case maintained
+ * @param {String} prefix The desired prefix for others. Camel Case maintained
+ * @param {Object} module A required module with a default key
  * @returns {Object} The import module with key default changed to keyName
  * @sig mapDefault :: String -> <k,v> -> <k,v>
  */
@@ -359,7 +363,7 @@ const mapDefaultAndPrefixOthers = module.exports.mapDefaultAndPrefixOthers = (de
         module
     );
 
-/***
+/**
  * Maps a functor with a function that returns pairs and create and object therefrom
  * Like R.mapObjIndexed, the function's first argument is the value of each item, and the seconds is the key if
  * iterating over objects
@@ -370,7 +374,7 @@ const mapDefaultAndPrefixOthers = module.exports.mapDefaultAndPrefixOthers = (de
  */
 const fromPairsMap = module.exports.fromPairsMap = R.curry((f, functor) => R.fromPairs(R.mapObjIndexed(f, functor)));
 
-/***
+/**
  * https://github.com/ramda/ramda/wiki/Cookbook
  * Filter objects with values and keys
  * @param {Function} pred (value, key) => True|False
