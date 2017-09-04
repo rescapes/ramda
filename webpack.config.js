@@ -1,20 +1,20 @@
 const path = require('path');
 const webpack = require('webpack');
-const BASE = './static';
-const JS = path.join(BASE, 'source')
 
 module.exports = {
     devtool: 'inline-source-map',
+    entry: [
+      path.resolve(path.join(__dirname, '/index.js'))
+    ],
     resolve: {
-      // Looks for sources in BASE as well as node_modules
-      // (node_modules is normally the default)
       modules: [
-        resolve(JS),
+        path.resolve(path.join(__dirname, '/src/')),
         'node_modules'
       ],
     },
     output: {
-        path: path.resolve(path.join(BASE, '/bundles')),
-        filename: 'index.js',
-    },
+      path: path.join(__dirname, '/dist/'),
+      filename: 'index.js',
+      publicPath: '/'
+    }
 };

@@ -2,14 +2,21 @@
   "name": "rescape-ramda",
   "version": "1.0.0",
   "description": "Ramda utilities for the Rescape platform",
+  "homepage": "https://www.rescapes.net/",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "src",
+    "dist"
+  ],
   "scripts": {
-    "test": "NODE_PATH='source' BABEL_ENV=test jest",
-    "test:watch": "NODE_PATH='static/js' jest --watch",
-    "test:coverage": "cross-env NODE_PATH='static/js' jest --coverage",
-    "start": "node_modules/webpack/bin/webpack.js --watch --colors",
-    "build": "node_modules/webpack/bin/webpack.js",
-    "build:prod": "NODE_ENV='production' node_modules/webpack/bin/webpack.js -p"
+    "test": "NODE_PATH='src' BABEL_ENV=test jest",
+    "test:coverage": "NODE_PATH='src' jest --coverage",
+    "lint": "eslint src example test",
+    "clean": "rm -fr dist/*",
+    "build": "npm run clean && npm run build-es5",
+    "build-es5": "mkdir -p dist && babel src --out-dir dist --ignore spec.js --plugins=transform-es2015-modules-commonjs --source-maps inline",
+    "publish": "npm run build && npm run test && npm publish"
   },
   "jest": {
     "modulePaths": [
@@ -22,7 +29,7 @@
   },
   "repository": "git@github.com:calocan/rescape-ramda.git",
   "author": "Andy Likuski",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "data.maybe": "^1.2.2",
     "data.task": "^3.1.1",
@@ -32,11 +39,13 @@
     "ramda-maybe": "^0.18.0"
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
     "babel-core": "6.25.0",
     "babel-loader": "7.1.1",
     "babel-preset-es2015": "6.24.1",
     "jest": "^20.0.4",
     "jsdom": "^11.1.0",
+    "rimraf": "^2.6.1",
     "webpack": "^3.5.4"
   }
 }
