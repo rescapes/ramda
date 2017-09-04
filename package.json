@@ -16,7 +16,8 @@
     "clean": "rm -fr dist/*",
     "build": "npm run clean && npm run build-es5",
     "build-es5": "mkdir -p dist && babel src --out-dir dist --ignore spec.js --plugins=transform-es2015-modules-commonjs --source-maps inline",
-    "build-publish": "npm run build && npm run test && npm publish"
+    "build-publish-patch": "npm run build && npm run test && npm version patch && npm publish"
+    "build-publish-minor": "npm run build && npm run test && npm version minor && npm publish"
   },
   "jest": {
     "modulePaths": [
