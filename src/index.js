@@ -10,6 +10,6 @@
  */
 
 module.exports = {
-  functions: require('./src/functions'),
-  throwingFunctions: require('./src/throwingFunctions')
+  functions: require('./functions'),
+  throwingFunctions: require('./throwingFunctions')
 }
