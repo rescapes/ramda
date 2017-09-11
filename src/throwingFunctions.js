@@ -15,15 +15,39 @@ const {Either} = require('ramda-fantasy');
 const R = require('ramda');
 const prettyFormat = require('pretty-format');
 
+/**
+ * Throw and exception if Either is Left
+ * @param {Either} either Left value is an array of Errors to throw. Right value is success to return
+ * @returns {Right} Throws or returns Either.Right
+ */
 module.exports.throwIfLeft = either =>
   either.either(
     // Throw if Left
     leftValue => {
-      throw new Error(leftValue);
+      throw new Error(R.join(', ', leftValue));
     },
     // Return the Right value
     R.identity
 );
+
+/**
+ * Like throwIfLeft but allows mapping of the unformatted Error values in Either
+ * @param {Either} either Left value is an error to throw. Right value is success to return
+ * The Either value (not just the Either itself) must be a functor in order to apply the mapping function
+ * @param {Function} func Mapping function that maps Either.Left value. If this value is
+ * an array it maps each value. If not it maps the single value
+ * @returns {Right} Throws the mapped values or returns Either.Right
+ */
+module.exports.mappedThrowIfLeft = R.curry((func, either) =>
+  either.either(
+    // Throw if Left
+    leftValue => {
+      throw new Error(R.join(', ', R.map(func, leftValue)));
+    },
+    // Return the Right value
+    R.identity
+  )
+)
 
 /**
  * Calls functions.reqPath and throws if the reqPath does not resolve to a non-nil
