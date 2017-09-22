@@ -388,3 +388,18 @@ const filterWithKeys = module.exports.filterWithKeys = R.curry((pred, obj) => R.
     R.fromPairs
   )(obj)
 );
+
+/**
+ * Transforms the keys of the given object with the given func
+ * @param {Function} func The mapping function that expects the key
+ * @param {Object} The object to map
+ * @returns {Object} The object with transformed keys and the original values
+ */
+const transformKeys = module.exports.transformKeys = R.curry((func, obj) =>
+  R.compose(
+    R.fromPairs,
+    R.map(([key, value]) =>
+      [func(key), value]),
+    R.toPairs
+  )(obj)
+);

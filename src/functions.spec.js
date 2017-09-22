@@ -161,4 +161,17 @@ describe('helperFunctions', () => {
       {friend: 'foo', prefixOther: 'boo'}
     );
   });
+
+  test('transformKeys', () => {
+    expect(f.transformKeys(
+      f.camelCase,
+      {who_made_me_with_slugs: 'the snail',
+      'what-kind-of-camel-Races': 'a dromedary'
+      }
+    )).toEqual(
+      {whoMadeMeWithSlugs: 'the snail',
+       whatKindOfCamelRaces: 'a dromedary'
+      }
+    );
+  })
 });
