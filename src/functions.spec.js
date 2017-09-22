@@ -173,5 +173,5 @@ describe('helperFunctions', () => {
        whatKindOfCamelRaces: 'a dromedary'
       }
     );
-  })
+  });
 });

@@ -47,7 +47,7 @@ module.exports.mappedThrowIfLeft = R.curry((func, either) =>
     // Return the Right value
     R.identity
   )
-)
+);
 
 /**
  * Calls functions.reqPath and throws if the reqPath does not resolve to a non-nil
