@@ -174,4 +174,25 @@ describe('helperFunctions', () => {
       }
     );
   });
+
+  test('renameKey', () => {
+    expect(
+      f.renameKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
+    ).toEqual(
+      {x: {y: {'and per se': {cactus: 'blossoms'}}}}
+    );
+  });
+
+  test('duplicateKey', () => {
+    expect(
+      f.duplicateKey(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
+    ).toEqual(
+      {x: {y: {
+        z: {cactus: 'blossoms'},
+        'and per se': {cactus: 'blossoms'},
+        'a per se': {cactus: 'blossoms'},
+        'o per se': {cactus: 'blossoms'}
+      }}}
+    );
+  });
 });

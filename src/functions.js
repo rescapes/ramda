@@ -21,7 +21,6 @@ const R = require('ramda');
 const Rm = require('ramda-maybe');
 const Task = require('data.task');
 const {Maybe, Either} = require('ramda-fantasy');
-const prettyFormat = require('pretty-format');
 
 /**
  * Return an empty string if the given entity is falsy
@@ -402,4 +401,32 @@ const transformKeys = module.exports.transformKeys = R.curry((func, obj) =>
       [func(key), value]),
     R.toPairs
   )(obj)
+);
+
+/**
+ * Renames the key of the object specified by the lens
+ * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself
+ * @param {String} from Key to rename
+ * @param {String} to New name for the key
+ * @param {Object} obj Object to traverse with the lens
+ */
+module.exports.renameKey = R.curry((lens, from, to, obj) => R.over(
+  lens,
+  target => mapKeys(
+    R.when(R.equals(from), R.always(to)),
+    target),
+  obj));
+
+/**
+ * Duplicates the key of the object specified by the lens and key, to the given list of keys.
+ * A duplicate of the value at key will be added at each of the toKeys using R.clone
+ * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself
+ * @param {String} key Key to duplicate the value of
+ * @param [{String}] toKeys Array of new keys to make. New keys overwrite existing keys
+ * @param {Object} obj Object to traverse with the lens
+ */
+module.exports.duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
+  lens,
+  target => R.merge(target, R.fromPairs(R.map(toKey => [toKey, R.clone(target[key])], toKeys))),
+  obj)
 );
