@@ -426,6 +426,40 @@ module.exports.renameKey = R.curry((lens, from, to, obj) => R.over(
  */
 module.exports.duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
   lens,
-  target => R.merge(target, R.fromPairs(R.map(toKey => [toKey, R.clone(target[key])], toKeys))),
+  // convert the target of the lens to a merge of the target with copies of target[key]
+  target => R.merge(
+    target,
+    R.fromPairs(
+      R.map(
+        toKey => [toKey, R.clone(target[key])],
+        toKeys
+      )
+    )
+  ),
+  // take the lens of this obj
+  obj)
+);
+
+/**
+ * Like duplicateKey but removes the original key
+ * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself
+ * @param {String} key Key to duplicate the value of
+ * @param [{String}] toKeys Array of new keys to make. New keys overwrite existing keys
+ * @param {Object} obj Object to traverse with the lens
+ */
+module.exports.moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
+  lens,
+  // convert the target of the lens to a merge of the target with copies of target[key]
+  // and with target[key] itself removed
+  target => R.merge(
+    R.omit([key], target),
+    R.fromPairs(
+      R.map(
+        toKey => [toKey, R.clone(target[key])],
+        toKeys
+      )
+    )
+  ),
+  // take the lens of this obj
   obj)
 );

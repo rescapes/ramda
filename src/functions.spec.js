@@ -205,4 +205,16 @@ describe('helperFunctions', () => {
       }}}
     );
   });
+
+  test('moveToKeys', () => {
+    expect(
+      f.moveToKeys(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
+    ).toEqual(
+      {x: {y: {
+        'and per se': {cactus: 'blossoms'},
+        'a per se': {cactus: 'blossoms'},
+        'o per se': {cactus: 'blossoms'}
+      }}}
+    );
+  });
 });
