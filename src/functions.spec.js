@@ -82,7 +82,7 @@ describe('helperFunctions', () => {
       {foo: 4, bar: {bizz: [5, 6]}},
       {foo: 4, bar: {cat: [5, 6], pterodactyl: 'time is running out!'}}
     ])).toEqual(
-      {foo: 4, bar: {bizz: [5, 6], buzz: 7, cat: [5,6], pterodactyl: 'time is running out!'}}
+      {foo: 4, bar: {bizz: [5, 6], buzz: 7, cat: [5, 6], pterodactyl: 'time is running out!'}}
     );
   });
 
