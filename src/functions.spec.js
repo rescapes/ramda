@@ -76,6 +76,16 @@ describe('helperFunctions', () => {
     )).toEqual({foo: 4, bar: {bizz: [5, 6], buzz: 7}});
   });
 
+  test('Should merge deep all objects', () => {
+    expect(f.mergeDeepAll([
+      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
+      {foo: 4, bar: {bizz: [5, 6]}},
+      {foo: 4, bar: {cat: [5, 6], pterodactyl: 'time is running out!'}}
+    ])).toEqual(
+      {foo: 4, bar: {bizz: [5, 6], buzz: 7, cat: [5,6], pterodactyl: 'time is running out!'}}
+    );
+  });
+
   test('Should capitalize first letter', () => {
     expect(f.capitalize('good grief')).toEqual('Good grief');
   });

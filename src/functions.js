@@ -132,14 +132,6 @@ const reduceWithNext = module.exports.reduceWithNext = (fn, [head, next, ...tail
         reduceWithNext(fn, [next, ...tail], fn(previous, head, next));
 
 /**
- * @callback callWithNext
- * @param {Object} total the reduction
- * @param {Object} current the current item
- * @param {Object} next the next item
- * @returns {Object} the next reduction
- */
-
-/**
  * Deep merge values that are objects but not arrays
  * based on https://github.com/ramda/ramda/pull/1088
  * @params {Object} l the 'left' side object to merge
@@ -155,6 +147,13 @@ const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
         r :
         mergeDeep(l, r); // tail recursive
 });
+
+/**
+ * mergeDeep any number of objects
+ * @params {[Object]} objs Array of objects to reduce
+ * @returns {Object} The deep-merged objects
+ */
+module.exports.mergeDeepAll = R.reduce(mergeDeep, {});
 
 /**
  * Deep merge values with a custom function that are objects or arrays
