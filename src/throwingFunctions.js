@@ -10,7 +10,7 @@
  *
  * Functions that the trowing versions from functions.js
  */
-const {reqPath, reqPathPropEq} = require('./functions');
+const {reqPath, reqPathPropEq, findOne} = require('./functions');
 const {Either} = require('ramda-fantasy');
 const R = require('ramda');
 const prettyFormat = require('pretty-format');
@@ -18,7 +18,7 @@ const prettyFormat = require('pretty-format');
 /**
  * Throw and exception if Either is Left
  * @param {Either} either Left value is an array of Errors to throw. Right value is success to return
- * @returns {Right} Throws or returns Either.Right
+ * @returns {Object} Throws or returns the contents of Right
  */
 module.exports.throwIfLeft = either =>
   either.either(
@@ -28,7 +28,23 @@ module.exports.throwIfLeft = either =>
     },
     // Return the Right value
     R.identity
-);
+  );
+
+/**
+ * Throw and exception if Either is Left
+ * @param {String} message The custom error message to precede the error dump
+ * @param {Either} either Left value is a single error
+ * @returns {Object} Throws or returns the contents of Right
+ */
+const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, either) =>
+  either.either(
+    // Throw if Left
+    leftValue => {
+      throw new Error(`${message}: ${leftValue}`);
+    },
+    // Return the Right value
+    R.identity
+  ));
 
 /**
  * Like throwIfLeft but allows mapping of the unformatted Error values in Either
@@ -57,19 +73,19 @@ module.exports.mappedThrowIfLeft = R.curry((func, either) =>
  * reqPath:: string -> obj -> a or throws
  */
 module.exports.reqPath = R.curry((path, obj) =>
-    reqPath(path, obj).either(
-      leftValue => {
-        // If left throw a helpful error
-        throw new Error(
-          [leftValue.resolved.length ?
-            `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
-            'Found no non-nil value of path',
-            `of ${path.join('.')} for obj ${prettyFormat(obj)}`
-          ].join(' '));
-      },
-      // If right return the value
-      R.identity
-    )
+  reqPath(path, obj).either(
+    leftValue => {
+      // If left throw a helpful error
+      throw new Error(
+        [leftValue.resolved.length ?
+          `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
+          'Found no non-nil value of path',
+          `of ${path.join('.')} for obj ${prettyFormat(obj)}`
+        ].join(' '));
+    },
+    // If right return the value
+    R.identity
+  )
 );
 
 /**
@@ -95,4 +111,14 @@ module.exports.reqPathPropEq = R.curry((path, val, obj) =>
     // If right return the value
     R.identity
   )
+);
+
+/**
+ * Like R.find but expects only one match and works on both arrays and objects
+ * @param {Function} predicate
+ * @param {Array|Object} obj Functor that should only match once with predicate
+ * @returns {Object} The single item container or throws
+ */
+module.exports.findOne = R.curry((predicate, obj) =>
+  throwIfSingleLeft('Did not find exactly one match', findOne(predicate, obj))
 );

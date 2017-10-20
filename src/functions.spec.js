@@ -12,6 +12,7 @@ const R = require('ramda');
 const f = require('./functions');
 const Task = require('data.task');
 const {Just} = require('data.maybe');
+const {Either} = require('ramda-fantasy');
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -215,6 +216,36 @@ describe('helperFunctions', () => {
         'a per se': {cactus: 'blossoms'},
         'o per se': {cactus: 'blossoms'}
       }}}
+    );
+  });
+
+  test('findOne', () => {
+    // Works with objects
+    expect(
+      f.findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
+    ).toEqual(
+      Either.Right({b: 'Eli Whitney'})
+    );
+
+    // Works with arrays
+    expect(
+      f.findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
+    ).toEqual(
+      Either.Right(['Eli Whitney'])
+    );
+
+    // None
+    expect(
+      f.findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
+    ).toEqual(
+      Either.Left({all: {a: 1, b: 2}, matching: {}})
+    );
+
+    // Too many
+    expect(
+      f.findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
+    ).toEqual(
+      Either.Left({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 });

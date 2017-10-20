@@ -55,7 +55,7 @@ const compactEmpty = module.exports.compactEmpty = R.reject(R.either(R.isNil, R.
  * @sig emptyToNull:: a -> a
  *            :: a -> null
  */
-const emptyToNull = module.exports.emptyToNull = R.when(R.isEmpty, ()=>null);
+const emptyToNull = module.exports.emptyToNull = R.when(R.isEmpty, () => null);
 
 /**
  * Join elements, first remove null items and empty strings. If the result is empty make it null
@@ -65,7 +65,7 @@ const emptyToNull = module.exports.emptyToNull = R.when(R.isEmpty, ()=>null);
  *             :: [a] -> null
  */
 const compactJoin = module.exports.compactJoin = R.compose(
-    (connector, items) => R.pipe(compactEmpty, R.join(connector), emptyToNull)(items)
+  (connector, items) => R.pipe(compactEmpty, R.join(connector), emptyToNull)(items)
 );
 
 /**
@@ -87,10 +87,10 @@ const mapProp = module.exports.mapProp = R.curry((prop, objs) => R.pipe(R.prop, 
  * @sig mapPropValueAsIndex:: String -> {k, v} -> {k, v}
  */
 const mapPropValueAsIndex = module.exports.mapPropValueAsIndex = R.curry((prop, obj) =>
-    R.when(
-        Array.isArray,
-        R.pipe(R.prop, R.indexBy)(prop)
-    )(obj));
+  R.when(
+    Array.isArray,
+    R.pipe(R.prop, R.indexBy)(prop)
+  )(obj));
 
 /**
  * Merges a list of objects by the given key and returns the values, meaning all items that are
@@ -99,10 +99,10 @@ const mapPropValueAsIndex = module.exports.mapPropValueAsIndex = R.curry((prop, 
  * @sig removeDuplicateObjectsByProp:: String -> [{k, v}] -> [{k, v}]
  */
 const removeDuplicateObjectsByProp = module.exports.removeDuplicateObjectsByProp = R.curry((prop, list) =>
-    R.pipe(
-        mapPropValueAsIndex(prop),
-        R.values
-    )(list)
+  R.pipe(
+    mapPropValueAsIndex(prop),
+    R.values
+  )(list)
 );
 
 /**
@@ -113,8 +113,8 @@ const removeDuplicateObjectsByProp = module.exports.removeDuplicateObjectsByProp
  *              :: {k, v} -> a
  */
 const idOrIdFromObj = module.exports.idOrIdFromObj = R.when(
-    objOrId => (typeof objOrId === 'object') && objOrId !== null,
-    R.prop('id')
+  objOrId => (typeof objOrId === 'object') && objOrId !== null,
+  R.prop('id')
 );
 
 /**
@@ -127,9 +127,9 @@ const idOrIdFromObj = module.exports.idOrIdFromObj = R.when(
  * @returns {Object} the reduction
  */
 const reduceWithNext = module.exports.reduceWithNext = (fn, [head, next, ...tail], previous) =>
-    typeof (next) === 'undefined' ?
-        previous :
-        reduceWithNext(fn, [next, ...tail], fn(previous, head, next));
+  typeof (next) === 'undefined' ?
+    previous :
+    reduceWithNext(fn, [next, ...tail], fn(previous, head, next));
 
 /**
  * Deep merge values that are objects but not arrays
@@ -141,11 +141,11 @@ const reduceWithNext = module.exports.reduceWithNext = (fn, [head, next, ...tail
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
 const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
-    // If either (hopefully both) items are arrays or not both objects
-    // accept the right value
-    return ((l && l.concat) || (r && r.concat)) || !(R.is(Object, l) && R.is(Object, r)) ?
-        r :
-        mergeDeep(l, r); // tail recursive
+  // If either (hopefully both) items are arrays or not both objects
+  // accept the right value
+  return ((l && l.concat) || (r && r.concat)) || !(R.is(Object, l) && R.is(Object, r)) ?
+    r :
+    mergeDeep(l, r); // tail recursive
 });
 
 /**
@@ -166,11 +166,11 @@ module.exports.mergeDeepAll = R.reduce(mergeDeep, {});
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
 const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
-    // If both objects are arrays or both objects run the merge function
-    // Otherwise return r, assuming no l exists
-    return ((l && l.concat) && (r && r.concat)) || (R.is(Object, l) && R.is(Object, r)) ?
-        mergeDeep(l, r) : // tail recursive
-        r;
+  // If both objects are arrays or both objects run the merge function
+  // Otherwise return r, assuming no l exists
+  return ((l && l.concat) && (r && r.concat)) || (R.is(Object, l) && R.is(Object, r)) ?
+    mergeDeep(l, r) : // tail recursive
+    r;
 }));
 
 /**
@@ -181,8 +181,8 @@ const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) =
  * @sig capitalize:: String -> String
  */
 const capitalize = module.exports.capitalize = str => R.compose(
-    R.join(''),
-    R.juxt([R.compose(R.toUpper, R.head), R.tail])
+  R.join(''),
+  R.juxt([R.compose(R.toUpper, R.head), R.tail])
 )(str);
 
 /**
@@ -193,8 +193,8 @@ const capitalize = module.exports.capitalize = str => R.compose(
  * @sig capitalize:: String -> String
  */
 const lowercase = module.exports.lowercase = str => R.compose(
-    R.join(''),
-    R.juxt([R.compose(R.toLower, R.head), R.tail])
+  R.join(''),
+  R.juxt([R.compose(R.toLower, R.head), R.tail])
 )(str);
 
 /**
@@ -215,15 +215,15 @@ const camelCase = module.exports.camelCase = str =>
  * @sig mergeAllWithKey:: (String → a → a → a) → [{a}] → {a}
  */
 const mergeAllWithKey = module.exports.mergeAllWithKey = R.curry((fn, [head, ...rest]) =>
-    R.mergeWithKey( // call mergeWithKey on two objects at a time
-        fn,
-        head || {}, // first object is always the head
-        R.ifElse( // second object is the merged object of the recursion
-            R.isEmpty, // if no rest
-            () => R.empty({}), // end case empty object
-            mergeAllWithKey(fn), // else recurse with the rest
-        )(rest)
-    )
+  R.mergeWithKey( // call mergeWithKey on two objects at a time
+    fn,
+    head || {}, // first object is always the head
+    R.ifElse( // second object is the merged object of the recursion
+      R.isEmpty, // if no rest
+      () => R.empty({}), // end case empty object
+      mergeAllWithKey(fn) // else recurse with the rest
+    )(rest)
+  )
 );
 
 /**
@@ -236,22 +236,22 @@ const mergeAllWithKey = module.exports.mergeAllWithKey = R.curry((fn, [head, ...
 const reqPath = module.exports.reqPath = R.curry((path, obj) => {
   return R.compose(
     R.ifElse(
-        // If path doesn't resolve
-        Maybe.isNothing,
-        // Create a useful Error message
-        () => Either.Left({
-            resolved: R.reduceWhile(
-                // Stop if the accumulated segments can't be resolved
-                (segments, segment) => R.not(R.isNil(R.path(R.concat(segments, [segment]), obj))),
-                // Accumulate segments
-                (segments, segment) => R.concat(segments, [segment]),
-                [],
-                path
-            ),
-            path: path
-        }),
+      // If path doesn't resolve
+      Maybe.isNothing,
+      // Create a useful Error message
+      () => Either.Left({
+        resolved: R.reduceWhile(
+          // Stop if the accumulated segments can't be resolved
+          (segments, segment) => R.not(R.isNil(R.path(R.concat(segments, [segment]), obj))),
+          // Accumulate segments
+          (segments, segment) => R.concat(segments, [segment]),
+          [],
+          path
+        ),
+        path: path
+      }),
       // Return the resolved value
-        res => Either.Right(res.value)
+      res => Either.Right(res.value)
     ),
     // Try to resolve the value using the path and obj, returning Maybe
     Rm.path(path))(obj);
@@ -277,23 +277,23 @@ const reqPathPropEq = module.exports.reqPathPropEq = R.curry((path, val, obj) =>
  * @returns {Promise} The Task as a Promise
  */
 const taskToPromise = module.exports.taskToPromise = (task, expectReject = false) => {
-    if (!task.fork) {
-        throw new TypeError(`Expected a Task, got ${typeof task}`);
-    }
-    return new Promise((res, rej) =>
-        task.fork(
-            reject => {
-                if (!expectReject) {
-                    // console.log('Unhandled Promise', prettyFormat(reject));
-                    if (reject && reject.stack) {
-                        // console.log(stackTrace.parse(reject));
-                    }
-                }
-                return rej(reject);
-            },
-            resolve => res(resolve)
-        )
-    );
+  if (!task.fork) {
+    throw new TypeError(`Expected a Task, got ${typeof task}`);
+  }
+  return new Promise((res, rej) =>
+    task.fork(
+      reject => {
+        if (!expectReject) {
+          // console.log('Unhandled Promise', prettyFormat(reject));
+          if (reject && reject.stack) {
+            // console.log(stackTrace.parse(reject));
+          }
+        }
+        return rej(reject);
+      },
+      resolve => res(resolve)
+    )
+  );
 };
 
 /**
@@ -303,18 +303,18 @@ const taskToPromise = module.exports.taskToPromise = (task, expectReject = false
  * @returns {Task} The promise as a Task
  */
 const promiseToTask = module.exports.promiseToTask = (promise, expectReject = false) => {
-    if (!promise.then) {
-        throw new TypeError(`Expected a Promise, got ${typeof promise}`);
-    }
-    return new Task((rej, res) => promise.then(res).catch(reject => {
-        /*
-        if (!expectReject) {
-            console.warn('Unhandled Promise', prettyFormat(reject));
-            console.warn(reject.stack);
-        }
-        */
-        return rej(reject);
-    }));
+  if (!promise.then) {
+    throw new TypeError(`Expected a Promise, got ${typeof promise}`);
+  }
+  return new Task((rej, res) => promise.then(res).catch(reject => {
+    /*
+     if (!expectReject) {
+     console.warn('Unhandled Promise', prettyFormat(reject));
+     console.warn(reject.stack);
+     }
+     */
+    return rej(reject);
+  }));
 };
 
 /**
@@ -322,9 +322,9 @@ const promiseToTask = module.exports.promiseToTask = (promise, expectReject = fa
  * Maps keys according to the given function
  * @returns {Object} The mapped keys of the object
  * @sig mapKeys :: (String -> String) -> Object -> Object
-*/
+ */
 const mapKeys = module.exports.mapKeys = R.curry((fn, obj) =>
-    R.fromPairs(R.map(R.adjust(fn, 0), R.toPairs(obj))));
+  R.fromPairs(R.map(R.adjust(fn, 0), R.toPairs(obj))));
 
 
 /**
@@ -334,8 +334,8 @@ const mapKeys = module.exports.mapKeys = R.curry((fn, obj) =>
  * @sig mapKeysForLens :: Lens -> ((String -> String) -> Object -> Object
  */
 const mapKeysForLens = module.exports.mapKeysForLens = R.curry((lens, fn, obj) =>
-    // Sets the lens-focused objects to a new object with keys mapped according to the function
-    R.set(lens, mapKeys(fn, R.view(lens, obj)), obj)
+  // Sets the lens-focused objects to a new object with keys mapped according to the function
+  R.set(lens, mapKeys(fn, R.view(lens, obj)), obj)
 );
 
 /**
@@ -356,10 +356,10 @@ const mapDefault = module.exports.mapDefault = (keyName, module) => mapKeys(key 
  * @sig mapDefault :: String -> <k,v> -> <k,v>
  */
 const mapDefaultAndPrefixOthers = module.exports.mapDefaultAndPrefixOthers = (defaultName, prefix, module) =>
-    mapKeys(
-        key => (key === 'default') ? defaultName : `${prefix}${capitalize(key)}`,
-        module
-    );
+  mapKeys(
+    key => (key === 'default') ? defaultName : `${prefix}${capitalize(key)}`,
+    module
+  );
 
 /**
  * Maps a functor with a function that returns pairs and create and object therefrom
@@ -381,9 +381,9 @@ const fromPairsMap = module.exports.fromPairsMap = R.curry((f, functor) => R.fro
  * @sig filterWithKeys:: (v -> k -> True|False) -> <k,v> -> <k,v>
  */
 const filterWithKeys = module.exports.filterWithKeys = R.curry((pred, obj) => R.pipe(
-    R.toPairs,
-    R.filter(pair => R.apply(pred, R.reverse(pair))),
-    R.fromPairs
+  R.toPairs,
+  R.filter(pair => R.apply(pred, R.reverse(pair))),
+  R.fromPairs
   )(obj)
 );
 
@@ -462,4 +462,24 @@ module.exports.moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
   ),
   // take the lens of this obj
   obj)
+);
+
+/**
+ * Like R.find but expects only one match and works on both arrays and objects
+ * @param {Function} predicate
+ * @param {Array|Object} obj Functor that should only match once with predicate
+ * @returns {Either} Left if no matches or more than one, otherwise Right with the single matching item in an array/object
+ */
+module.exports.findOne = R.curry((predicate, obj) =>
+  R.ifElse(
+    // If path doesn't resolve
+    items => R.equals(R.length(R.keys(items)), 1),
+    // Return the resolved single key/value object
+    items => Either.Right(items),
+    // Create a useful Error message
+    items => Either.Left({
+      all: obj,
+      matching: items
+    })
+  )(R.filter(predicate, obj))
 );

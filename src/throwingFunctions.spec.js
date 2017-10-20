@@ -9,8 +9,9 @@
  * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 const pureReqPath = require('./functions').reqPath;
-const {throwIfLeft, mappedThrowIfLeft, reqPath, reqPathPropEq} = require('./throwingFunctions');
+const {throwIfLeft, mappedThrowIfLeft, reqPath, reqPathPropEq, findOne} = require('./throwingFunctions');
 const {Either} = require('ramda-fantasy');
+const R = require('ramda');
 
 describe('throwingFunctions', () => {
   test('throwIfLeft', () => {
@@ -35,6 +36,32 @@ describe('throwingFunctions', () => {
   test('reqPathPropEq', () => {
     expect(reqPathPropEq(['a'], 1, {a: 1})).toBe(true);
     expect(() => reqPathPropEq(['a', 'b'], 1, {a: {c: 1}})).toThrow();
+  });
+
+  test('findOne', () => {
+    // Works with objects
+    expect(
+      findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
+    ).toEqual(
+      {b: 'Eli Whitney'}
+    );
+
+    // Works with arrays
+    expect(
+      findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
+    ).toEqual(
+      ['Eli Whitney']
+    );
+
+    // None
+    expect(
+      () => findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
+    ).toThrow();
+
+    // Too many
+    expect(
+      () => findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
+    ).toThrow();
   });
 });
 
