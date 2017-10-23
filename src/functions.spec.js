@@ -248,4 +248,23 @@ describe('helperFunctions', () => {
       Either.Left({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
+
+  test('onlyOne', () => {
+    expect(f.onlyOne({a: 'Eli Whitney'})).
+    toEqual(Either.Right({a: 'Eli Whitney'}));
+
+    // None
+    expect(
+      f.onlyOne({})
+    ).toEqual(
+      Either.Left({all: {}, matching: {}})
+    );
+
+    // Too many
+    expect(
+      f.onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
+    ).toEqual(
+      Either.Left({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
+    );
+  });
 });

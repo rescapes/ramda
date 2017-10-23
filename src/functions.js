@@ -470,7 +470,7 @@ module.exports.moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
  * @param {Array|Object} obj Functor that should only match once with predicate
  * @returns {Either} Left if no matches or more than one, otherwise Right with the single matching item in an array/object
  */
-module.exports.findOne = R.curry((predicate, obj) =>
+const findOne = module.exports.findOne = R.curry((predicate, obj) =>
   R.ifElse(
     // If path doesn't resolve
     items => R.equals(R.length(R.keys(items)), 1),
@@ -483,3 +483,10 @@ module.exports.findOne = R.curry((predicate, obj) =>
     })
   )(R.filter(predicate, obj))
 );
+
+/**
+ * Version of find one that accepts all items of the given functor
+ * @param {Array|Object} obj Functor
+ * @returns {Either} Left if no items or more than one, otherwise Right with the single item in an array/object
+ */
+module.exports.onlyOne = findOne(R.T);
