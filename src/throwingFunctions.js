@@ -10,7 +10,7 @@
  *
  * Functions that the trowing versions from functions.js
  */
-const {reqPath, reqPathPropEq, findOne} = require('./functions');
+const {reqPath, reqPathPropEq, findOne, onlyOne} = require('./functions');
 const {Either} = require('ramda-fantasy');
 const R = require('ramda');
 const prettyFormat = require('pretty-format');
@@ -122,3 +122,13 @@ module.exports.reqPathPropEq = R.curry((path, val, obj) =>
 module.exports.findOne = R.curry((predicate, obj) =>
   throwIfSingleLeft('Did not find exactly one match', findOne(predicate, obj))
 );
+
+/**
+ * Like findOne but without a predicate
+ * @param {Array|Object} obj Functor that should only match once with predicate
+ * @returns {Object} The single item container or throws
+ */
+module.exports.onlyOne = obj =>
+  throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOne(obj))
+);
+

@@ -78,7 +78,7 @@ describe('throwingFunctions', () => {
 
     // Too many
     expect(
-      onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
+      () => onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toThrow();
   });
 });
