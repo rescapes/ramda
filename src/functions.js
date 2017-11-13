@@ -143,7 +143,7 @@ const reduceWithNext = module.exports.reduceWithNext = (fn, [head, next, ...tail
 const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
-  return ((l && l.concat) || (r && r.concat)) || !(R.is(Object, l) && R.is(Object, r)) ?
+  return ((l && l.concat && R.is(Array, l)) || (r && r.concat && R.is(Array, r))) || !(R.is(Object, l) && R.is(Object, r)) ?
     r :
     mergeDeep(l, r); // tail recursive
 });
@@ -156,7 +156,7 @@ const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
 module.exports.mergeDeepAll = R.reduce(mergeDeep, {});
 
 /**
- * Deep merge values with a custom function that are objects or arrays
+ * Deep merge values with a custom function that are objects
  * based on https://github.com/ramda/ramda/pull/1088
  * @params {Function} fn The merge function Left l, Right r:: l -> r -> a
  * @params {Object} l the 'left' side object to merge
@@ -166,12 +166,12 @@ module.exports.mergeDeepAll = R.reduce(mergeDeep, {});
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
 const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
-  // If both objects are arrays or both objects run the merge function
-  // Otherwise return r, assuming no l exists
-  return ((l && l.concat) && (r && r.concat)) || (R.is(Object, l) && R.is(Object, r)) ?
-    mergeDeep(l, r) : // tail recursive
-    r;
-}));
+  // If either (hopefully both) items are arrays or not both objects
+  // accept the right value
+  return ((l && l.concat && R.is(Array, l)) || (r && r.concat && R.is(Array, r))) || !(R.is(Object, l) && R.is(Object, r)) ?
+    fn(l, r) :
+    mergeDeepWith(fn, l, r); // tail recursive
+})(left, right));
 
 /**
  * http://stackoverflow.com/questions/40011725/point-free-style-capitalize-function-with-ramda
@@ -362,15 +362,15 @@ const mapDefaultAndPrefixOthers = module.exports.mapDefaultAndPrefixOthers = (de
   );
 
 /**
- * Maps a functor with a function that returns pairs and create and object therefrom
+ * Maps a container with a function that returns pairs and create and object therefrom
  * Like R.mapObjIndexed, the function's first argument is the value of each item, and the seconds is the key if
  * iterating over objects
- * @params {Function} f The mapping function
- * @params {Functor} functor Anything that can be mapped
+ * @params {Functor} f The mapping function
+ * @params {Container} container Anything that can be mapped
  * @returns {Object} The mapped pairs made into key values
  * @sig fromPairsMap :: Functor F = (a -> [b,c]) -> F -> <k,v>
  */
-const fromPairsMap = module.exports.fromPairsMap = R.curry((f, functor) => R.fromPairs(R.mapObjIndexed(f, functor)));
+const fromPairsMap = module.exports.fromPairsMap = R.curry((f, container) => R.fromPairs(R.mapObjIndexed(f, container)));
 
 /**
  * https://github.com/ramda/ramda/wiki/Cookbook
@@ -467,7 +467,7 @@ module.exports.moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
 /**
  * Like R.find but expects only one match and works on both arrays and objects
  * @param {Function} predicate
- * @param {Array|Object} obj Functor that should only match once with predicate
+ * @param {Array|Object} obj Container that should only match once with predicate
  * @returns {Either} Left if no matches or more than one, otherwise Right with the single matching item in an array/object
  */
 const findOne = module.exports.findOne = R.curry((predicate, obj) =>
@@ -485,8 +485,8 @@ const findOne = module.exports.findOne = R.curry((predicate, obj) =>
 );
 
 /**
- * Version of find one that accepts all items of the given functor
- * @param {Array|Object} obj Functor
+ * Version of find one that accepts all items of the given Container
+ * @param {Array|Object} obj Container
  * @returns {Either} Left if no items or more than one, otherwise Right with the single item in an array/object
  */
 module.exports.onlyOne = findOne(R.T);

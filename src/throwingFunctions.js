@@ -40,7 +40,7 @@ const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, e
   either.either(
     // Throw if Left
     leftValue => {
-      throw new Error(`${message}: ${leftValue}`);
+      throw new Error(`${message}: ${prettyFormat(leftValue)}`);
     },
     // Return the Right value
     R.identity
@@ -49,7 +49,7 @@ const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, e
 /**
  * Like throwIfLeft but allows mapping of the unformatted Error values in Either
  * @param {Either} either Left value is an error to throw. Right value is success to return
- * The Either value (not just the Either itself) must be a functor in order to apply the mapping function
+ * The Either value (not just the Either itself) must be a Container in order to apply the mapping function
  * @param {Function} func Mapping function that maps Either.Left value. If this value is
  * an array it maps each value. If not it maps the single value
  * @returns {Right} Throws the mapped values or returns Either.Right
@@ -116,7 +116,7 @@ module.exports.reqPathPropEq = R.curry((path, val, obj) =>
 /**
  * Like R.find but expects only one match and works on both arrays and objects
  * @param {Function} predicate
- * @param {Array|Object} obj Functor that should only match once with predicate
+ * @param {Array|Object} obj Container that should only match once with predicate
  * @returns {Object} The single item container or throws
  */
 module.exports.findOne = R.curry((predicate, obj) =>
@@ -125,7 +125,7 @@ module.exports.findOne = R.curry((predicate, obj) =>
 
 /**
  * Like findOne but without a predicate
- * @param {Array|Object} obj Functor that should only match once with predicate
+ * @param {Array|Object} obj Container that should only match once with predicate
  * @returns {Object} The single item container or throws
  */
 module.exports.onlyOne = obj =>
