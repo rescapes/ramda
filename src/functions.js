@@ -472,7 +472,7 @@ module.exports.moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
  */
 const findOne = module.exports.findOne = R.curry((predicate, obj) =>
   R.ifElse(
-    // If path doesn't resolve
+    // Ifk path doesn't resolve
     items => R.equals(R.length(R.keys(items)), 1),
     // Return the resolved single key/value object
     items => Either.Right(items),
@@ -490,3 +490,17 @@ const findOne = module.exports.findOne = R.curry((predicate, obj) =>
  * @returns {Either} Left if no items or more than one, otherwise Right with the single item in an array/object
  */
 module.exports.onlyOne = findOne(R.T);
+
+/**
+ * Like onlyOne but extracts the value
+ * @param {Array|Object} obj Container that should have one value to extract. This currently expects
+ * and array or object, but it could be expanded to take Either, Maybe, or any other container where
+ * the value can be extracted. Types like Tasks and Streams can't extract, I suppose
+ * @returns {Either} Left if no items or more than one, otherwise Right with the single value
+ */
+module.exports.onlyOneValue = R.compose(
+  // Use R.map to operate on the value of Either without extracting it
+  R.map(R.head),
+  R.map(R.values),
+  findOne(R.T)
+);
