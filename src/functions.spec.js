@@ -297,4 +297,8 @@ describe('helperFunctions', () => {
       Either.Left({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
+
+  test('mapToObjValue', () => {
+    expect(f.mapToObjValue(R.compose(f.camelCase, R.toLower), ['MY', 'SHOES_FIT'])).toEqual({MY: 'my', SHOES_FIT: 'shoesFit'});
+  });
 });

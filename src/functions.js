@@ -504,3 +504,11 @@ module.exports.onlyOneValue = R.compose(
   R.map(R.values),
   findOne(R.T)
 );
+
+/**
+ * Curryable Maps container values to the key and values of an object, applying f to each to make the value
+ * @param {Function} f Transforms each item to a value
+ * @param {Array} list Container to map to an object.
+ * @sig mapToObjValue:: Functor a => (b -> c) -> <b, c>
+ */
+module.exports.mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v => [v, f(v)]))(obj));
