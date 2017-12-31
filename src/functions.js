@@ -8,6 +8,9 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
+ */
+
+ /*
  * Utility functions, which rely heavily on Ramda, data.task, and Ramda Fantasy types
  * These functions should all be pure. Equivalent throwing functions can
  * be found in throwingFunctions. throwingFunctions should only be used for coding errors,
@@ -256,6 +259,39 @@ const reqPath = module.exports.reqPath = R.curry((path, obj) => {
     // Try to resolve the value using the path and obj, returning Maybe
     Rm.path(path))(obj);
 });
+
+/**
+ * Expects a prop path and returns a function expecting props,
+ * which resolves the prop indicated by the string. Returns either.left if there is not match
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {Either} Either.right with the resolved value or Either.left if the path doesn't exist or the
+ * value is null
+ */
+module.exports.reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), props));
+
+/**
+ * Expects a prop path and returns a function expecting props,
+ * which resolves the prop indicated by the string. If not match is found it returns undefined
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {function(*=)}
+ */
+module.exports.strPath = R.curry((str, props) => {
+  return R.view(R.lensPath(R.split('.', str)), props);
+});
+
+/**
+ * Returns true if the given string path is non-null
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @returns {Boolean} true
+ */
+const hasStrPath = module.exports.hasStrPath = R.curry((str, props) =>
+  R.complement(R.isNil)(
+    R.view(R.lensPath(R.split('.', str)), props)
+  )
+);
 
 /**
  * Uses reqPath to resolve the path of an object and compares it to val

@@ -72,7 +72,7 @@ module.exports.mappedThrowIfLeft = R.curry((func, either) =>
  * @returns {Object|Exception} The value of the sought path or throws
  * reqPath:: string -> obj -> a or throws
  */
-module.exports.reqPath = R.curry((path, obj) =>
+const reqPathThrowing = module.exports.reqPath = R.curry((path, obj) =>
   reqPath(path, obj).either(
     leftValue => {
       // If left throw a helpful error
@@ -87,6 +87,15 @@ module.exports.reqPath = R.curry((path, obj) =>
     R.identity
   )
 );
+
+/**
+ * Expects a prop path and returns a function expecting props,
+ * which resolves the prop indicated by the string. Throws if there is no match
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {function(*=)}
+ */
+module.exports.reqStrPath = R.curry((str, props) => reqPathThrowing(R.split('.', str), props));
 
 /**
  * Calls functions.reqPathPropEq and throws if the reqPath does not resolve to a non-nil

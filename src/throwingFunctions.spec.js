@@ -9,7 +9,7 @@
  * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 const pureReqPath = require('./functions').reqPath;
-const {throwIfLeft, mappedThrowIfLeft, reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} = require('./throwingFunctions');
+const {throwIfLeft, mappedThrowIfLeft, reqPath, reqStrPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} = require('./throwingFunctions');
 const {Either} = require('ramda-fantasy');
 const R = require('ramda');
 
@@ -31,6 +31,24 @@ describe('throwingFunctions', () => {
   test('reqPath', () => {
     expect(reqPath(['a'], {a: 1})).toBe(1);
     expect(() => reqPath(['a', 'b'], {a: {c: 1}})).toThrow();
+  });
+
+  test('reqStrPath', () => {
+    expect(reqStrPath('foo.bar.goo', {
+      foo: {
+        bar: {
+          goo: 1
+        }
+      }
+    })).toEqual(1);
+
+    expect(() => reqStrPath('foo.bar.goo', {
+      foo: {
+        car: {
+          goo: 1
+        }
+      }
+    })).toThrow();
   });
 
   test('reqPathPropEq', () => {

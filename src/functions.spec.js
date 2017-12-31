@@ -8,6 +8,7 @@
  *
  * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 const R = require('ramda');
 const f = require('./functions');
 const Task = require('data.task');
@@ -110,6 +111,52 @@ describe('helperFunctions', () => {
     });
   });
 
+  test('reqStrPath', () => {
+    expect(f.reqStrPath('foo.bar.goo', {
+      foo: {
+        bar: {
+          goo: 1
+        }
+      }
+    })).toEqual(Either.Right(1));
+
+    expect(f.reqStrPath('foo.bar.goo', {
+      foo: {
+        car: {
+          goo: 1
+        }
+      }
+    })).toEqual(Either.Left(
+      {
+        resolved: ['foo'],
+        path: ['foo', 'bar', 'goo']
+      })
+    );
+  });
+
+  test('strPath', () => {
+    expect(f.strPath('foo.bar.goo', {
+      foo: {
+        bar: {
+          goo: 1
+        }
+      }
+    })).toEqual(1);
+
+    expect(typeof f.strPath('foo.bar.goo', {
+      foo: {
+        car: {
+          goo: 1
+        }
+      }
+    })).toEqual('undefined');
+  });
+
+  test('hasStrPath', () => {
+    expect(f.hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
+    expect(f.hasStrPath('tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(false);
+  });
+
   test('Required path prop equals', () => {
     expect(f.reqPathPropEq(['a'], 1, {a: 1}).value).toBe(true);
     expect(f.reqPathPropEq(['a', 'b'], 1, {a: {c: 1}}).value).toEqual({
@@ -187,12 +234,14 @@ describe('helperFunctions', () => {
   test('transformKeys', () => {
     expect(f.transformKeys(
       f.camelCase,
-      {who_made_me_with_slugs: 'the snail',
-      'what-kind-of-camel-Races': 'a dromedary'
+      {
+        who_made_me_with_slugs: 'the snail',
+        'what-kind-of-camel-Races': 'a dromedary'
       }
     )).toEqual(
-      {whoMadeMeWithSlugs: 'the snail',
-       whatKindOfCamelRaces: 'a dromedary'
+      {
+        whoMadeMeWithSlugs: 'the snail',
+        whatKindOfCamelRaces: 'a dromedary'
       }
     );
   });
@@ -209,12 +258,16 @@ describe('helperFunctions', () => {
     expect(
       f.duplicateKey(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
-      {x: {y: {
-        z: {cactus: 'blossoms'},
-        'and per se': {cactus: 'blossoms'},
-        'a per se': {cactus: 'blossoms'},
-        'o per se': {cactus: 'blossoms'}
-      }}}
+      {
+        x: {
+          y: {
+            z: {cactus: 'blossoms'},
+            'and per se': {cactus: 'blossoms'},
+            'a per se': {cactus: 'blossoms'},
+            'o per se': {cactus: 'blossoms'}
+          }
+        }
+      }
     );
   });
 
@@ -222,11 +275,15 @@ describe('helperFunctions', () => {
     expect(
       f.moveToKeys(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
-      {x: {y: {
-        'and per se': {cactus: 'blossoms'},
-        'a per se': {cactus: 'blossoms'},
-        'o per se': {cactus: 'blossoms'}
-      }}}
+      {
+        x: {
+          y: {
+            'and per se': {cactus: 'blossoms'},
+            'a per se': {cactus: 'blossoms'},
+            'o per se': {cactus: 'blossoms'}
+          }
+        }
+      }
     );
   });
 
@@ -261,8 +318,7 @@ describe('helperFunctions', () => {
   });
 
   test('onlyOne', () => {
-    expect(f.onlyOne({a: 'Eli Whitney'})).
-    toEqual(Either.Right({a: 'Eli Whitney'}));
+    expect(f.onlyOne({a: 'Eli Whitney'})).toEqual(Either.Right({a: 'Eli Whitney'}));
 
     // None
     expect(
@@ -280,8 +336,7 @@ describe('helperFunctions', () => {
   });
 
   test('onlyOneValue', () => {
-    expect(f.onlyOneValue({a: 'Eli Whitney'})).
-    toEqual(Either.Right('Eli Whitney'));
+    expect(f.onlyOneValue({a: 'Eli Whitney'})).toEqual(Either.Right('Eli Whitney'));
 
     // None
     expect(
@@ -299,6 +354,9 @@ describe('helperFunctions', () => {
   });
 
   test('mapToObjValue', () => {
-    expect(f.mapToObjValue(R.compose(f.camelCase, R.toLower), ['MY', 'SHOES_FIT'])).toEqual({MY: 'my', SHOES_FIT: 'shoesFit'});
+    expect(f.mapToObjValue(R.compose(f.camelCase, R.toLower), ['MY', 'SHOES_FIT'])).toEqual({
+      MY: 'my',
+      SHOES_FIT: 'shoesFit'
+    });
   });
 });
