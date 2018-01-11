@@ -40,7 +40,7 @@ const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, e
   either.either(
     // Throw if Left
     leftValue => {
-      throw new Error(`${message}: ${prettyFormat(leftValue)}`);
+      throw new Error(`${message}: ${prettyFormat(leftValue, {maxDepth: 2})}`);
     },
     // Return the Right value
     R.identity
@@ -80,7 +80,7 @@ const reqPathThrowing = module.exports.reqPath = R.curry((path, obj) =>
         [leftValue.resolved.length ?
           `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
           'Found no non-nil value of path',
-          `of ${path.join('.')} for obj ${prettyFormat(obj)}`
+          `of ${path.join('.')} for obj ${prettyFormat(obj, {maxDepth: 2})}`
         ].join(' '));
     },
     // If right return the value
@@ -114,7 +114,7 @@ module.exports.reqPathPropEq = R.curry((path, val, obj) =>
         [leftValue.resolved.length ?
           `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
           'Found no non-nil value of path',
-          `of ${path.join('.')} for obj ${prettyFormat(obj)}`
+          `of ${path.join('.')} for obj ${prettyFormat(obj, {maxDepth: 2})}`
         ].join(' '));
     },
     // If right return the value
