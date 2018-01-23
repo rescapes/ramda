@@ -28,7 +28,7 @@ module.exports = {
     reqPath: throwing.reqPath,
     onlyOneValue: throwing.onlyOneValue,
     onlyOne: throwing.onlyOne,
-    findOne: throwing.onlyOne,
+    findOne: throwing.findOne,
     reqStrPath: throwing.reqStrPath,
     mappedThrowIfLeft: throwing.mappedThrowIfLeft,
     throwIfLeft: throwing.throwIfLeft,
