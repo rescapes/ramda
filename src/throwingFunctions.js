@@ -40,7 +40,7 @@ const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, e
   either.either(
     // Throw if Left
     leftValue => {
-      throw new Error(`${message}: ${prettyFormat(leftValue, {maxDepth: 2})}`);
+      throw new Error(`${message}: ${prettyFormat(leftValue, {maxDepth: 3})}`);
     },
     // Return the Right value
     R.identity

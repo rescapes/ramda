@@ -9,7 +9,29 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-module.exports = Object.assign({},
-  require('./functions'),
-  { throwing: require('./throwingFunctions') }
-);
+const {
+  throwIfLeft, reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
+  filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
+  mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
+  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext,
+  removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, taskToPromise, transformKeys
+} = require('./functions');
+const throwing = require('./throwingFunctions');
+module.exports = {
+  throwIfLeft, reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
+  filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
+  mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
+  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext,
+  removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, taskToPromise, transformKeys,
+  throwing: {
+    reqPathPropEq: throwing.reqPathPropEq,
+    reqPath: throwing.reqPath,
+    onlyOneValue: throwing.onlyOneValue,
+    onlyOne: throwing.onlyOne,
+    findOne: throwing.onlyOne,
+    reqStrPath: throwing.reqStrPath,
+    mappedThrowIfLeft: throwing.mappedThrowIfLeft,
+    throwIfLeft: throwing.throwIfLeft,
+    throwIfSingleLeft: throwing.throwIfSingleLeft
+  }
+};
