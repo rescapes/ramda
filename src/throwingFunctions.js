@@ -13,7 +13,7 @@
 const {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} = require('./functions');
 const {Either} = require('ramda-fantasy');
 const R = require('ramda');
-const prettyFormat = require('pretty-format');
+const {inspect} = require('util');
 
 /**
  * Throw and exception if Either is Left
@@ -40,7 +40,7 @@ const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, e
   either.either(
     // Throw if Left
     leftValue => {
-      throw new Error(`${message}: ${prettyFormat(leftValue, {maxDepth: 3})}`);
+      throw new Error(`${message}: ${inspect(leftValue, {showHidden: false, depth: 3})}`);
     },
     // Return the Right value
     R.identity
@@ -80,7 +80,7 @@ const reqPathThrowing = module.exports.reqPath = R.curry((path, obj) =>
         [leftValue.resolved.length ?
           `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
           'Found no non-nil value of path',
-          `of ${path.join('.')} for obj ${prettyFormat(obj, {maxDepth: 2})}`
+          `of ${path.join('.')} for obj ${inspect(obj, {depth: 3})}`
         ].join(' '));
     },
     // If right return the value
@@ -114,7 +114,7 @@ module.exports.reqPathPropEq = R.curry((path, val, obj) =>
         [leftValue.resolved.length ?
           `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
           'Found no non-nil value of path',
-          `of ${path.join('.')} for obj ${prettyFormat(obj, {maxDepth: 2})}`
+          `of ${path.join('.')} for obj ${inspect(obj, {depth: 2})}`
         ].join(' '));
     },
     // If right return the value

@@ -319,12 +319,6 @@ const taskToPromise = module.exports.taskToPromise = (task, expectReject = false
   return new Promise((res, rej) =>
     task.fork(
       reject => {
-        if (!expectReject) {
-          // console.log('Unhandled Promise', prettyFormat(reject));
-          if (reject && reject.stack) {
-            // console.log(stackTrace.parse(reject));
-          }
-        }
         return rej(reject);
       },
       resolve => res(resolve)
@@ -343,12 +337,6 @@ const promiseToTask = module.exports.promiseToTask = (promise, expectReject = fa
     throw new TypeError(`Expected a Promise, got ${typeof promise}`);
   }
   return new Task((rej, res) => promise.then(res).catch(reject => {
-    /*
-     if (!expectReject) {
-     console.warn('Unhandled Promise', prettyFormat(reject));
-     console.warn(reject.stack);
-     }
-     */
     return rej(reject);
   }));
 };
