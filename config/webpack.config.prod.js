@@ -53,12 +53,13 @@ module.exports = {
   devtool: shouldUseSourceMap ? 'source-map' : false,
   // In production, we only want to load the app code.
   entry: {
-    app: paths.appLibIndexJs
+    index: paths.appLibIndexJs,
+    'index.min': paths.appLibIndexJs
   }, // CRL: library index file instead of app index
   output: {
     // CRL: Updated whole block with library specific info
     path: paths.appBuild,
-    filename: 'index.js',
+    filename: '[name].js',
     libraryTarget: 'umd'
   },
   resolve: {
@@ -146,6 +147,7 @@ module.exports = {
     // Minify the code.
     new UglifyJsPlugin({
       sourceMap: shouldUseSourceMap,
+      include: /\.min\.js$/,
       uglifyOptions: {
         ecma:8,
         compress: {

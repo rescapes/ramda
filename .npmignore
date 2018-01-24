@@ -25,3 +25,4 @@ CHANGELOG.md
 README.md
 .idea
 yarn.lock
+.eslintrc
