@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "main": "dist/index.js",
