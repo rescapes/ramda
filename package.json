@@ -3,12 +3,7 @@
   "version": "1.4.1",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
-  "main": "dist/index.js",
-  "files": [
-    "index.js",
-    "src",
-    "dist"
-  ],
+  "main": "build/index.js",
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node scripts/test.js --env=jsdom",
