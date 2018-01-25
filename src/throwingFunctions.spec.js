@@ -8,8 +8,9 @@
  *
  * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 const pureReqPath = require('./functions').reqPath;
-const {throwIfLeft, mappedThrowIfLeft, reqPath, reqStrPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} = require('./throwingFunctions');
+const {throwIfLeft, mappedThrowIfLeft, reqPath, reqStrPath, reqPathPropEq, findOne, onlyOne, onlyOneValue, findOneValueByParams} = require('./throwingFunctions');
 const {Either} = require('ramda-fantasy');
 const R = require('ramda');
 
@@ -116,6 +117,22 @@ describe('throwingFunctions', () => {
     expect(
       () => onlyOneValue({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toThrow();
+  });
+
+  test('findOneValueByParams', () => {
+    const items = [
+      {brand: 'crush', flavor: 'grape'},
+      {brand: 'fanta', flavor: 'strawberry'},
+      {brand: 'crush', flavor: 'orange'}
+    ];
+    const params = {brand: 'crush', flavor: 'orange'};
+    expect(findOneValueByParams(params, items)).toEqual(
+      {brand: 'crush', flavor: 'orange'}
+    );
+    const badParams = {brand: 'crush', flavor: 'pretzel'};
+    expect(() => findOneValueByParams(badParams, items)).toThrow();
+    const tooGoodParams = {brand: 'crush'};
+    expect(() => findOneValueByParams(tooGoodParams, items)).toThrow();
   });
 });
 

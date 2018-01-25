@@ -139,7 +139,7 @@ module.exports.findOne = R.curry((predicate, obj) =>
  */
 module.exports.onlyOne = obj =>
   throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOne(obj))
-);
+  );
 
 /**
  * Like onlyOne but extracts the value from the functor
@@ -147,6 +147,17 @@ module.exports.onlyOne = obj =>
  * @returns {Object} The single item container or throws
  */
 module.exports.onlyOneValue = obj =>
-  throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOneValue(obj))
-  );
+  throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOneValue(obj)));
+
+module.exports.findOneValueByParams = (params, items) =>
+  throwIfSingleLeft('Did not find exactly one', findOne(
+    // Compare all the eqProps against each item
+    R.allPass(
+      // Create a eqProps for each prop of params
+      R.map(prop => R.eqProps(prop, params),
+        R.keys(params)
+      )
+    ),
+    R.values(items)
+  ).map(R.head));
 

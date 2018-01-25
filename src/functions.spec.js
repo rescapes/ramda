@@ -359,4 +359,39 @@ describe('helperFunctions', () => {
       SHOES_FIT: 'shoesFit'
     });
   });
+
+  test('findOneValueByParams', () => {
+    const items = [
+      {brand: 'crush', flavor: 'grape'},
+      {brand: 'fanta', flavor: 'strawberry'},
+      {brand: 'crush', flavor: 'orange'}
+    ];
+    const params = {brand: 'crush', flavor: 'orange'};
+    expect(f.findOneValueByParams(params, items)).toEqual(
+      Either.Right({brand: 'crush', flavor: 'orange'})
+    );
+    const badParams = {brand: 'crush', flavor: 'pretzel'};
+    expect(f.findOneValueByParams(badParams, items)).toEqual(
+      Either.Left(
+        {
+          all: [{'brand': 'crush', 'flavor': 'grape'}, {
+            brand: 'fanta',
+            flavor: 'strawberry'
+          }, {brand: 'crush', 'flavor': 'orange'}], matching: []
+        }
+      )
+    );
+    const tooGoodParams = {brand: 'crush'};
+    expect(f.findOneValueByParams(tooGoodParams, items)).toEqual(
+      Either.Left(
+        {
+          all: [{'brand': 'crush', 'flavor': 'grape'}, {
+            brand: 'fanta',
+            flavor: 'strawberry'
+          }, {brand: 'crush', 'flavor': 'orange'}],
+          matching: [{'brand': 'crush', 'flavor': 'grape'}, {'brand': 'crush', 'flavor': 'orange'}]
+        }
+      )
+    );
+  });
 });

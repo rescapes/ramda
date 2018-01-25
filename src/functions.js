@@ -517,12 +517,12 @@ module.exports.onlyOne = findOne(R.T);
 
 /**
  * Like onlyOne but extracts the value
- * @param {Array|Object} obj Container that should have one value to extract. This currently expects
- * and array or object, but it could be expanded to take Either, Maybe, or any other container where
+ * @param {Array|Object|Either} obj Container that should have one value to extract. This currently expects
+ * and array or object or Either, but it could be expanded to take Either, Maybe, or any other container where
  * the value can be extracted. Types like Tasks and Streams can't extract, I suppose
  * @returns {Either} Left if no items or more than one, otherwise Right with the single value
  */
-module.exports.onlyOneValue = R.compose(
+const onlyOneValue = module.exports.onlyOneValue = R.compose(
   // Use R.map to operate on the value of Either without extracting it
   R.map(R.head),
   R.map(R.values),
@@ -536,3 +536,23 @@ module.exports.onlyOneValue = R.compose(
  * @sig mapToObjValue:: Functor a => (b -> c) -> <b, c>
  */
 module.exports.mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v => [v, f(v)]))(obj));
+
+
+/**
+ * Finds an item that matches all the given props in params
+ * @param {Object} params object key values to match
+ * @param {Object|Array} items Object or Array that can produce values to search
+ * @returns {Either} An Either.Right containing the value or an Either.Left if no value is found
+ */
+module.exports.findOneValueByParams = (params, items) => {
+  return findOne(
+    // Compare all the eqProps against each item
+    R.allPass(
+      // Create a eqProps for each prop of params
+      R.map(prop => R.eqProps(prop, params),
+        R.keys(params)
+      )
+    ),
+    R.values(items)
+  ).map(R.head);
+}
