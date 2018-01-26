@@ -10,15 +10,15 @@
  *
  */
 
- /*
- * Utility functions, which rely heavily on Ramda, data.task, and Ramda Fantasy types
- * These functions should all be pure. Equivalent throwing functions can
- * be found in throwingFunctions. throwingFunctions should only be used for coding errors,
- * such as improper function arguments or an invalid path within object.
- * I/O Errors should be handled using Maybe or Either and calling functions should expect them.
- * An I/O Error should always result in a valid state of an application, even if that valid
- * state is to show an error message, retry I/O, etc.
- */
+/*
+* Utility functions, which rely heavily on Ramda, data.task, and Ramda Fantasy types
+* These functions should all be pure. Equivalent throwing functions can
+* be found in throwingFunctions. throwingFunctions should only be used for coding errors,
+* such as improper function arguments or an invalid path within object.
+* I/O Errors should be handled using Maybe or Either and calling functions should expect them.
+* An I/O Error should always result in a valid state of an application, even if that valid
+* state is to show an error message, retry I/O, etc.
+*/
 
 const R = require('ramda');
 const Rm = require('ramda-maybe');
@@ -555,4 +555,4 @@ module.exports.findOneValueByParams = (params, items) => {
     ),
     R.values(items)
   ).map(R.head);
-}
+};
