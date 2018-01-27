@@ -374,7 +374,7 @@ describe('helperFunctions', () => {
     expect(f.findOneValueByParams(badParams, items)).toEqual(
       Either.Left(
         {
-          all: [{'brand': 'crush', 'flavor': 'grape'}, {
+          all: [{brand: 'crush', flavor: 'grape'}, {
             brand: 'fanta',
             flavor: 'strawberry'
           }, {brand: 'crush', 'flavor': 'orange'}], matching: []
@@ -385,11 +385,11 @@ describe('helperFunctions', () => {
     expect(f.findOneValueByParams(tooGoodParams, items)).toEqual(
       Either.Left(
         {
-          all: [{'brand': 'crush', 'flavor': 'grape'}, {
+          all: [{brand: 'crush', flavor: 'grape'}, {
             brand: 'fanta',
             flavor: 'strawberry'
           }, {brand: 'crush', 'flavor': 'orange'}],
-          matching: [{'brand': 'crush', 'flavor': 'grape'}, {'brand': 'crush', 'flavor': 'orange'}]
+          matching: [{brand: 'crush', flavor: 'grape'}, {brand: 'crush', flavor: 'orange'}]
         }
       )
     );
