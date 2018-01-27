@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.4.11",
+  "version": "1.4.12",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -127,7 +127,13 @@
     ],
     "plugins": [
       "transform-object-rest-spread",
-      ["transform-runtime", {"polyfill": false, "regenerator": true}]
+      [
+        "transform-runtime",
+        {
+          "polyfill": false,
+          "regenerator": true
+        }
+      ]
     ],
     "env": {
       "commonjs": {
