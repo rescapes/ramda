@@ -377,7 +377,7 @@ describe('helperFunctions', () => {
           all: [{brand: 'crush', flavor: 'grape'}, {
             brand: 'fanta',
             flavor: 'strawberry'
-          }, {brand: 'crush', 'flavor': 'orange'}], matching: []
+          }, {brand: 'crush', flavor: 'orange'}], matching: []
         }
       )
     );
@@ -388,7 +388,7 @@ describe('helperFunctions', () => {
           all: [{brand: 'crush', flavor: 'grape'}, {
             brand: 'fanta',
             flavor: 'strawberry'
-          }, {brand: 'crush', 'flavor': 'orange'}],
+          }, {brand: 'crush', flavor: 'orange'}],
           matching: [{brand: 'crush', flavor: 'grape'}, {brand: 'crush', flavor: 'orange'}]
         }
       )
