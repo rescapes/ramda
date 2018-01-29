@@ -18,13 +18,13 @@ const {inspect} = require('util');
 /**
  * Throw and exception if Either is Left
  * @param {Either} either Left value is an array of Errors to throw. Right value is success to return
- * @returns {Object} Throws or returns the contents of Right
+ * @returns {Object} Throws or returns the contents of Right. Values are '; ' separated
  */
 module.exports.throwIfLeft = either =>
   either.either(
     // Throw if Left
     leftValue => {
-      throw new Error(R.join(', ', leftValue));
+      throw new Error(R.join('; ', leftValue));
     },
     // Return the Right value
     R.identity
@@ -52,13 +52,13 @@ const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, e
  * The Either value (not just the Either itself) must be a Container in order to apply the mapping function
  * @param {Function} func Mapping function that maps Either.Left value. If this value is
  * an array it maps each value. If not it maps the single value
- * @returns {Right} Throws the mapped values or returns Either.Right
+ * @returns {Right} Throws the mapped values or returns Either.Right. Error values are '; ' separated
  */
 module.exports.mappedThrowIfLeft = R.curry((func, either) =>
   either.either(
     // Throw if Left
     leftValue => {
-      throw new Error(R.join(', ', R.map(func, leftValue)));
+      throw new Error(R.join('; ', R.map(func, leftValue)));
     },
     // Return the Right value
     R.identity
