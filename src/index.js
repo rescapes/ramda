@@ -29,18 +29,5 @@ module.exports = {
   findOneThrowing: throwing.findOne,
   reqStrPathThrowing: throwing.reqStrPath,
   mappedThrowIfLeft: throwing.mappedThrowIfLeft,
-  throwIfLeft: throwing.throwIfLeft,
-  // These will be removed
-  throwing: {
-    reqPathPropEq: throwing.reqPathPropEq,
-    reqPath: throwing.reqPath,
-    onlyOneValue: throwing.onlyOneValue,
-    onlyOne: throwing.onlyOne,
-    findOne: throwing.findOne,
-    reqStrPath: throwing.reqStrPath,
-    mappedThrowIfLeft: throwing.mappedThrowIfLeft,
-    throwIfLeft: throwing.throwIfLeft,
-    throwIfSingleLeft: throwing.throwIfSingleLeft,
-    findOneValueByParams: throwing.findOneValueByParams
-  }
+  throwIfLeft: throwing.throwIfLeft
 };
