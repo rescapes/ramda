@@ -10,7 +10,7 @@
  */
 
 const {
-  throwIfLeft, reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
+  reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
   mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext,
@@ -18,11 +18,19 @@ const {
 } = require('./functions');
 const throwing = require('./throwingFunctions');
 module.exports = {
-  throwIfLeft, reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
+  reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
   mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, taskToPromise, transformKeys, findOneValueByParams,
+  reqPathPropEqThrowing: throwing.reqPathPropEq,
+  reqPathThrowing: throwing.reqPath,
+  onlyOneValueThrowing: throwing.onlyOneValue,
+  findOneThrowing: throwing.findOne,
+  reqStrPathThrowing: throwing.reqStrPath,
+  mappedThrowIfLeft: throwing.mappedThrowIfLeft,
+  throwIfLeft: throwing.throwIfLeft,
+  // These will be removed
   throwing: {
     reqPathPropEq: throwing.reqPathPropEq,
     reqPath: throwing.reqPath,
