@@ -10,7 +10,7 @@
  */
 
 const pureReqPath = require('./functions').reqPath;
-const {throwIfLeft, mappedThrowIfLeft, reqPath, reqStrPath, reqPathPropEq, findOne, onlyOne, onlyOneValue, findOneValueByParams} = require('./throwingFunctions');
+const {throwIfLeft, mappedThrowIfLeft, reqPathThrowing, reqStrPathThrowing, reqPathPropEqThrowing, findOneThrowing, onlyOneThrowing, onlyOneValueThrowing, findOneValueByParamsThrowing} = require('./throwingFunctions');
 const {Either} = require('ramda-fantasy');
 const R = require('ramda');
 
@@ -29,13 +29,13 @@ describe('throwingFunctions', () => {
     );
   });
 
-  test('reqPath', () => {
-    expect(reqPath(['a'], {a: 1})).toBe(1);
-    expect(() => reqPath(['a', 'b'], {a: {c: 1}})).toThrow();
+  test('reqPathThrowing', () => {
+    expect(reqPathThrowing(['a'], {a: 1})).toBe(1);
+    expect(() => reqPathThrowing(['a', 'b'], {a: {c: 1}})).toThrow();
   });
 
-  test('reqStrPath', () => {
-    expect(reqStrPath('foo.bar.goo', {
+  test('reqStrPathThrowing', () => {
+    expect(reqStrPathThrowing('foo.bar.goo', {
       foo: {
         bar: {
           goo: 1
@@ -43,7 +43,7 @@ describe('throwingFunctions', () => {
       }
     })).toEqual(1);
 
-    expect(() => reqStrPath('foo.bar.goo', {
+    expect(() => reqStrPathThrowing('foo.bar.goo', {
       foo: {
         car: {
           goo: 1
@@ -52,87 +52,87 @@ describe('throwingFunctions', () => {
     })).toThrow();
   });
 
-  test('reqPathPropEq', () => {
-    expect(reqPathPropEq(['a'], 1, {a: 1})).toBe(true);
-    expect(() => reqPathPropEq(['a', 'b'], 1, {a: {c: 1}})).toThrow();
+  test('reqPathPropEqThrowing', () => {
+    expect(reqPathPropEqThrowing(['a'], 1, {a: 1})).toBe(true);
+    expect(() => reqPathPropEqThrowing(['a', 'b'], 1, {a: {c: 1}})).toThrow();
   });
 
-  test('findOne', () => {
+  test('findOneThrowing', () => {
     // Works with objects
     expect(
-      findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
+      findOneThrowing(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
     ).toEqual(
       {b: 'Eli Whitney'}
     );
 
     // Works with arrays
     expect(
-      findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
+      findOneThrowing(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
     ).toEqual(
       ['Eli Whitney']
     );
 
     // None
     expect(
-      () => findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
+      () => findOneThrowing(R.equals('Eli Whitney'), {a: 1, b: 2})
     ).toThrow();
 
     // Too many
     expect(
-      () => findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
+      () => findOneThrowing(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toThrow();
   });
 
-  test('onlyOne', () => {
+  test('onlyOneThrowing', () => {
     expect(
-      onlyOne({a: 'Eli Whitney'})).
+      onlyOneThrowing({a: 'Eli Whitney'})).
     toEqual(
       {a: 'Eli Whitney'}
     );
 
     // None
     expect(
-      () => onlyOne({})
+      () => onlyOneThrowing({})
     ).toThrow();
 
     // Too many
     expect(
-      () => onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
+      () => onlyOneThrowing({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toThrow();
   });
 
-  test('onlyOneValue', () => {
+  test('onlyOneValueThrowing', () => {
     expect(
-      onlyOneValue({a: 'Eli Whitney'})).
+      onlyOneValueThrowing({a: 'Eli Whitney'})).
     toEqual(
       'Eli Whitney'
     );
 
     // None
     expect(
-      () => onlyOneValue({})
+      () => onlyOneValueThrowing({})
     ).toThrow();
 
     // Too many
     expect(
-      () => onlyOneValue({a: 'Eli Whitney', b: 'Eli Whitney'})
+      () => onlyOneValueThrowing({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toThrow();
   });
 
-  test('findOneValueByParams', () => {
+  test('findOneValueByParamsThrowing', () => {
     const items = [
       {brand: 'crush', flavor: 'grape'},
       {brand: 'fanta', flavor: 'strawberry'},
       {brand: 'crush', flavor: 'orange'}
     ];
     const params = {brand: 'crush', flavor: 'orange'};
-    expect(findOneValueByParams(params, items)).toEqual(
+    expect(findOneValueByParamsThrowing(params, items)).toEqual(
       {brand: 'crush', flavor: 'orange'}
     );
     const badParams = {brand: 'crush', flavor: 'pretzel'};
-    expect(() => findOneValueByParams(badParams, items)).toThrow();
+    expect(() => findOneValueByParamsThrowing(badParams, items)).toThrow();
     const tooGoodParams = {brand: 'crush'};
-    expect(() => findOneValueByParams(tooGoodParams, items)).toThrow();
+    expect(() => findOneValueByParamsThrowing(tooGoodParams, items)).toThrow();
   });
 });
 
