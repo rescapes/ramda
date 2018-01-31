@@ -34,5 +34,5 @@ module.exports = {
   mappedThrowIfLeft,
   throwIfLeft,
   findOneValueByParamsThrowing,
-  onlyOneThrowing,
+  onlyOneThrowing
 };
