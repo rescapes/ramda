@@ -32,5 +32,7 @@ module.exports = {
   findOneThrowing,
   reqStrPathThrowing,
   mappedThrowIfLeft,
-  throwIfLeft
+  throwIfLeft,
+  findOneValueByParamsThrowing,
+  onlyOneThrowing,
 };

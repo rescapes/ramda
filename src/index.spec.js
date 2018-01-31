@@ -15,3 +15,4 @@ describe('index', () => {
     expect(!mapPropValueAsIndex).toEqual(false);
   });
 });
+
