@@ -22,7 +22,7 @@
 
 import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
-import * as Task from 'data.task';
+import Task from 'data.task';
 import {Either, Maybe} from 'ramda-fantasy';
 
 /**
