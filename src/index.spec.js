@@ -10,6 +10,7 @@
  */
 import {mapPropValueAsIndex} from './index';
 
+// Debugging a rollup problem
 describe('index', () => {
   test('import', () => {
     expect(!mapPropValueAsIndex).toEqual(false);

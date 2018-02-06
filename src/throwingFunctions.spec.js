@@ -9,21 +9,21 @@
  * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-const pureReqPath = require('./functions').reqPath;
-const {throwIfLeft, mappedThrowIfLeft, reqPathThrowing, reqStrPathThrowing, reqPathPropEqThrowing, findOneThrowing, onlyOneThrowing, onlyOneValueThrowing, findOneValueByParamsThrowing} = require('./throwingFunctions');
-const {Either} = require('ramda-fantasy');
-const R = require('ramda');
+import {reqPath} from './functions'
+import {throwIfLeft, mappedThrowIfLeft, reqPathThrowing, reqStrPathThrowing, reqPathPropEqThrowing, findOneThrowing, onlyOneThrowing, onlyOneValueThrowing, findOneValueByParamsThrowing} from './throwingFunctions';
+import {Either} from 'ramda-fantasy';
+import * as R from 'ramda';
 
 describe('throwingFunctions', () => {
   test('throwIfLeft', () => {
     // Use a pure function that returns Either. throwIfLeft should throw if the either is an EitherLeft
-    expect(throwIfLeft(pureReqPath(['a'], {a: 1}))).toBe(1);
-    expect(() => throwIfLeft(pureReqPath(['a', 'b'], {a: {c: 1}}))).toThrow();
+    expect(throwIfLeft(reqPath(['a'], {a: 1}))).toBe(1);
+    expect(() => throwIfLeft(reqPath(['a', 'b'], {a: {c: 1}}))).toThrow();
   });
 
   test('mappedThrowIfLeft', () => {
     // Use a pure function that returns Either. throwIfLeft should throw if the either is an EitherLeft
-    expect(mappedThrowIfLeft(() => null, pureReqPath(['a'], {a: 1}))).toBe(1);
+    expect(mappedThrowIfLeft(() => null, reqPath(['a'], {a: 1}))).toBe(1);
     expect(() => mappedThrowIfLeft(arg => `Error ${arg}`, Either.Left([1, 2]))).toThrow(
       'Error 1; Error 2'
     );

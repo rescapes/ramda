@@ -10,17 +10,17 @@
  *
  * Functions that the trowing versions from functions.js
  */
-const {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} = require('./functions');
-const {Either} = require('ramda-fantasy');
-const R = require('ramda');
-const {inspect} = require('util');
+import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} from './functions';
+import {Either} from 'ramda-fantasy';
+import * as R from 'ramda';
+import {inspect} from 'util';
 
 /**
  * Throw and exception if Either is Left
  * @param {Either} either Left value is an array of Errors to throw. Right value is success to return
  * @returns {Object} Throws or returns the contents of Right. Values are '; ' separated
  */
-module.exports.throwIfLeft = either =>
+export const throwIfLeft = either =>
   either.either(
     // Throw if Left
     leftValue => {
@@ -36,7 +36,7 @@ module.exports.throwIfLeft = either =>
  * @param {Either} either Left value is a single error
  * @returns {Object} Throws or returns the contents of Right
  */
-const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, either) =>
+export const throwIfSingleLeft = R.curry((message, either) =>
   either.either(
     // Throw if Left
     leftValue => {
@@ -54,7 +54,7 @@ const throwIfSingleLeft = module.exports.throwIfSingleLeft = R.curry((message, e
  * an array it maps each value. If not it maps the single value
  * @returns {Right} Throws the mapped values or returns Either.Right. Error values are '; ' separated
  */
-module.exports.mappedThrowIfLeft = R.curry((func, either) =>
+export const mappedThrowIfLeft = R.curry((func, either) =>
   either.either(
     // Throw if Left
     leftValue => {
@@ -72,7 +72,7 @@ module.exports.mappedThrowIfLeft = R.curry((func, either) =>
  * @returns {Object|Exception} The value of the sought path or throws
  * reqPath:: string -> obj -> a or throws
  */
-const reqPathThrowing = module.exports.reqPathThrowing = R.curry((path, obj) =>
+export const reqPathThrowing = R.curry((path, obj) =>
   reqPath(path, obj).either(
     leftValue => {
       // If left throw a helpful error
@@ -95,7 +95,7 @@ const reqPathThrowing = module.exports.reqPathThrowing = R.curry((path, obj) =>
  * @param {Object} props Object to resolve the path in
  * @return {function(*=)}
  */
-module.exports.reqStrPathThrowing = R.curry((str, props) => reqPathThrowing(R.split('.', str), props));
+export const reqStrPathThrowing = R.curry((str, props) => reqPathThrowing(R.split('.', str), props));
 
 /**
  * Calls functions.reqPathPropEq and throws if the reqPath does not resolve to a non-nil
@@ -106,7 +106,7 @@ module.exports.reqStrPathThrowing = R.curry((str, props) => reqPathThrowing(R.sp
  * resulting value matches val. throws if the path is invalid
  * reqPath:: Boolean b = string -> obj -> b or throws
  */
-module.exports.reqPathPropEqThrowing = R.curry((path, val, obj) =>
+export const reqPathPropEqThrowing = R.curry((path, val, obj) =>
   reqPathPropEq(path, val, obj).either(
     leftValue => {
       // If left throw a helpful error
@@ -128,7 +128,7 @@ module.exports.reqPathPropEqThrowing = R.curry((path, val, obj) =>
  * @param {Array|Object} obj Container that should only match once with predicate
  * @returns {Object} The single item container or throws
  */
-module.exports.findOneThrowing = R.curry((predicate, obj) =>
+export const findOneThrowing = R.curry((predicate, obj) =>
   throwIfSingleLeft('Did not find exactly one match', findOne(predicate, obj))
 );
 
@@ -137,7 +137,7 @@ module.exports.findOneThrowing = R.curry((predicate, obj) =>
  * @param {Array|Object} obj Container that should only match once with predicate
  * @returns {Object} The single item container or throws
  */
-module.exports.onlyOneThrowing = obj =>
+export const onlyOneThrowing = obj =>
   throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOne(obj))
   );
 
@@ -146,10 +146,10 @@ module.exports.onlyOneThrowing = obj =>
  * @param {Array|Object} obj Functor that has a values property
  * @returns {Object} The single item container or throws
  */
-module.exports.onlyOneValueThrowing = obj =>
+export const onlyOneValueThrowing = obj =>
   throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOneValue(obj)));
 
-module.exports.findOneValueByParamsThrowing = (params, items) =>
+export const findOneValueByParamsThrowing = (params, items) =>
   throwIfSingleLeft('Did not find exactly one', findOne(
     // Compare all theeeqProps against each item
     R.allPass(

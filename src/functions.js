@@ -20,10 +20,10 @@
 * state is to show an error message, retry I/O, etc.
 */
 
-const R = require('ramda');
-const Rm = require('ramda-maybe');
-const Task = require('data.task');
-const {Maybe, Either} = require('ramda-fantasy');
+import * as R from 'ramda';
+import * as Rm from 'ramda-maybe';
+import * as Task from 'data.task';
+import {Either, Maybe} from 'ramda-fantasy';
 
 /**
  * Return an empty string if the given entity is falsy
@@ -32,7 +32,7 @@ const {Maybe, Either} = require('ramda-fantasy');
  * @sig orEmpty:: a -> a
  *        :: a -> String
  */
-const orEmpty = module.exports.orEmpty = entity => entity || '';
+export const orEmpty = entity => entity || '';
 
 /**
  * Removed null or undefined items from an iterable
@@ -41,7 +41,7 @@ const orEmpty = module.exports.orEmpty = entity => entity || '';
  * @sig compact:: [a] -> [a]
  * @sig compact:: {k,v} -> {k,v}
  */
-const compact = module.exports.compact = R.reject(R.isNil);
+export const compact = R.reject(R.isNil);
 
 /**
  * Remove empty strings
@@ -49,7 +49,7 @@ const compact = module.exports.compact = R.reject(R.isNil);
  * @returns The compacted items
  * @sig compactEmpty:: [a] -> [a]
  */
-const compactEmpty = module.exports.compactEmpty = R.reject(R.either(R.isNil, R.isEmpty));
+export const compactEmpty = R.reject(R.either(R.isNil, R.isEmpty));
 
 /**
  * Convert an empty value to null
@@ -58,7 +58,7 @@ const compactEmpty = module.exports.compactEmpty = R.reject(R.either(R.isNil, R.
  * @sig emptyToNull:: a -> a
  *            :: a -> null
  */
-const emptyToNull = module.exports.emptyToNull = R.when(R.isEmpty, () => null);
+export const emptyToNull = R.when(R.isEmpty, () => null);
 
 /**
  * Join elements, first remove null items and empty strings. If the result is empty make it null
@@ -67,7 +67,7 @@ const emptyToNull = module.exports.emptyToNull = R.when(R.isEmpty, () => null);
  * @sig compactEmpty:: [a] -> String
  *             :: [a] -> null
  */
-const compactJoin = module.exports.compactJoin = R.compose(
+export const compactJoin = R.compose(
   (connector, items) => R.pipe(compactEmpty, R.join(connector), emptyToNull)(items)
 );
 
@@ -78,7 +78,7 @@ const compactJoin = module.exports.compactJoin = R.compose(
  * @returns {[Object]} The mapped objects
  * @sig mapProp :: String -> [{k, v}] -> [a]
  */
-const mapProp = module.exports.mapProp = R.curry((prop, objs) => R.pipe(R.prop, R.map)(prop)(objs));
+export const mapProp = R.curry((prop, objs) => R.pipe(R.prop, R.map)(prop)(objs));
 
 /**
  * Creates a partial function that maps an array of objects to an object keyed by the given prop of the object's
@@ -89,7 +89,7 @@ const mapProp = module.exports.mapProp = R.curry((prop, objs) => R.pipe(R.prop, 
  * @sig mapPropValueAsIndex:: String -> [{k, v}] -> {j, {k, v}}
  * @sig mapPropValueAsIndex:: String -> {k, v} -> {k, v}
  */
-const mapPropValueAsIndex = module.exports.mapPropValueAsIndex = R.curry((prop, obj) =>
+export const mapPropValueAsIndex = R.curry((prop, obj) =>
   R.when(
     Array.isArray,
     R.pipe(R.prop, R.indexBy)(prop)
@@ -101,7 +101,7 @@ const mapPropValueAsIndex = module.exports.mapPropValueAsIndex = R.curry((prop, 
  * @returns {[Object]} The items without the duplicates
  * @sig removeDuplicateObjectsByProp:: String -> [{k, v}] -> [{k, v}]
  */
-const removeDuplicateObjectsByProp = module.exports.removeDuplicateObjectsByProp = R.curry((prop, list) =>
+export const removeDuplicateObjectsByProp = R.curry((prop, list) =>
   R.pipe(
     mapPropValueAsIndex(prop),
     R.values
@@ -115,7 +115,7 @@ const removeDuplicateObjectsByProp = module.exports.removeDuplicateObjectsByProp
  * @sig idOrIdFromObj:: a -> a
  *              :: {k, v} -> a
  */
-const idOrIdFromObj = module.exports.idOrIdFromObj = R.when(
+export const idOrIdFromObj = R.when(
   objOrId => (typeof objOrId === 'object') && objOrId !== null,
   R.prop('id')
 );
@@ -129,7 +129,7 @@ const idOrIdFromObj = module.exports.idOrIdFromObj = R.when(
  * @param {Object} tail The remaining items
  * @returns {Object} the reduction
  */
-const reduceWithNext = module.exports.reduceWithNext = (fn, [head, next, ...tail], previous) =>
+export const reduceWithNext = (fn, [head, next, ...tail], previous) =>
   typeof (next) === 'undefined' ?
     previous :
     reduceWithNext(fn, [next, ...tail], fn(previous, head, next));
@@ -143,7 +143,7 @@ const reduceWithNext = module.exports.reduceWithNext = (fn, [head, next, ...tail
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
+export const mergeDeep = R.mergeWith((l, r) => {
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
   return ((l && l.concat && R.is(Array, l)) || (r && r.concat && R.is(Array, r))) || !(R.is(Object, l) && R.is(Object, r)) ?
@@ -156,7 +156,7 @@ const mergeDeep = module.exports.mergeDeep = R.mergeWith((l, r) => {
  * @params {[Object]} objs Array of objects to reduce
  * @returns {Object} The deep-merged objects
  */
-module.exports.mergeDeepAll = R.reduce(mergeDeep, {});
+export const mergeDeepAll = R.reduce(mergeDeep, {});
 
 /**
  * Deep merge values with a custom function that are objects
@@ -168,7 +168,7 @@ module.exports.mergeDeepAll = R.reduce(mergeDeep, {});
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
+export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
   return ((l && l.concat && R.is(Array, l)) || (r && r.concat && R.is(Array, r))) || !(R.is(Object, l) && R.is(Object, r)) ?
@@ -183,7 +183,7 @@ const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) =
  * @returns {String} The capitalized string
  * @sig capitalize:: String -> String
  */
-const capitalize = module.exports.capitalize = str => R.compose(
+export const capitalize = str => R.compose(
   R.join(''),
   R.juxt([R.compose(R.toUpper, R.head), R.tail])
 )(str);
@@ -195,7 +195,7 @@ const capitalize = module.exports.capitalize = str => R.compose(
  * @returns {String} The capitalized string
  * @sig capitalize:: String -> String
  */
-const lowercase = module.exports.lowercase = str => R.compose(
+export const lowercase = str => R.compose(
   R.join(''),
   R.juxt([R.compose(R.toLower, R.head), R.tail])
 )(str);
@@ -205,7 +205,7 @@ const lowercase = module.exports.lowercase = str => R.compose(
  * @param {String} str The string to camelCase
  * @returns {String} The camel-cased string
  */
-const camelCase = module.exports.camelCase = str =>
+export const camelCase = str =>
   str.replace(
     /[_.-](\w|$)/g,
     (_, x) => x.toUpperCase()
@@ -217,7 +217,7 @@ const camelCase = module.exports.camelCase = str =>
  * @returns {Object} The merged object
  * @sig mergeAllWithKey:: (String → a → a → a) → [{a}] → {a}
  */
-const mergeAllWithKey = module.exports.mergeAllWithKey = R.curry((fn, [head, ...rest]) =>
+export const mergeAllWithKey = R.curry((fn, [head, ...rest]) =>
   R.mergeWithKey( // call mergeWithKey on two objects at a time
     fn,
     head || {}, // first object is always the head
@@ -236,7 +236,7 @@ const mergeAllWithKey = module.exports.mergeAllWithKey = R.curry((fn, [head, ...
  * @returns {Either} Either the resolved value or an Error
  * @sig reqPath:: String -> {k: v} → Either
  */
-const reqPath = module.exports.reqPath = R.curry((path, obj) => {
+export const reqPath = R.curry((path, obj) => {
   return R.compose(
     R.ifElse(
       // If path doesn't resolve
@@ -268,7 +268,7 @@ const reqPath = module.exports.reqPath = R.curry((path, obj) => {
  * @return {Either} Either.right with the resolved value or Either.left if the path doesn't exist or the
  * value is null
  */
-module.exports.reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), props));
+export const reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), props));
 
 /**
  * Expects a prop path and returns a function expecting props,
@@ -277,7 +277,7 @@ module.exports.reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), p
  * @param {Object} props Object to resolve the path in
  * @return {function(*=)}
  */
-module.exports.strPath = R.curry((str, props) => {
+export const strPath = R.curry((str, props) => {
   return R.view(R.lensPath(R.split('.', str)), props);
 });
 
@@ -287,7 +287,7 @@ module.exports.strPath = R.curry((str, props) => {
  * @param {Object} props Object to resolve the path in
  * @returns {Boolean} true
  */
-const hasStrPath = module.exports.hasStrPath = R.curry((str, props) =>
+export const hasStrPath = R.curry((str, props) =>
   R.complement(R.isNil)(
     R.view(R.lensPath(R.split('.', str)), props)
   )
@@ -301,7 +301,7 @@ const hasStrPath = module.exports.hasStrPath = R.curry((str, props) =>
  * @returns {Either} Either the resolved value or an Error
  * @sig reqPath:: String -> {k: v} → Either
  */
-const reqPathPropEq = module.exports.reqPathPropEq = R.curry((path, val, obj) =>
+export const reqPathPropEq = R.curry((path, val, obj) =>
   // If the reqPath is valid map it to a comparison with val
   reqPath(path, obj).map(R.equals(val))
 );
@@ -312,7 +312,7 @@ const reqPathPropEq = module.exports.reqPathPropEq = R.curry((path, val, obj) =>
  * @param {boolean} expectReject Set true for testing when a rejection is expected
  * @returns {Promise} The Task as a Promise
  */
-const taskToPromise = module.exports.taskToPromise = (task, expectReject = false) => {
+export const taskToPromise = (task, expectReject = false) => {
   if (!task.fork) {
     throw new TypeError(`Expected a Task, got ${typeof task}`);
   }
@@ -332,7 +332,7 @@ const taskToPromise = module.exports.taskToPromise = (task, expectReject = false
  * @param {boolean} expectReject default false. Set true for testing to avoid logging rejects
  * @returns {Task} The promise as a Task
  */
-const promiseToTask = module.exports.promiseToTask = (promise, expectReject = false) => {
+export const promiseToTask = (promise, expectReject = false) => {
   if (!promise.then) {
     throw new TypeError(`Expected a Promise, got ${typeof promise}`);
   }
@@ -347,7 +347,7 @@ const promiseToTask = module.exports.promiseToTask = (promise, expectReject = fa
  * @returns {Object} The mapped keys of the object
  * @sig mapKeys :: (String -> String) -> Object -> Object
  */
-const mapKeys = module.exports.mapKeys = R.curry((fn, obj) =>
+export const mapKeys = R.curry((fn, obj) =>
   R.fromPairs(R.map(R.adjust(fn, 0), R.toPairs(obj))));
 
 
@@ -357,7 +357,7 @@ const mapKeys = module.exports.mapKeys = R.curry((fn, obj) =>
  * @returns {Object} Object with the keys indicated by the given lens mapped
  * @sig mapKeysForLens :: Lens -> ((String -> String) -> Object -> Object
  */
-const mapKeysForLens = module.exports.mapKeysForLens = R.curry((lens, fn, obj) =>
+export const mapKeysForLens = R.curry((lens, fn, obj) =>
   // Sets the lens-focused objects to a new object with keys mapped according to the function
   R.set(lens, mapKeys(fn, R.view(lens, obj)), obj)
 );
@@ -369,7 +369,7 @@ const mapKeysForLens = module.exports.mapKeysForLens = R.curry((lens, fn, obj) =
  * @returns {Object} The import module with key default changed to keyName
  * @sig mapDefault :: String -> <k,v> -> <k,v>
  */
-const mapDefault = module.exports.mapDefault = (keyName, module) => mapKeys(key => key === 'default' ? keyName : key, module);
+export const mapDefault = (keyName, module) => mapKeys(key => key === 'default' ? keyName : key, module);
 /**
  * Converts default to desired name and prefixes others.
  * Used for requiring defaults and renaming others
@@ -379,7 +379,7 @@ const mapDefault = module.exports.mapDefault = (keyName, module) => mapKeys(key 
  * @returns {Object} The import module with key default changed to keyName
  * @sig mapDefault :: String -> <k,v> -> <k,v>
  */
-const mapDefaultAndPrefixOthers = module.exports.mapDefaultAndPrefixOthers = (defaultName, prefix, module) =>
+export const mapDefaultAndPrefixOthers = (defaultName, prefix, module) =>
   mapKeys(
     key => (key === 'default') ? defaultName : `${prefix}${capitalize(key)}`,
     module
@@ -394,7 +394,7 @@ const mapDefaultAndPrefixOthers = module.exports.mapDefaultAndPrefixOthers = (de
  * @returns {Object} The mapped pairs made into key values
  * @sig fromPairsMap :: Functor F = (a -> [b,c]) -> F -> <k,v>
  */
-const fromPairsMap = module.exports.fromPairsMap = R.curry((f, container) => R.fromPairs(R.mapObjIndexed(f, container)));
+export const fromPairsMap = R.curry((f, container) => R.fromPairs(R.mapObjIndexed(f, container)));
 
 /**
  * https://github.com/ramda/ramda/wiki/Cookbook
@@ -404,7 +404,7 @@ const fromPairsMap = module.exports.fromPairsMap = R.curry((f, container) => R.f
  * @returns {Object} The filtered object
  * @sig filterWithKeys:: (v -> k -> True|False) -> <k,v> -> <k,v>
  */
-const filterWithKeys = module.exports.filterWithKeys = R.curry((pred, obj) => R.pipe(
+export const filterWithKeys = R.curry((pred, obj) => R.pipe(
   R.toPairs,
   R.filter(pair => R.apply(pred, R.reverse(pair))),
   R.fromPairs
@@ -417,7 +417,7 @@ const filterWithKeys = module.exports.filterWithKeys = R.curry((pred, obj) => R.
  * @param {Object} The object to map
  * @returns {Object} The object with transformed keys and the original values
  */
-const transformKeys = module.exports.transformKeys = R.curry((func, obj) =>
+export const transformKeys = R.curry((func, obj) =>
   R.compose(
     R.fromPairs,
     R.map(([key, value]) =>
@@ -433,7 +433,7 @@ const transformKeys = module.exports.transformKeys = R.curry((func, obj) =>
  * @param {String} to New name for the key
  * @param {Object} obj Object to traverse with the lens
  */
-module.exports.renameKey = R.curry((lens, from, to, obj) => R.over(
+export const renameKey = R.curry((lens, from, to, obj) => R.over(
   lens,
   target => mapKeys(
     R.when(R.equals(from), R.always(to)),
@@ -448,7 +448,7 @@ module.exports.renameKey = R.curry((lens, from, to, obj) => R.over(
  * @param [{String}] toKeys Array of new keys to make. New keys overwrite existing keys
  * @param {Object} obj Object to traverse with the lens
  */
-module.exports.duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
+export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
   lens,
   // convert the target of the lens to a merge of the target with copies of target[key]
   target => R.merge(
@@ -471,7 +471,7 @@ module.exports.duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
  * @param [{String}] toKeys Array of new keys to make. New keys overwrite existing keys
  * @param {Object} obj Object to traverse with the lens
  */
-module.exports.moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
+export const moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
   lens,
   // convert the target of the lens to a merge of the target with copies of target[key]
   // and with target[key] itself removed
@@ -494,7 +494,7 @@ module.exports.moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
  * @param {Array|Object} obj Container that should only match once with predicate
  * @returns {Either} Left if no matches or more than one, otherwise Right with the single matching item in an array/object
  */
-const findOne = module.exports.findOne = R.curry((predicate, obj) =>
+export const findOne = R.curry((predicate, obj) =>
   R.ifElse(
     // Ifk path doesn't resolve
     items => R.equals(R.length(R.keys(items)), 1),
@@ -513,7 +513,7 @@ const findOne = module.exports.findOne = R.curry((predicate, obj) =>
  * @param {Array|Object} obj Container
  * @returns {Either} Left if no items or more than one, otherwise Right with the single item in an array/object
  */
-module.exports.onlyOne = findOne(R.T);
+export const onlyOne = findOne(R.T);
 
 /**
  * Like onlyOne but extracts the value
@@ -522,7 +522,7 @@ module.exports.onlyOne = findOne(R.T);
  * the value can be extracted. Types like Tasks and Streams can't extract, I suppose
  * @returns {Either} Left if no items or more than one, otherwise Right with the single value
  */
-const onlyOneValue = module.exports.onlyOneValue = R.compose(
+export const onlyOneValue = R.compose(
   // Use R.map to operate on the value of Either without extracting it
   R.map(R.head),
   R.map(R.values),
@@ -535,7 +535,7 @@ const onlyOneValue = module.exports.onlyOneValue = R.compose(
  * @param {Array} list Container to map to an object.
  * @sig mapToObjValue:: Functor a => (b -> c) -> <b, c>
  */
-module.exports.mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v => [v, f(v)]))(obj));
+export const mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v => [v, f(v)]))(obj));
 
 
 /**
@@ -544,7 +544,7 @@ module.exports.mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(
  * @param {Object|Array} items Object or Array that can produce values to search
  * @returns {Either} An Either.Right containing the value or an Either.Left if no value is found
  */
-module.exports.findOneValueByParams = (params, items) => {
+export const findOneValueByParams = (params, items) => {
   return findOne(
     // Compare all the eqProps against each item
     R.allPass(
