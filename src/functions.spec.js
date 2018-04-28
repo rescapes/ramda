@@ -394,4 +394,80 @@ describe('helperFunctions', () => {
       )
     );
   });
+  test('reduceWithNext', () => {
+    expect(f.reduceWithNext(R.identity, [1, 2, 3])).toEqual([[1, 2], [2, 3]]);
+  });
+
+  test('alwaysFunc', () => {
+    const alwaysIWannaFuncWithYou = R.identity;
+    const str = 'and make believe with you';
+    expect(f.alwaysFunc(alwaysIWannaFuncWithYou)('and live in harmony')).toEqual('and live in harmony');
+    expect(f.alwaysFunc(str)(1, 1, 'was', 'a racehorse')).toEqual(str);
+  });
+
+  test('traverseReduce', (done) => {
+    const merge = (res, [k, v]) => R.merge(res, {[k]: v});
+    const initialValue = apConstructor => apConstructor({});
+
+    const initialEither = initialValue(Either.of);
+    // Convert dict into list of Either([k,v])
+    const objOfApplicativesToApplicative = R.curry((apConstructor, objOfApplicatives) => f.mapObjToValues(
+      (v, k) => {
+        return v.chain(v => apConstructor([k, v]));
+      },
+      objOfApplicatives
+    ));
+
+    expect(
+      f.traverseReduce(
+        merge,
+        initialEither,
+        objOfApplicativesToApplicative(Either.of, {a: Either.of('a'), b: Either.of('b')})
+      )
+    ).toEqual(
+      Either.of({a: 'a', b: 'b'})
+    );
+
+    const mapper = objOfApplicativesToApplicative(Task.of);
+    const initialTask = initialValue(Task.of);
+    // More complicated
+    const task = R.composeK(
+      // returns a single Task
+      letterToApplicative => f.traverseReduce(merge, initialTask, mapper(letterToApplicative)),
+      values =>
+        // wrap in Task.of to support composeK
+        Task.of(
+          R.map(
+            // First reduce each letter value to get
+            //{
+            //  a: Task({apple: Either.of('apple'), aadvark: Either.of('aardvark')}),
+            //  b: Task({banana: Either.of('banana'), bonobo: Either.of('bonobo')})
+            //}
+            v => f.traverseReduce(
+              merge,
+              initialTask,
+              mapper(v)
+            ),
+            values
+          )
+        )
+    )(
+      {
+        a: {apple: Task.of('apple'), aardvark: Task.of('aardvark')},
+        b: {banana: Task.of('banana'), bonobo: Task.of('bonobo')}
+      }
+    );
+    task.fork(
+      reject => {
+        throw(reject);
+      },
+      result => {
+        expect(result).toEqual({
+          a: {apple: 'apple', aadrvark: 'aardvark'},
+          b: {banana: 'banana', bonobo: 'bonobo'}
+        });
+        done();
+      }
+    );
+  });
 });

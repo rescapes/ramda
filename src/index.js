@@ -13,8 +13,9 @@ import {
   reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
-  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext,
-  removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, taskToPromise, transformKeys, findOneValueByParams
+  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext, alwaysFunc,
+  removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, taskToPromise, transformKeys, findOneValueByParams,
+  mapObjToValues, chainObjToValues
 } from './functions';
 import {
   throwIfSingleLeft, mappedThrowIfLeft, throwIfLeft, findOneThrowing, findOneValueByParamsThrowing, onlyOneThrowing, onlyOneValueThrowing, reqPathPropEqThrowing, reqPathThrowing, reqStrPathThrowing
@@ -23,7 +24,7 @@ export {
   reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
-  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext,
+  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, reduceWithNext, alwaysFunc,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, taskToPromise, transformKeys, findOneValueByParams,
   throwIfSingleLeft,
   reqPathPropEqThrowing,
@@ -34,5 +35,7 @@ export {
   mappedThrowIfLeft,
   throwIfLeft,
   findOneValueByParamsThrowing,
-  onlyOneThrowing
+  onlyOneThrowing,
+  mapObjToValues,
+  chainObjToValues
 };

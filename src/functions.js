@@ -121,8 +121,9 @@ export const idOrIdFromObj = R.when(
 );
 
 /**
+ * TODO broken :<
  * Reduces with the current and next value of a list. The reducer is called n-1 times for a list of n length
- * @param {callWithNext} fn The reducer
+ * @param {Function} fn The reducer
  * @param {Object} head The first item of the list
  * @param {Object} previous The initial reduction value
  * @param {Object} next The next item
@@ -555,4 +556,50 @@ export const findOneValueByParams = (params, items) => {
     ),
     R.values(items)
   ).map(R.head);
+};
+
+/***
+ * Converts the given value to an always function (that ignores all arguments) unless already a function
+ * @param {Function} maybeFunc A function or something else
+ * @return {Function} a function that always returns the non funcion value of maybeFunc, or maybeFunc
+ * itself if maybeFunc is a functon
+ */
+export const alwaysFunc = maybeFunc => R.unless(R.is(Function), R.always)(maybeFunc);
+
+/**
+ * Map the object with a function accepting a key, value, and the obj but return just the mapped values,
+ * not the object
+ * @param f Expects value, key, and obj
+ * @param obj
+ * @return {[Object]} Mapped values
+ */
+export const mapObjToValues = (f, obj) => {
+  return R.values(R.mapObjIndexed(f, obj));
+};
+
+/***
+ * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
+ * Same arguments as reduce, but the initialValue must be an applicative, like Task.of({}) or Either.of({})
+ * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
+ * which must be an applicative
+ * @param accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
+ * @param initialValue An applicative to be the intial reduced value of accumulator
+ * @param list List of applicatives
+ */
+export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
+  (applicatorRes, applicator) => applicatorRes.chain(
+    res => applicator.map(v => accumulator(res, v))
+  ),
+  initialValue,
+  list
+);
+
+/**
+ * Like mapObjToValues but flattens the values when an array is returned for each mapping
+ * @param f Expects key, value, and obj
+ * @param obj
+ * @return {[Object]} Mapped flattened values
+ */
+export const chainObjToValues = (f, obj) => {
+  return R.flatten(mapObjToValues(f, obj));
 };
