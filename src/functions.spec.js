@@ -440,7 +440,7 @@ describe('helperFunctions', () => {
           R.map(
             // First reduce each letter value to get
             //{
-            //  a: Task({apple: Either.of('apple'), aadvark: Either.of('aardvark')}),
+            //  a: Task({apple: Either.of('apple'), aardvark: Either.of('aardvark')}),
             //  b: Task({banana: Either.of('banana'), bonobo: Either.of('bonobo')})
             //}
             v => f.traverseReduce(
