@@ -276,10 +276,22 @@ export const reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), pro
  * which resolves the prop indicated by the string. If not match is found it returns undefined
  * @param {String} str dot-separated prop path
  * @param {Object} props Object to resolve the path in
- * @return {function(*=)}
+ * @return {Object} The resolved objedt or undefined
  */
 export const strPath = R.curry((str, props) => {
   return R.view(R.lensPath(R.split('.', str)), props);
+})
+
+/**
+ * Like strPath but defaults the given value
+ * @param {Object} defaultValue. Default value if value is undefined. Falsy does not default
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {function(*=)}
+ */
+export const strPathOr = R.curry((defaultValue, str, props) => {
+  const result =  R.view(R.lensPath(R.split('.', str)), props);
+  return R.when(R.equals(undefined), R.always(defaultValue))(result)
 });
 
 /**

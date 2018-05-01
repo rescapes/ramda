@@ -152,6 +152,11 @@ describe('helperFunctions', () => {
     })).toEqual('undefined');
   });
 
+  test('strPathOr', () => {
+    expect(f.strPathOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(f.strPathOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+  });
+
   test('hasStrPath', () => {
     expect(f.hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
     expect(f.hasStrPath('tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(false);
