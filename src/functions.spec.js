@@ -57,20 +57,6 @@ describe('helperFunctions', () => {
     expect(f.idOrIdFromObj({id: 'foo'})).toEqual('foo');
   });
 
-  test('Should sum up distance between', () => {
-    expect(f.reduceWithNext(
-      (previous, current, next) => previous + (next - current),
-      [1, 4, 9, 16],
-      0)).toEqual((4 - 1) + (9 - 4) + (16 - 9));
-  });
-
-  test('Should concat with sums of distance between', () => {
-    expect(f.reduceWithNext(
-      (previous, current, next) => previous.concat([next - current]),
-      [1, 4, 9, 16],
-      [])).toEqual([4 - 1, 9 - 4, 16 - 9]);
-  });
-
   test('Should deep merge objects', () => {
     expect(f.mergeDeep(
       {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
@@ -399,9 +385,6 @@ describe('helperFunctions', () => {
       )
     );
   });
-  test('reduceWithNext', () => {
-    expect(f.reduceWithNext(R.identity, [1, 2, 3])).toEqual([[1, 2], [2, 3]]);
-  });
 
   test('alwaysFunc', () => {
     const alwaysIWannaFuncWithYou = R.identity;
@@ -468,7 +451,7 @@ describe('helperFunctions', () => {
       },
       result => {
         expect(result).toEqual({
-          a: {apple: 'apple', aadrvark: 'aardvark'},
+          a: {apple: 'apple', aardvark: 'aardvark'},
           b: {banana: 'banana', bonobo: 'bonobo'}
         });
         done();

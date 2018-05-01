@@ -121,21 +121,6 @@ export const idOrIdFromObj = R.when(
 );
 
 /**
- * TODO broken :<
- * Reduces with the current and next value of a list. The reducer is called n-1 times for a list of n length
- * @param {Function} fn The reducer
- * @param {Object} head The first item of the list
- * @param {Object} previous The initial reduction value
- * @param {Object} next The next item
- * @param {Object} tail The remaining items
- * @returns {Object} the reduction
- */
-export const reduceWithNext = (fn, [head, next, ...tail], previous) =>
-  typeof (next) === 'undefined' ?
-    previous :
-    reduceWithNext(fn, [next, ...tail], fn(previous, head, next));
-
-/**
  * Deep merge values that are objects but not arrays
  * based on https://github.com/ramda/ramda/pull/1088
  * @params {Object} l the 'left' side object to merge
