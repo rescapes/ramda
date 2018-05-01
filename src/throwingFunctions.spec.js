@@ -9,8 +9,18 @@
  * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {reqPath} from './functions'
-import {throwIfLeft, mappedThrowIfLeft, reqPathThrowing, reqStrPathThrowing, reqPathPropEqThrowing, findOneThrowing, onlyOneThrowing, onlyOneValueThrowing, findOneValueByParamsThrowing} from './throwingFunctions';
+import {reqPath} from './functions';
+import {
+  throwIfLeft,
+  mappedThrowIfLeft,
+  reqPathThrowing,
+  reqStrPathThrowing,
+  reqPathPropEqThrowing,
+  findOneThrowing,
+  onlyOneThrowing,
+  onlyOneValueThrowing,
+  findOneValueByParamsThrowing
+} from './throwingFunctions';
 import {Either} from 'ramda-fantasy';
 import * as R from 'ramda';
 
@@ -85,8 +95,7 @@ describe('throwingFunctions', () => {
 
   test('onlyOneThrowing', () => {
     expect(
-      onlyOneThrowing({a: 'Eli Whitney'})).
-    toEqual(
+      onlyOneThrowing({a: 'Eli Whitney'})).toEqual(
       {a: 'Eli Whitney'}
     );
 
@@ -103,8 +112,7 @@ describe('throwingFunctions', () => {
 
   test('onlyOneValueThrowing', () => {
     expect(
-      onlyOneValueThrowing({a: 'Eli Whitney'})).
-    toEqual(
+      onlyOneValueThrowing({a: 'Eli Whitney'})).toEqual(
       'Eli Whitney'
     );
 

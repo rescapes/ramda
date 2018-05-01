@@ -418,7 +418,7 @@ describe('helperFunctions', () => {
     // Convert dict into list of Either([k,v])
     const objOfApplicativesToApplicative = R.curry((apConstructor, objOfApplicatives) => f.mapObjToValues(
       (v, k) => {
-        return v.chain(v => apConstructor([k, v]));
+        return v.chain(val => apConstructor([k, val]));
       },
       objOfApplicatives
     ));
@@ -444,10 +444,10 @@ describe('helperFunctions', () => {
         Task.of(
           R.map(
             // First reduce each letter value to get
-            //{
+            //  {
             //  a: Task({apple: Either.of('apple'), aardvark: Either.of('aardvark')}),
             //  b: Task({banana: Either.of('banana'), bonobo: Either.of('bonobo')})
-            //}
+            //  }
             v => f.traverseReduce(
               merge,
               initialTask,

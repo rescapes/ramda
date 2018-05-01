@@ -280,7 +280,7 @@ export const reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), pro
  */
 export const strPath = R.curry((str, props) => {
   return R.view(R.lensPath(R.split('.', str)), props);
-})
+});
 
 /**
  * Like strPath but defaults the given value
@@ -290,8 +290,11 @@ export const strPath = R.curry((str, props) => {
  * @return {function(*=)}
  */
 export const strPathOr = R.curry((defaultValue, str, props) => {
-  const result =  R.view(R.lensPath(R.split('.', str)), props);
-  return R.when(R.equals(undefined), R.always(defaultValue))(result)
+  const result = R.view(R.lensPath(R.split('.', str)), props);
+  return R.when(
+    R.equals(undefined), // eslint-disable-line no-undefined
+    R.always(defaultValue)
+  )(result);
 });
 
 /**
@@ -570,7 +573,7 @@ export const findOneValueByParams = (params, items) => {
   ).map(R.head);
 };
 
-/***
+/**
  * Converts the given value to an always function (that ignores all arguments) unless already a function
  * @param {Function} maybeFunc A function or something else
  * @return {Function} a function that always returns the non funcion value of maybeFunc, or maybeFunc
@@ -581,22 +584,23 @@ export const alwaysFunc = maybeFunc => R.unless(R.is(Function), R.always)(maybeF
 /**
  * Map the object with a function accepting a key, value, and the obj but return just the mapped values,
  * not the object
- * @param f Expects value, key, and obj
- * @param obj
+ * @param {Function} f Expects value, key, and obj
+ * @param {Object} obj The objedt to map
  * @return {[Object]} Mapped values
  */
 export const mapObjToValues = (f, obj) => {
   return R.values(R.mapObjIndexed(f, obj));
 };
 
-/***
+/**
  * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
  * Same arguments as reduce, but the initialValue must be an applicative, like Task.of({}) or Either.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
  * which must be an applicative
- * @param accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
- * @param initialValue An applicative to be the intial reduced value of accumulator
- * @param list List of applicatives
+ * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
+ * @param {Object} initialValue An applicative to be the intial reduced value of accumulator
+ * @param {[Object]} list List of applicatives
+ * @returns {Object} The value resulting from traversing and reducing
  */
 export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
   (applicatorRes, applicator) => applicatorRes.chain(
@@ -608,8 +612,8 @@ export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
 
 /**
  * Like mapObjToValues but flattens the values when an array is returned for each mapping
- * @param f Expects key, value, and obj
- * @param obj
+ * @param {Function} f Expects key, value, and obj
+ * @param {Object} obj The object to chain
  * @return {[Object]} Mapped flattened values
  */
 export const chainObjToValues = (f, obj) => {
