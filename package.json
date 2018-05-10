@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.4.29",
+  "version": "1.4.30",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "data.maybe": "^1.2.2",
-    "data.task": "^3.1.1",
+    "folktale": "^2.1.0",
     "fs-extra": "^5.0.0",
     "ramda": "^0.25.0",
     "ramda-fantasy": "^0.8.0",
