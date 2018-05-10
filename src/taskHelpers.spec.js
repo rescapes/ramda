@@ -9,12 +9,39 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {task} from 'folktale/concurrency/task';
-import {defaultRunConfig} from './taskHelpers';
+import {task as folktask, of} from 'folktale/concurrency/task';
+import {defaultRunConfig, promiseToTask, taskToPromise} from './taskHelpers';
+import * as R from 'ramda'
 
 describe('taskHelpers', () => {
+
+  test('Should convert Task to Promise', async () => {
+    await expect(taskToPromise(folktask(
+      resolver => resolver.resolve('donut')
+    ))).resolves.toBe('donut');
+    const err = new Error('octopus');
+    await expect(taskToPromise(folktask(resolver => resolver.reject(err)))).rejects.toBe(err);
+  });
+
+  test('Should convert Promise to Task', async () => {
+    await expect(taskToPromise(promiseToTask(new Promise(function (resolve, reject) {
+      resolve('donut');
+    })))).resolves.toBe('donut');
+    const err = new Error('octopus');
+    await expect(taskToPromise(promiseToTask(new Promise(function (resolve, reject) {
+      reject(err);
+    }), true))).rejects.toBe(err);
+    // What if a chained task rejects
+    await expect(taskToPromise(R.composeK(
+      value => folktask(resolver => resolver.reject('2 2 1 1 2')),
+      value => folktask(resolver => resolver.reject('1 1 1 race')),
+      value => folktask(resolver => resolver.reject('was 1 2')),
+      value => of('was a race horse')
+    )('1 1'))).rejects.toEqual('was 1 2')
+  });
+
   test('defaultRunConfig Resolved', done => {
-    task(resolver => resolver.resolve('Re solved!')).run().listen(
+    folktask(resolver => resolver.resolve('Re solved!')).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual('Re solved!');
@@ -26,12 +53,12 @@ describe('taskHelpers', () => {
 
   test('defaultRunConfig Throws', () => {
     expect(
-      () => task(resolver => {
-        throw new Error("Oh noo!!!");
+      () => folktask(resolver => {
+        throw new Error('Oh noo!!!');
       }).run().listen(
         defaultRunConfig({
           onResolved: resolve => {
-            throw ("Should not have resolved!");
+            throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
           }
         })
       )

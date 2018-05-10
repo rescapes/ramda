@@ -9,26 +9,66 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
+import {task as folktask} from 'folktale/concurrency/task/index';
+
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
  * with a useful stack and message
  * @param {*} reject Rejection value from a Task
+ * @returns {void} No return
  */
 export const onRejected = reject => {
   throw(reject);
 };
+
+/**
+ * Default behavior for task listener onCancelled, which simply logs
+ * @returns {void} No return
+ */
 export const onCancelled = () => {
-  console.log('The task was cancelled. This is the default action');
+  console.log('The task was cancelled. This is the default action'); // eslint-disable-line no-console
 };
 
 /**
  * Defaults the onRejected and onCancelled handler and pass. Pass the onResolved function
  * with the key onResolved
  * @param {Function} onResolved Unary function expecting the resolved value
- * @retunrs {Object} Run config with onCancelled, onRejected, and onReolved handlers
+ * @returns {Object} Run config with onCancelled, onRejected, and onReolved handlers
  */
 export const defaultRunConfig = ({onResolved}) => ({
   onCancelled,
   onRejected,
   onResolved
 });
+
+/**
+ * Wraps a Task in a Promise.
+ * @param {Task} task The Task
+ * @param {boolean} expectReject Set true for testing when a rejection is expected
+ * @returns {Promise} The Task as a Promise
+ */
+export const taskToPromise = (task, expectReject = false) => {
+  if (!task.run) {
+    throw new TypeError(`Expected a Task, got ${typeof task}`);
+  }
+  return new Promise((onResolved, onRejected) =>
+    task.run().listen({
+      onRejected,
+      onResolved
+    })
+  );
+};
+
+/**
+ * Wraps a Promise in a Task
+ * @param {Promise} promise The promise
+ * @param {boolean} expectReject default false. Set true for testing to avoid logging rejects
+ * @returns {Task} The promise as a Task
+ */
+export const promiseToTask = (promise, expectReject = false) => {
+  if (!promise.then) {
+    throw new TypeError(`Expected a Promise, got ${typeof promise}`);
+  }
+  return folktask(resolver => promise.then(resolver.resolve).catch(resolver.reject));
+};

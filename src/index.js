@@ -13,13 +13,16 @@ import {
   reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
-  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, promiseToTask, alwaysFunc, strPathOr,
-  removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, taskToPromise, transformKeys, findOneValueByParams,
-  mapObjToValues, chainObjToValues
+  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
+  removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, transformKeys, findOneValueByParams,
+  mapObjToValues, chainObjToValues, traverseReduce
 } from './functions';
 import {
   throwIfSingleLeft, mappedThrowIfLeft, throwIfLeft, findOneThrowing, findOneValueByParamsThrowing, onlyOneThrowing, onlyOneValueThrowing, reqPathPropEqThrowing, reqPathThrowing, reqStrPathThrowing
 } from './throwingFunctions';
+import {
+  defaultRunConfig, promiseToTask, taskToPromise
+} from './taskHelpers'
 export {
   reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
@@ -37,5 +40,7 @@ export {
   findOneValueByParamsThrowing,
   onlyOneThrowing,
   mapObjToValues,
-  chainObjToValues
+  chainObjToValues,
+  traverseReduce,
+  defaultRunConfig
 };

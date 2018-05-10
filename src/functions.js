@@ -22,8 +22,8 @@
 
 import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
-import Task from 'data.task';
 import {Either, Maybe} from 'ramda-fantasy';
+import {task as folktask} from 'folktale/concurrency/task';
 
 /**
  * Return an empty string if the given entity is falsy
@@ -308,41 +308,6 @@ export const reqPathPropEq = R.curry((path, val, obj) =>
 );
 
 /**
- * Wraps a Task in a Promise.
- * @param {Task} task The Task
- * @param {boolean} expectReject Set true for testing when a rejection is expected
- * @returns {Promise} The Task as a Promise
- */
-export const taskToPromise = (task, expectReject = false) => {
-  if (!task.fork) {
-    throw new TypeError(`Expected a Task, got ${typeof task}`);
-  }
-  return new Promise((res, rej) =>
-    task.fork(
-      reject => {
-        return rej(reject);
-      },
-      resolve => res(resolve)
-    )
-  );
-};
-
-/**
- * Wraps a Promise in a Task
- * @param {Promise} promise The promise
- * @param {boolean} expectReject default false. Set true for testing to avoid logging rejects
- * @returns {Task} The promise as a Task
- */
-export const promiseToTask = (promise, expectReject = false) => {
-  if (!promise.then) {
-    throw new TypeError(`Expected a Promise, got ${typeof promise}`);
-  }
-  return new Task((rej, res) => promise.then(res).catch(reject => {
-    return rej(reject);
-  }));
-};
-
-/**
  * From the cookbook: https://github.com/ramda/ramda/wiki/Cookbook#map-keys-of-an-object
  * Maps keys according to the given function
  * @returns {Object} The mapped keys of the object
@@ -570,7 +535,7 @@ export const alwaysFunc = maybeFunc => R.unless(R.is(Function), R.always)(maybeF
  * Map the object with a function accepting a key, value, and the obj but return just the mapped values,
  * not the object
  * @param {Function} f Expects value, key, and obj
- * @param {Object} obj The objedt to map
+ * @param {Object} obj The object to map
  * @return {[Object]} Mapped values
  */
 export const mapObjToValues = (f, obj) => {
@@ -579,7 +544,7 @@ export const mapObjToValues = (f, obj) => {
 
 /**
  * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
- * Same arguments as reduce, but the initialValue must be an applicative, like Task.of({}) or Either.of({})
+ * Same arguments as reduce, but the initialValue must be an applicative, like task.of({}) or Either.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
  * which must be an applicative
  * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative

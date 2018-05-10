@@ -11,9 +11,9 @@
 
 import * as R from 'ramda';
 import * as f from './functions';
-import Task from 'data.task';
 import {Just} from 'data.maybe';
 import {Either} from 'ramda-fantasy';
+import {task as folktask, of} from 'folktale/concurrency/task';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -168,26 +168,6 @@ describe('helperFunctions', () => {
     expect(
       f.reqPath(['a', 'b', 1, 'c'], {a: {b: [null, {c: 2}]}})
     ).toEqual(Just(2));
-  });
-
-  test('Should convert Task to Promise', async () => {
-    await expect(f.taskToPromise(new Task(function (reject, resolve) {
-      resolve('donut');
-    }))).resolves.toBe('donut');
-    const err = new Error('octopus');
-    await expect(f.taskToPromise(new Task(function (reject) {
-      reject(err);
-    }), true)).rejects.toBe(err);
-  });
-
-  test('Should convert Promise to Task', async () => {
-    await expect(f.taskToPromise(f.promiseToTask(new Promise(function (resolve, reject) {
-      resolve('donut');
-    })))).resolves.toBe('donut');
-    const err = new Error('octopus');
-    await expect(f.taskToPromise(f.promiseToTask(new Promise(function (resolve, reject) {
-      reject(err);
-    }), true))).rejects.toBe(err);
   });
 
   test('mapKeys', () => {
@@ -416,15 +396,15 @@ describe('helperFunctions', () => {
       Either.of({a: 'a', b: 'b'})
     );
 
-    const mapper = objOfApplicativesToApplicative(Task.of);
-    const initialTask = initialValue(Task.of);
+    const mapper = objOfApplicativesToApplicative(of);
+    const initialTask = initialValue(of);
     // More complicated
     const task = R.composeK(
       // returns a single Task
       letterToApplicative => f.traverseReduce(merge, initialTask, mapper(letterToApplicative)),
       values =>
-        // wrap in Task.of to support composeK
-        Task.of(
+        // wrap in task of to support composeK
+        of(
           R.map(
             // First reduce each letter value to get
             //  {
@@ -441,21 +421,21 @@ describe('helperFunctions', () => {
         )
     )(
       {
-        a: {apple: Task.of('apple'), aardvark: Task.of('aardvark')},
-        b: {banana: Task.of('banana'), bonobo: Task.of('bonobo')}
+        a: {apple: of('apple'), aardvark: of('aardvark')},
+        b: {banana: of('banana'), bonobo: of('bonobo')}
       }
     );
-    task.fork(
-      reject => {
+    task.run().listen({
+      onRejected: reject => {
         throw(reject);
       },
-      result => {
+      onResolved: result => {
         expect(result).toEqual({
           a: {apple: 'apple', aardvark: 'aardvark'},
           b: {banana: 'banana', bonobo: 'bonobo'}
         });
         done();
       }
-    );
+    });
   });
 });
