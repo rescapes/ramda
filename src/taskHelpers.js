@@ -45,19 +45,13 @@ export const defaultRunConfig = ({onResolved}) => ({
 /**
  * Wraps a Task in a Promise.
  * @param {Task} task The Task
- * @param {boolean} expectReject Set true for testing when a rejection is expected
  * @returns {Promise} The Task as a Promise
  */
-export const taskToPromise = (task, expectReject = false) => {
+export const taskToPromise = (task) => {
   if (!task.run) {
     throw new TypeError(`Expected a Task, got ${typeof task}`);
   }
-  return new Promise((onResolved, onRejected) =>
-    task.run().listen({
-      onRejected,
-      onResolved
-    })
-  );
+  return task.run().promise()
 };
 
 /**

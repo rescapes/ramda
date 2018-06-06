@@ -17,6 +17,7 @@ const babelConfig = {
     }]
   ],
   "plugins": [
+    "external-helpers"
   ]
 };
 

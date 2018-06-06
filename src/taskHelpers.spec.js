@@ -9,12 +9,12 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {task as folktask, of} from 'folktale/concurrency/task';
+import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
 import {defaultRunConfig, promiseToTask, taskToPromise} from './taskHelpers';
-import * as R from 'ramda'
+import * as R from 'ramda';
+
 
 describe('taskHelpers', () => {
-
   test('Should convert Task to Promise', async () => {
     await expect(taskToPromise(folktask(
       resolver => resolver.resolve('donut')
@@ -37,7 +37,7 @@ describe('taskHelpers', () => {
       value => folktask(resolver => resolver.reject('1 1 1 race')),
       value => folktask(resolver => resolver.reject('was 1 2')),
       value => of('was a race horse')
-    )('1 1'))).rejects.toEqual('was 1 2')
+    )('1 1'))).rejects.toEqual('was 1 2');
   });
 
   test('defaultRunConfig Resolved', done => {
@@ -63,5 +63,60 @@ describe('taskHelpers', () => {
         })
       )
     ).toThrow();
+  });
+
+  test('composeK with new Tasks (technology test)', done => {
+    R.composeK(
+      v => of(`${v} racehorse`),
+      v => of(`${v} a`),
+      v => of(`${v} was`),
+      v => of(`${v} 1`)
+    )(1).run().listen({
+      onRejected: reject => {
+        throw(reject);
+      },
+      onResolved: result => {
+        expect(result).toEqual(
+          '1 1 was a racehorse'
+        );
+        done();
+      }
+    });
+  });
+
+  test('composeK with new Tasks and error (technology test)', done => {
+    R.composeK(
+      v => of(`I never get called :<`),
+      v => folktask(resolver => resolver.reject(`${v} Oh no!`)),
+      v => of(`${v} a`),
+      v => of(`${v} was`),
+      v => of(`${v} 1`)
+    )(1).run().listen({
+      onRejected: reject => {
+        expect(reject).toEqual(
+          '1 1 was a Oh no!'
+        );
+        done();
+      },
+      onResolved: result => {
+        throw(new Error(result));
+      }
+    });
+  });
+
+  test('fromPromised (technology test)', done => {
+    // fromPromised works on an n-arity function that returns a promise
+    const task = fromPromised(receive => Promise.resolve(`shellac${receive}`))('ing');
+    task.run().listen({
+      onRejected: reject => {
+        throw(reject);
+      },
+      onResolved: result => {
+        expect(result).toEqual(
+          'shellacing'
+        );
+        done();
+      }
+    });
   });
 });

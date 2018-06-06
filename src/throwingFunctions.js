@@ -72,16 +72,21 @@ export const mappedThrowIfLeft = R.curry((func, either) =>
  * @returns {Object|Exception} The value of the sought path or throws
  * reqPath:: string -> obj -> a or throws
  */
-export const reqPathThrowing = R.curry((path, obj) =>
-  reqPath(path, obj).either(
+export const reqPathThrowing = R.curry((pathList, obj) =>
+  reqPath(pathList, obj).either(
     leftValue => {
       // If left throw a helpful error
       throw new Error(
-        [leftValue.resolved.length ?
-          `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
-          'Found no non-nil value of path',
-          `of ${path.join('.')} for obj ${inspect(obj, {depth: 3})}`
-        ].join(' '));
+        R.join(' ', [
+            R.ifElse(
+              R.length,
+              resolved => `Only found non-nil path up to ${R.join('.', resolved)}`,
+              R.always('Found no non-nil value')
+            )(leftValue.resolved),
+            `of path ${R.join('.', pathList)} for obj ${inspect(obj, {depth: 3})}`
+          ]
+        )
+      )
     },
     // If right return the value
     R.identity

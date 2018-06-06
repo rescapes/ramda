@@ -154,10 +154,15 @@ export const mergeDeepAll = R.reduce(mergeDeep, {});
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
+const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
-  return ((l && l.concat && R.is(Array, l)) || (r && r.concat && R.is(Array, r))) || !(R.is(Object, l) && R.is(Object, r)) ?
+  return (
+    (l && l.concat && R.is(Array, l)) ||
+    (r && r.concat && R.is(Array, r))
+  ) ||
+  !(R.all(R.is(Object)))([l, r]) ||
+  R.any(R.is(Function))([l, r]) ?
     fn(l, r) :
     mergeDeepWith(fn, l, r); // tail recursive
 })(left, right));

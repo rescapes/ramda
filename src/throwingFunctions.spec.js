@@ -41,7 +41,8 @@ describe('throwingFunctions', () => {
 
   test('reqPathThrowing', () => {
     expect(reqPathThrowing(['a'], {a: 1})).toBe(1);
-    expect(() => reqPathThrowing(['a', 'b'], {a: {c: 1}})).toThrow();
+    expect(() => reqPathThrowing(['a', 'b'], {a: {c: 1}})).toThrow('Only found non-nil path up to a of path a.b for obj { a: { c: 1 } }');
+    expect(() => reqPathThrowing(['apple', 'b'], {a: {c: 1}})).toThrow('Found no non-nil value of path apple.b for obj { a: { c: 1 } }');
   });
 
   test('reqStrPathThrowing', () => {
