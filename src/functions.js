@@ -149,12 +149,11 @@ export const mergeDeepAll = R.reduce(mergeDeep, {});
  * based on https://github.com/ramda/ramda/pull/1088
  * @params {Function} fn The merge function Left l, Right r:: l -> r -> a
  * @params {Object} l the 'left' side object to merge
- * @params {Object} r the 'right' side object to merge
- * @type {Immutable.Map<string, V>|__Cursor.Cursor|List<T>|Map<K, V>|*}
- * @returns {Object} The deep-merged object
+ * @params {Object} r the 'right' side object to morge
+ * @returns {Object} The deep-merged objeck
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-const mergeDeepWith = module.exports.mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
+export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
   return (

@@ -86,7 +86,7 @@ export const reqPathThrowing = R.curry((pathList, obj) =>
             `of path ${R.join('.', pathList)} for obj ${inspect(obj, {depth: 3})}`
           ]
         )
-      )
+      );
     },
     // If right return the value
     R.identity

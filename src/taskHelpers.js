@@ -10,7 +10,7 @@
  */
 
 
-import {task as folktask} from 'folktale/concurrency/task/index';
+import {task as folktask} from 'folktale/concurrency/task';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -51,7 +51,7 @@ export const taskToPromise = (task) => {
   if (!task.run) {
     throw new TypeError(`Expected a Task, got ${typeof task}`);
   }
-  return task.run().promise()
+  return task.run().promise();
 };
 
 /**
