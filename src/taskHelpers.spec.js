@@ -12,6 +12,8 @@
 import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
 import {defaultRunConfig, promiseToTask, taskToPromise} from './taskHelpers';
 import * as R from 'ramda';
+import * as Either from 'data.either';
+import {defaultRunToEitherConfig} from './taskHelpers';
 
 
 describe('taskHelpers', () => {
@@ -57,6 +59,32 @@ describe('taskHelpers', () => {
         throw new Error('Oh noo!!!');
       }).run().listen(
         defaultRunConfig({
+          onResolved: resolve => {
+            throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
+          }
+        })
+      )
+    ).toThrow();
+  });
+
+  test('defaultRunToEitherConfig Resolved', done => {
+    folktask(resolver => resolver.resolve(Either.Right('Re solved!'))).run().listen(
+      defaultRunToEitherConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual('Re solved!');
+          done();
+        }
+      })
+    );
+  });
+
+  test('defaultRunEitherConfig Throws', () => {
+    expect(
+      () => folktask(resolver => {
+        // Left should result in onRejected being called, which throws
+        resolver.resolve(Either.Left('Oh noo!!!'));
+      }).run().listen(
+        defaultRunToEitherConfig({
           onResolved: resolve => {
             throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
           }

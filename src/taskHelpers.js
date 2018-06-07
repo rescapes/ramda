@@ -31,8 +31,11 @@ export const onCancelled = () => {
 };
 
 /**
- * Defaults the onRejected and onCancelled handler and pass. Pass the onResolved function
- * with the key onResolved
+ * Defaults the onRejected and onCancelled to throw or log, respectively, when neither is expected to occur.
+ * Pass the onResolved function with the key onResolved pointing to a unary function with the result. Example:
+ * task.listen().run(defaultRunConfig({
+ *  onResolved: value => ... do something with value ...
+ * }))
  * @param {Function} onResolved Unary function expecting the resolved value
  * @returns {Object} Run config with onCancelled, onRejected, and onReolved handlers
  */
@@ -40,6 +43,29 @@ export const defaultRunConfig = ({onResolved}) => ({
   onCancelled,
   onRejected,
   onResolved
+});
+
+/**
+ * For a task that returns an Either.
+ * Defaults the onRejected and onCancelled to throw or log, respectively, when neither is expected to occur.
+ * Pass the onResolved function with the key onResolved pointing to a unary function with the result.
+ * If the task resolves to an Either.Right, resolves the underlying value and passes it to the onResolved function
+ * that you define. If the task resolves ot an Either.Left, the underlying value is passed to on Rejected.
+ * rejection and cancellation resolves the underlying value of the Right or Left. In practice onRejected shouldn't
+ * get called directly. Rather a Left should be resolved and then this function calls onRejected. cancellation
+ * should probably ignores the value
+ * Example:
+ * task.listen().run(defaultRunConfig({
+ *  onResolved: value => ... do something with value ...
+ * }))
+ * @param {Function} onResolved Unary function expecting the resolved value
+ * @returns {Object} Run config with onCancelled, onRejected, and onReolved handlers
+ */
+export const defaultRunToEitherConfig = ({onResolved}) => ({
+  onCancelled,
+  onRejected: either => either.map(onRejected).leftMap(onRejected),
+  // resolve either.Right, reject either.Left
+  onResolved: either => either.map(onResolved).leftMap(onRejected)
 });
 
 /**
