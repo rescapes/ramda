@@ -12,7 +12,8 @@
 import * as R from 'ramda';
 import * as f from './functions';
 import {Just} from 'data.maybe';
-import {Either} from 'ramda-fantasy';
+import * as Either from 'data.either';
+
 import {task as folktask, of} from 'folktale/concurrency/task';
 
 describe('helperFunctions', () => {

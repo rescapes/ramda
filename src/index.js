@@ -30,7 +30,7 @@ import {
   reqStrPathThrowing
 } from './throwingFunctions';
 import {
-  defaultRunConfig, promiseToTask, taskToPromise
+  defaultRunConfig, defaultRunToEitherConfig, promiseToTask, taskToPromise
 } from './taskHelpers';
 
 export {
@@ -87,5 +87,6 @@ export {
   mapObjToValues,
   chainObjToValues,
   traverseReduce,
-  defaultRunConfig
+  defaultRunConfig,
+  defaultRunToEitherConfig
 };

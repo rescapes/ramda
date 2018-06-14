@@ -22,7 +22,8 @@
 
 import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
-import {Either, Maybe} from 'ramda-fantasy';
+import * as Maybe from 'data.maybe'
+import * as Either from 'data.either'
 import {task as folktask} from 'folktale/concurrency/task';
 
 /**

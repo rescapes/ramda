@@ -11,7 +11,7 @@
  * Functions that the trowing versions from functions.js
  */
 import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} from './functions';
-import {Either} from 'ramda-fantasy';
+import * as Either from 'data.either'
 import * as R from 'ramda';
 import {inspect} from 'util';
 
@@ -55,11 +55,11 @@ export const throwIfSingleLeft = R.curry((message, either) =>
  * @returns {Right} Throws the mapped values or returns Either.Right. Error values are '; ' separated
  */
 export const mappedThrowIfLeft = R.curry((func, either) =>
-  either.either(
+  either.leftMap(
     // Throw if Left
     leftValue => {
       throw new Error(R.join('; ', R.map(func, leftValue)));
-    },
+    }).map(
     // Return the Right value
     R.identity
   )

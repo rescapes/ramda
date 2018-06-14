@@ -21,7 +21,7 @@ import {
   onlyOneValueThrowing,
   findOneValueByParamsThrowing
 } from './throwingFunctions';
-import {Either} from 'ramda-fantasy';
+import * as Either from 'data.either'
 import * as R from 'ramda';
 
 describe('throwingFunctions', () => {
