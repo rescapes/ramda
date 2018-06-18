@@ -22,8 +22,8 @@
 
 import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
-import * as Maybe from 'data.maybe'
-import * as Either from 'data.either'
+import * as Maybe from 'data.maybe';
+import * as Either from 'data.either';
 import {task as folktask} from 'folktale/concurrency/task';
 
 /**
@@ -231,7 +231,7 @@ export const reqPath = R.curry((path, obj) => {
   return R.compose(
     R.ifElse(
       // If path doesn't resolve
-      Maybe.isNothing,
+      maybe => maybe.isNothing,
       // Create a useful Error message
       () => Either.Left({
         resolved: R.reduceWhile(

@@ -114,7 +114,7 @@ describe('taskHelpers', () => {
 
   test('composeK with new Tasks and error (technology test)', done => {
     R.composeK(
-      v => of(`I never get called :<`),
+      v => of('I never get called :<'),
       v => folktask(resolver => resolver.reject(`${v} Oh no!`)),
       v => of(`${v} a`),
       v => of(`${v} was`),

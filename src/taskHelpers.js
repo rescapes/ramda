@@ -92,3 +92,4 @@ export const promiseToTask = (promise, expectReject = false) => {
   }
   return folktask(resolver => promise.then(resolver.resolve).catch(resolver.reject));
 };
+

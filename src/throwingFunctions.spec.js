@@ -21,7 +21,7 @@ import {
   onlyOneValueThrowing,
   findOneValueByParamsThrowing
 } from './throwingFunctions';
-import * as Either from 'data.either'
+import * as Either from 'data.either';
 import * as R from 'ramda';
 
 describe('throwingFunctions', () => {
@@ -33,7 +33,7 @@ describe('throwingFunctions', () => {
 
   test('mappedThrowIfLeft', () => {
     // Use a pure function that returns Either. throwIfLeft should throw if the either is an EitherLeft
-    expect(mappedThrowIfLeft(() => null, reqPath(['a'], {a: 1}))).toBe(1);
+    expect(mappedThrowIfLeft(() => null, reqPath(['a'], {a: 1})).get()).toBe(1);
     expect(() => mappedThrowIfLeft(arg => `Error ${arg}`, Either.Left([1, 2]))).toThrow(
       'Error 1; Error 2'
     );

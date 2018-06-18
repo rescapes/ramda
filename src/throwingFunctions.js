@@ -11,7 +11,7 @@
  * Functions that the trowing versions from functions.js
  */
 import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} from './functions';
-import * as Either from 'data.either'
+import * as Either from 'data.either';
 import * as R from 'ramda';
 import {inspect} from 'util';
 
@@ -21,14 +21,12 @@ import {inspect} from 'util';
  * @returns {Object} Throws or returns the contents of Right. Values are '; ' separated
  */
 export const throwIfLeft = either =>
-  either.either(
+  either.leftMap(
     // Throw if Left
     leftValue => {
       throw new Error(R.join('; ', leftValue));
-    },
-    // Return the Right value
-    R.identity
-  );
+    }
+  ).get();
 
 /**
  * Throw and exception if Either is Left
@@ -37,14 +35,13 @@ export const throwIfLeft = either =>
  * @returns {Object} Throws or returns the contents of Right
  */
 export const throwIfSingleLeft = R.curry((message, either) =>
-  either.either(
+  either.leftMap(
     // Throw if Left
     leftValue => {
       throw new Error(`${message}: ${inspect(leftValue, {showHidden: false, depth: 3})}`);
-    },
-    // Return the Right value
-    R.identity
-  ));
+    }
+  ).get()
+);
 
 /**
  * Like throwIfLeft but allows mapping of the unformatted Error values in Either
@@ -73,7 +70,7 @@ export const mappedThrowIfLeft = R.curry((func, either) =>
  * reqPath:: string -> obj -> a or throws
  */
 export const reqPathThrowing = R.curry((pathList, obj) =>
-  reqPath(pathList, obj).either(
+  reqPath(pathList, obj).leftMap(
     leftValue => {
       // If left throw a helpful error
       throw new Error(
@@ -90,7 +87,7 @@ export const reqPathThrowing = R.curry((pathList, obj) =>
     },
     // If right return the value
     R.identity
-  )
+  ).get()
 );
 
 /**
@@ -112,7 +109,7 @@ export const reqStrPathThrowing = R.curry((str, props) => reqPathThrowing(R.spli
  * reqPath:: Boolean b = string -> obj -> b or throws
  */
 export const reqPathPropEqThrowing = R.curry((path, val, obj) =>
-  reqPathPropEq(path, val, obj).either(
+  reqPathPropEq(path, val, obj).leftMap(
     leftValue => {
       // If left throw a helpful error
       throw new Error(
@@ -121,10 +118,8 @@ export const reqPathPropEqThrowing = R.curry((path, val, obj) =>
           'Found no non-nil value of path',
           `of ${path.join('.')} for obj ${inspect(obj, {depth: 2})}`
         ].join(' '));
-    },
-    // If right return the value
-    R.identity
-  )
+    }
+  ).get()
 );
 
 /**
