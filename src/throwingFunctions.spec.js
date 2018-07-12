@@ -11,8 +11,8 @@
 
 import {reqPath} from './functions';
 import {
-  throwIfLeft,
-  mappedThrowIfLeft,
+  throwIfResultError,
+  mappedThrowIfResultError,
   reqPathThrowing,
   reqStrPathThrowing,
   reqPathPropEqThrowing,
@@ -21,20 +21,20 @@ import {
   onlyOneValueThrowing,
   findOneValueByParamsThrowing
 } from './throwingFunctions';
-import * as Either from 'data.either';
+import * as Result from 'folktale/result';
 import * as R from 'ramda';
 
 describe('throwingFunctions', () => {
-  test('throwIfLeft', () => {
-    // Use a pure function that returns Either. throwIfLeft should throw if the either is an EitherLeft
-    expect(throwIfLeft(reqPath(['a'], {a: 1}))).toBe(1);
-    expect(() => throwIfLeft(reqPath(['a', 'b'], {a: {c: 1}}))).toThrow();
+  test('throwIfResultError', () => {
+    // Use a pure function that returns Result. throwIfResultError should throw if the either is an ResultError
+    expect(throwIfResultError(reqPath(['a'], {a: 1}))).toBe(1);
+    expect(() => throwIfResultError(reqPath(['a', 'b'], {a: {c: 1}}))).toThrow();
   });
 
-  test('mappedThrowIfLeft', () => {
-    // Use a pure function that returns Either. throwIfLeft should throw if the either is an EitherLeft
-    expect(mappedThrowIfLeft(() => null, reqPath(['a'], {a: 1})).get()).toBe(1);
-    expect(() => mappedThrowIfLeft(arg => `Error ${arg}`, Either.Left([1, 2]))).toThrow(
+  test('mappedThrowIfResultError', () => {
+    // Use a pure function that returns Result. throwIfResultError should throw if the either is an ResultError
+    expect(mappedThrowIfResultError(() => null, reqPath(['a'], {a: 1})).unsafeGet()).toBe(1);
+    expect(() => mappedThrowIfResultError(arg => `Error ${arg}`, Result.Error([1, 2]))).toThrow(
       'Error 1; Error 2'
     );
   });

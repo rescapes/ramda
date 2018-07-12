@@ -46,13 +46,13 @@ export const defaultRunConfig = ({onResolved}) => ({
 });
 
 /**
- * For a task that returns an Either.
+ * For a task that returns an Result.
  * Defaults the onRejected and onCancelled to throw or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result.
- * If the task resolves to an Either.Right, resolves the underlying value and passes it to the onResolved function
- * that you define. If the task resolves ot an Either.Left, the underlying value is passed to on Rejected.
- * rejection and cancellation resolves the underlying value of the Right or Left. In practice onRejected shouldn't
- * get called directly. Rather a Left should be resolved and then this function calls onRejected. cancellation
+ * If the task resolves to an Result.Ok, resolves the underlying value and passes it to the onResolved function
+ * that you define. If the task resolves ot an Result.Error, the underlying value is passed to on Rejected.
+ * rejection and cancellation resolves the underlying value of the Result.Ok or Result.Error. In practice onRejected shouldn't
+ * get called directly. Rather a Result.Error should be resolved and then this function calls onRejected. cancellation
  * should probably ignores the value
  * Example:
  * task.listen().run(defaultRunConfig({
@@ -61,11 +61,11 @@ export const defaultRunConfig = ({onResolved}) => ({
  * @param {Function} onResolved Unary function expecting the resolved value
  * @returns {Object} Run config with onCancelled, onRejected, and onReolved handlers
  */
-export const defaultRunToEitherConfig = ({onResolved}) => ({
+export const defaultRunToResultConfig = ({onResolved}) => ({
   onCancelled,
-  onRejected: either => either.map(onRejected).leftMap(onRejected),
-  // resolve either.Right, reject either.Left
-  onResolved: either => either.map(onResolved).leftMap(onRejected)
+  onRejected: result => result.map(onRejected).mapError(onRejected),
+  // resolve Result.Ok, reject Result.Error
+  onResolved: result => result.map(onResolved).mapError(onRejected)
 });
 
 /**

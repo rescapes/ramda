@@ -11,10 +11,10 @@
 
 import * as R from 'ramda';
 import * as f from './functions';
-import {Just} from 'data.maybe';
-import * as Either from 'data.either';
+import {Just} from 'folktale/maybe';
+import * as Result from 'folktale/result';
 
-import {task as folktask, of} from 'folktale/concurrency/task';
+import {of} from 'folktale/concurrency/task';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -105,7 +105,7 @@ describe('helperFunctions', () => {
           goo: 1
         }
       }
-    })).toEqual(Either.Right(1));
+    })).toEqual(Result.Ok(1));
 
     expect(f.reqStrPath('foo.bar.goo', {
       foo: {
@@ -113,7 +113,7 @@ describe('helperFunctions', () => {
           goo: 1
         }
       }
-    })).toEqual(Either.Left(
+    })).toEqual(Result.Error(
       {
         resolved: ['foo'],
         path: ['foo', 'bar', 'goo']
@@ -168,7 +168,7 @@ describe('helperFunctions', () => {
   test('Should reqPath of object', () => {
     expect(
       f.reqPath(['a', 'b', 1, 'c'], {a: {b: [null, {c: 2}]}})
-    ).toEqual(Just(2));
+    ).toEqual(Result.Ok(2));
   });
 
   test('mapKeys', () => {
@@ -264,64 +264,64 @@ describe('helperFunctions', () => {
     expect(
       f.findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
     ).toEqual(
-      Either.Right({b: 'Eli Whitney'})
+      Result.Ok({b: 'Eli Whitney'})
     );
 
     // Works with arrays
     expect(
       f.findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
     ).toEqual(
-      Either.Right(['Eli Whitney'])
+      Result.Ok(['Eli Whitney'])
     );
 
     // None
     expect(
       f.findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
     ).toEqual(
-      Either.Left({all: {a: 1, b: 2}, matching: {}})
+      Result.Error({all: {a: 1, b: 2}, matching: {}})
     );
 
     // Too many
     expect(
       f.findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
-      Either.Left({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
+      Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('onlyOne', () => {
-    expect(f.onlyOne({a: 'Eli Whitney'})).toEqual(Either.Right({a: 'Eli Whitney'}));
+    expect(f.onlyOne({a: 'Eli Whitney'})).toEqual(Result.Ok({a: 'Eli Whitney'}));
 
     // None
     expect(
       f.onlyOne({})
     ).toEqual(
-      Either.Left({all: {}, matching: {}})
+      Result.Error({all: {}, matching: {}})
     );
 
     // Too many
     expect(
       f.onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
-      Either.Left({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
+      Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('onlyOneValue', () => {
-    expect(f.onlyOneValue({a: 'Eli Whitney'})).toEqual(Either.Right('Eli Whitney'));
+    expect(f.onlyOneValue({a: 'Eli Whitney'})).toEqual(Result.Ok('Eli Whitney'));
 
     // None
     expect(
       f.onlyOneValue({})
     ).toEqual(
-      Either.Left({all: {}, matching: {}})
+      Result.Error({all: {}, matching: {}})
     );
 
     // Too many
     expect(
       f.onlyOneValue({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
-      Either.Left({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
+      Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
@@ -340,11 +340,11 @@ describe('helperFunctions', () => {
     ];
     const params = {brand: 'crush', flavor: 'orange'};
     expect(f.findOneValueByParams(params, items)).toEqual(
-      Either.Right({brand: 'crush', flavor: 'orange'})
+      Result.Ok({brand: 'crush', flavor: 'orange'})
     );
     const badParams = {brand: 'crush', flavor: 'pretzel'};
     expect(f.findOneValueByParams(badParams, items)).toEqual(
-      Either.Left(
+      Result.Error(
         {
           all: [{brand: 'crush', flavor: 'grape'}, {
             brand: 'fanta',
@@ -355,7 +355,7 @@ describe('helperFunctions', () => {
     );
     const tooGoodParams = {brand: 'crush'};
     expect(f.findOneValueByParams(tooGoodParams, items)).toEqual(
-      Either.Left(
+      Result.Error(
         {
           all: [{brand: 'crush', flavor: 'grape'}, {
             brand: 'fanta',
@@ -378,8 +378,8 @@ describe('helperFunctions', () => {
     const merge = (res, [k, v]) => R.merge(res, {[k]: v});
     const initialValue = apConstructor => apConstructor({});
 
-    const initialEither = initialValue(Either.of);
-    // Convert dict into list of Either([k,v])
+    const initialResult = initialValue(Result.of);
+    // Convert dict into list of Result([k,v])
     const objOfApplicativesToApplicative = R.curry((apConstructor, objOfApplicatives) => f.mapObjToValues(
       (v, k) => {
         return v.chain(val => apConstructor([k, val]));
@@ -390,11 +390,11 @@ describe('helperFunctions', () => {
     expect(
       f.traverseReduce(
         merge,
-        initialEither,
-        objOfApplicativesToApplicative(Either.of, {a: Either.of('a'), b: Either.of('b')})
+        initialResult,
+        objOfApplicativesToApplicative(Result.of, {a: Result.of('a'), b: Result.of('b')})
       )
     ).toEqual(
-      Either.of({a: 'a', b: 'b'})
+      Result.of({a: 'a', b: 'b'})
     );
 
     const mapper = objOfApplicativesToApplicative(of);
@@ -409,8 +409,8 @@ describe('helperFunctions', () => {
           R.map(
             // First reduce each letter value to get
             //  {
-            //  a: Task({apple: Either.of('apple'), aardvark: Either.of('aardvark')}),
-            //  b: Task({banana: Either.of('banana'), bonobo: Either.of('bonobo')})
+            //  a: Task({apple: Result.of('apple'), aardvark: Result.of('aardvark')}),
+            //  b: Task({banana: Result.of('banana'), bonobo: Result.of('bonobo')})
             //  }
             v => f.traverseReduce(
               merge,

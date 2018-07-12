@@ -18,9 +18,9 @@ import {
   mapObjToValues, chainObjToValues, traverseReduce
 } from './functions';
 import {
-  throwIfSingleLeft,
-  mappedThrowIfLeft,
-  throwIfLeft,
+  throwIfSingleResultError,
+  mappedThrowIfResultError,
+  throwIfResultError,
   findOneThrowing,
   findOneValueByParamsThrowing,
   onlyOneThrowing,
@@ -30,7 +30,7 @@ import {
   reqStrPathThrowing
 } from './throwingFunctions';
 import {
-  defaultRunConfig, defaultRunToEitherConfig, promiseToTask, taskToPromise
+  defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise
 } from './taskHelpers';
 
 export {
@@ -74,19 +74,19 @@ export {
   taskToPromise,
   transformKeys,
   findOneValueByParams,
-  throwIfSingleLeft,
+  throwIfSingleResultError,
   reqPathPropEqThrowing,
   reqPathThrowing,
   onlyOneValueThrowing,
   findOneThrowing,
   reqStrPathThrowing,
-  mappedThrowIfLeft,
-  throwIfLeft,
+  mappedThrowIfResultError,
+  throwIfResultError,
   findOneValueByParamsThrowing,
   onlyOneThrowing,
   mapObjToValues,
   chainObjToValues,
   traverseReduce,
   defaultRunConfig,
-  defaultRunToEitherConfig
+  defaultRunToResultConfig
 };

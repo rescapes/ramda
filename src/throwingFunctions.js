@@ -11,53 +11,53 @@
  * Functions that the trowing versions from functions.js
  */
 import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue} from './functions';
-import * as Either from 'data.either';
+import * as Result from 'folktale/result';
 import * as R from 'ramda';
 import {inspect} from 'util';
 
 /**
- * Throw and exception if Either is Left
- * @param {Either} either Left value is an array of Errors to throw. Right value is success to return
- * @returns {Object} Throws or returns the contents of Right. Values are '; ' separated
+ * Throw and exception if Result is Result.Error
+ * @param {Result} result Result.Error value is an array of Errors to throw. Result.Ok value is success to return
+ * @returns {Object} Throws or returns the contents of Result.Ok. Values are '; ' separated
  */
-export const throwIfLeft = either =>
-  either.leftMap(
-    // Throw if Left
-    leftValue => {
-      throw new Error(R.join('; ', leftValue));
+export const throwIfResultError = result =>
+  result.mapError(
+    // Throw if Result.Error
+    resultErrorValue => {
+      throw new Error(R.join('; ', resultErrorValue));
     }
-  ).get();
+  ).unsafeGet();
 
 /**
- * Throw and exception if Either is Left
+ * Throw and exception if Result is Result.Error
  * @param {String} message The custom error message to precede the error dump
- * @param {Either} either Left value is a single error
- * @returns {Object} Throws or returns the contents of Right
+ * @param {Result} either Result.Error value is a single error
+ * @returns {Object} Throws or returns the contents of Result.Ok
  */
-export const throwIfSingleLeft = R.curry((message, either) =>
-  either.leftMap(
-    // Throw if Left
-    leftValue => {
-      throw new Error(`${message}: ${inspect(leftValue, {showHidden: false, depth: 3})}`);
+export const throwIfSingleResultError = R.curry((message, result) =>
+  result.mapError(
+    // Throw if Result.Error
+    resultErrorValue => {
+      throw new Error(`${message}: ${inspect(resultErrorValue, {showHidden: false, depth: 3})}`);
     }
-  ).get()
+  ).unsafeGet()
 );
 
 /**
- * Like throwIfLeft but allows mapping of the unformatted Error values in Either
- * @param {Either} either Left value is an error to throw. Right value is success to return
- * The Either value (not just the Either itself) must be a Container in order to apply the mapping function
- * @param {Function} func Mapping function that maps Either.Left value. If this value is
+ * Like throwIfResultError but allows mapping of the unformatted Error values in Result
+ * @param {Result} either Result.Error value is an error to throw. Result.Ok value is success to return
+ * The Result value (not just the Result itself) must be a Container in order to apply the mapping function
+ * @param {Function} func Mapping function that maps Result.Error value. If this value is
  * an array it maps each value. If not it maps the single value
- * @returns {Right} Throws the mapped values or returns Either.Right. Error values are '; ' separated
+ * @returns {Result.Ok} Throws the mapped values or returns Result.Ok. Error values are '; ' separated
  */
-export const mappedThrowIfLeft = R.curry((func, either) =>
-  either.leftMap(
-    // Throw if Left
+export const mappedThrowIfResultError = R.curry((func, result) =>
+  result.mapError(
+    // Throw if Result.Error
     leftValue => {
       throw new Error(R.join('; ', R.map(func, leftValue)));
     }).map(
-    // Return the Right value
+    // Return the Result.Ok value
     R.identity
   )
 );
@@ -70,7 +70,7 @@ export const mappedThrowIfLeft = R.curry((func, either) =>
  * reqPath:: string -> obj -> a or throws
  */
 export const reqPathThrowing = R.curry((pathList, obj) =>
-  reqPath(pathList, obj).leftMap(
+  reqPath(pathList, obj).mapError(
     leftValue => {
       // If left throw a helpful error
       throw new Error(
@@ -87,7 +87,7 @@ export const reqPathThrowing = R.curry((pathList, obj) =>
     },
     // If right return the value
     R.identity
-  ).get()
+  ).unsafeGet()
 );
 
 /**
@@ -109,7 +109,7 @@ export const reqStrPathThrowing = R.curry((str, props) => reqPathThrowing(R.spli
  * reqPath:: Boolean b = string -> obj -> b or throws
  */
 export const reqPathPropEqThrowing = R.curry((path, val, obj) =>
-  reqPathPropEq(path, val, obj).leftMap(
+  reqPathPropEq(path, val, obj).mapError(
     leftValue => {
       // If left throw a helpful error
       throw new Error(
@@ -119,7 +119,7 @@ export const reqPathPropEqThrowing = R.curry((path, val, obj) =>
           `of ${path.join('.')} for obj ${inspect(obj, {depth: 2})}`
         ].join(' '));
     }
-  ).get()
+  ).unsafeGet()
 );
 
 /**
@@ -129,7 +129,7 @@ export const reqPathPropEqThrowing = R.curry((path, val, obj) =>
  * @returns {Object} The single item container or throws
  */
 export const findOneThrowing = R.curry((predicate, obj) =>
-  throwIfSingleLeft('Did not find exactly one match', findOne(predicate, obj))
+  throwIfSingleResultError('Did not find exactly one match', findOne(predicate, obj))
 );
 
 /**
@@ -138,7 +138,7 @@ export const findOneThrowing = R.curry((predicate, obj) =>
  * @returns {Object} The single item container or throws
  */
 export const onlyOneThrowing = obj =>
-  throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOne(obj))
+  throwIfSingleResultError('Did not find exactly one', R.omit(['matching'], onlyOne(obj))
   );
 
 /**
@@ -147,10 +147,10 @@ export const onlyOneThrowing = obj =>
  * @returns {Object} The single item container or throws
  */
 export const onlyOneValueThrowing = obj =>
-  throwIfSingleLeft('Did not find exactly one', R.omit(['matching'], onlyOneValue(obj)));
+  throwIfSingleResultError('Did not find exactly one', R.omit(['matching'], onlyOneValue(obj)));
 
 export const findOneValueByParamsThrowing = (params, items) =>
-  throwIfSingleLeft('Did not find exactly one', findOne(
+  throwIfSingleResultError('Did not find exactly one', findOne(
     // Compare all theeeqProps against each item
     R.allPass(
       // Create a eqProps for each prop of params

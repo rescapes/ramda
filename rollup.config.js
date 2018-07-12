@@ -29,7 +29,7 @@ if (env === 'es' || env === 'cjs') {
   };
   // folktale needs to be explicitly external because rollup can't
   // match folktale to folktale/concurrency/task
-  config.external = ['symbol-observable', 'folktale/concurrency/task']
+  config.external = ['symbol-observable', 'folktale/concurrency/task', 'folktale/result']
   config.plugins.push(
     babel({
       exclude: ['node_modules/**'],

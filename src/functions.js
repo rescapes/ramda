@@ -15,16 +15,14 @@
 * These functions should all be pure. Equivalent throwing functions can
 * be found in throwingFunctions. throwingFunctions should only be used for coding errors,
 * such as improper function arguments or an invalid path within object.
-* I/O Errors should be handled using Maybe or Either and calling functions should expect them.
+* I/O Errors should be handled using Maybe or Result and calling functions should expect them.
 * An I/O Error should always result in a valid state of an application, even if that valid
 * state is to show an error message, retry I/O, etc.
 */
 
 import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
-import * as Maybe from 'data.maybe';
-import * as Either from 'data.either';
-import {task as folktask} from 'folktale/concurrency/task';
+import * as Result from 'folktale/result';
 
 /**
  * Return an empty string if the given entity is falsy
@@ -148,7 +146,7 @@ export const mergeDeepAll = R.reduce(mergeDeep, {});
 /**
  * Deep merge values with a custom function that are objects
  * based on https://github.com/ramda/ramda/pull/1088
- * @params {Function} fn The merge function Left l, Right r:: l -> r -> a
+ * @params {Function} fn The merge function left l, right r:: l -> r -> a
  * @params {Object} l the 'left' side object to merge
  * @params {Object} r the 'right' side object to morge
  * @returns {Object} The deep-merged objeck
@@ -224,8 +222,8 @@ export const mergeAllWithKey = R.curry((fn, [head, ...rest]) =>
  * Get a required path or return a helpful Error if it fails
  * @param {String} path A lensPath, e.g. ['a', 'b'] or ['a', 2, 'b']
  * @param {Object} obj The object to inspect
- * @returns {Either} Either the resolved value or an Error
- * @sig reqPath:: String -> {k: v} → Either
+ * @returns {Result} Result the resolved value or an Error
+ * @sig reqPath:: String -> {k: v} → Result
  */
 export const reqPath = R.curry((path, obj) => {
   return R.compose(
@@ -233,7 +231,7 @@ export const reqPath = R.curry((path, obj) => {
       // If path doesn't resolve
       maybe => maybe.isNothing,
       // Create a useful Error message
-      () => Either.Left({
+      () => Result.Error({
         resolved: R.reduceWhile(
           // Stop if the accumulated segments can't be resolved
           (segments, segment) => R.not(R.isNil(R.path(R.concat(segments, [segment]), obj))),
@@ -245,7 +243,7 @@ export const reqPath = R.curry((path, obj) => {
         path: path
       }),
       // Return the resolved value
-      res => Either.Right(res.value)
+      res => Result.Ok(res.value)
     ),
     // Try to resolve the value using the path and obj, returning Maybe
     Rm.path(path))(obj);
@@ -253,10 +251,10 @@ export const reqPath = R.curry((path, obj) => {
 
 /**
  * Expects a prop path and returns a function expecting props,
- * which resolves the prop indicated by the string. Returns either.left if there is not match
+ * which resolves the prop indicated by the string. Returns Result.Error if there is not match
  * @param {String} str dot-separated prop path
  * @param {Object} props Object to resolve the path in
- * @return {Either} Either.right with the resolved value or Either.left if the path doesn't exist or the
+ * @return {Result} Result.Ok with the resolved value or Result.Error if the path doesn't exist or the
  * value is null
  */
 export const reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), props));
@@ -266,7 +264,7 @@ export const reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), pro
  * which resolves the prop indicated by the string. If not match is found it returns undefined
  * @param {String} str dot-separated prop path
  * @param {Object} props Object to resolve the path in
- * @return {Object} The resolved objedt or undefined
+ * @return {Object} The resolved object or undefined
  */
 export const strPath = R.curry((str, props) => {
   return R.view(R.lensPath(R.split('.', str)), props);
@@ -304,8 +302,8 @@ export const hasStrPath = R.curry((str, props) =>
  * @param {String} path A lensPath, e.g. ['a', 'b'] or ['a', 2, 'b']
  * @param {*} val The val to do an equality check on
  * @param {Object} obj The object to inspect
- * @returns {Either} Either the resolved value or an Error
- * @sig reqPath:: String -> {k: v} → Either
+ * @returns {Result} Result the resolved value or an Error
+ * @sig reqPath:: String -> {k: v} → Result
  */
 export const reqPathPropEq = R.curry((path, val, obj) =>
   // If the reqPath is valid map it to a comparison with val
@@ -463,16 +461,16 @@ export const moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
  * Like R.find but expects only one match and works on both arrays and objects
  * @param {Function} predicate
  * @param {Array|Object} obj Container that should only match once with predicate
- * @returns {Either} Left if no matches or more than one, otherwise Right with the single matching item in an array/object
+ * @returns {Result} Result.Error if no matches or more than one, otherwise Result.Ok with the single matching item in an array/object
  */
 export const findOne = R.curry((predicate, obj) =>
   R.ifElse(
     // Ifk path doesn't resolve
     items => R.equals(R.length(R.keys(items)), 1),
     // Return the resolved single key/value object
-    items => Either.Right(items),
+    items => Result.Ok(items),
     // Create a useful Error message
-    items => Either.Left({
+    items => Result.Error({
       all: obj,
       matching: items
     })
@@ -482,19 +480,19 @@ export const findOne = R.curry((predicate, obj) =>
 /**
  * Version of find one that accepts all items of the given Container
  * @param {Array|Object} obj Container
- * @returns {Either} Left if no items or more than one, otherwise Right with the single item in an array/object
+ * @returns {Result} Result.Error if no items or more than one, otherwise Result.Ok with the single item in an array/object
  */
 export const onlyOne = findOne(R.T);
 
 /**
  * Like onlyOne but extracts the value
- * @param {Array|Object|Either} obj Container that should have one value to extract. This currently expects
- * and array or object or Either, but it could be expanded to take Either, Maybe, or any other container where
+ * @param {Array|Object|Result} obj Container that should have one value to extract. This currently expects
+ * and array or object or Result, but it could be expanded to take Result, Maybe, or any other container where
  * the value can be extracted. Types like Tasks and Streams can't extract, I suppose
- * @returns {Either} Left if no items or more than one, otherwise Right with the single value
+ * @returns {Result} Result.Error if no items or more than one, otherwise Result.Ok with the single value
  */
 export const onlyOneValue = R.compose(
-  // Use R.map to operate on the value of Either without extracting it
+  // Use R.map to operate on the value of Result without extracting it
   R.map(R.head),
   R.map(R.values),
   findOne(R.T)
@@ -513,7 +511,7 @@ export const mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v 
  * Finds an item that matches all the given props in params
  * @param {Object} params object key values to match
  * @param {Object|Array} items Object or Array that can produce values to search
- * @returns {Either} An Either.Right containing the value or an Either.Left if no value is found
+ * @returns {Result} An Result.Ok containing the value or an Result.Error if no value is found
  */
 export const findOneValueByParams = (params, items) => {
   return findOne(
@@ -549,7 +547,7 @@ export const mapObjToValues = (f, obj) => {
 
 /**
  * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
- * Same arguments as reduce, but the initialValue must be an applicative, like task.of({}) or Either.of({})
+ * Same arguments as reduce, but the initialValue must be an applicative, like task.of({}) or Result.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
  * which must be an applicative
  * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
