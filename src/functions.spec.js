@@ -374,18 +374,19 @@ describe('helperFunctions', () => {
     expect(f.alwaysFunc(str)(1, 1, 'was', 'a racehorse')).toEqual(str);
   });
 
-  test('traverseReduce', (done) => {
-    const merge = (res, [k, v]) => R.merge(res, {[k]: v});
-    const initialValue = apConstructor => apConstructor({});
+  const merge = (res, [k, v]) => R.merge(res, {[k]: v});
+  const initialValue = apConstructor => apConstructor({});
 
+  // Convert dict into list of Container([k,v])
+  const objOfApplicativesToApplicative = R.curry((apConstructor, objOfApplicatives) => f.mapObjToValues(
+    (v, k) => {
+      return v.chain(val => apConstructor([k, val]));
+    },
+    objOfApplicatives
+  ));
+
+  test('traverseReduce', (done) => {
     const initialResult = initialValue(Result.of);
-    // Convert dict into list of Result([k,v])
-    const objOfApplicativesToApplicative = R.curry((apConstructor, objOfApplicatives) => f.mapObjToValues(
-      (v, k) => {
-        return v.chain(val => apConstructor([k, val]));
-      },
-      objOfApplicatives
-    ));
 
     expect(
       f.traverseReduce(
@@ -438,5 +439,40 @@ describe('helperFunctions', () => {
         done();
       }
     });
+  });
+
+  test('traverseReduceTaskWhile', done => {
+    const initialTask = initialValue(of);
+    const task = f.traverseReduceWhile(
+      // Predicate should be false when we have a b accumulated
+      (accumulated, applicative) => R.not(R.prop('b', accumulated)),
+      merge,
+      initialTask,
+      objOfApplicativesToApplicative(of, {a: of('a'), b: of('b'), c: of('c')})
+    );
+    task.run().listen({
+      onRejected: reject => {
+        throw(reject);
+      },
+      onResolved: result => {
+        expect(result).toEqual({a: 'a', b: 'b'});
+        done();
+      }
+    });
+  });
+
+  test('traverseReduceResultWhile', done => {
+    const initialResult = initialValue(Result.of);
+    f.traverseReduceWhile(
+      // Predicate should be false when we have a b accumulated
+      (accumulated, applicative) => R.not(R.prop('b', accumulated)),
+      merge,
+      initialResult,
+      objOfApplicativesToApplicative(Result.of, {a: Result.of('a'), b: Result.of('b'), c: Result.of('c')})
+    ).map(result => {
+        expect(result).toEqual({a: 'a', b: 'b'});
+        done();
+      }
+    );
   });
 });

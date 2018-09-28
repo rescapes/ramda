@@ -246,7 +246,8 @@ export const reqPath = R.curry((path, obj) => {
       res => Result.Ok(res.value)
     ),
     // Try to resolve the value using the path and obj, returning Maybe
-    Rm.path(path))(obj);
+    Rm.path(path)
+  )(obj);
 });
 
 /**
@@ -459,13 +460,14 @@ export const moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
 
 /**
  * Like R.find but expects only one match and works on both arrays and objects
+ * Note this still iterates through the whole list or object, so this should be rewritten to quit when one is found
  * @param {Function} predicate
  * @param {Array|Object} obj Container that should only match once with predicate
  * @returns {Result} Result.Error if no matches or more than one, otherwise Result.Ok with the single matching item in an array/object
  */
 export const findOne = R.curry((predicate, obj) =>
   R.ifElse(
-    // Ifk path doesn't resolve
+    // If path doesn't resolve
     items => R.equals(R.length(R.keys(items)), 1),
     // Return the resolved single key/value object
     items => Result.Ok(items),
@@ -559,6 +561,47 @@ export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
   (applicatorRes, applicator) => applicatorRes.chain(
     res => applicator.map(v => accumulator(res, v))
   ),
+  initialValue,
+  list
+);
+
+/**
+ * A version of traverseReduce that also reduces until a boolean condition is met.
+ * Same arguments as reduceWhile, but the initialValue must be an applicative, like task.of({}) or Result.of({})
+ * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
+ * which must be an applicative
+ * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
+ * @param {Function} predicate Unary function that is evaluated before each step. If the predicate returns
+ * false it "short-circuits" the iteration and returns teh current value of the accumulator
+ * @param {Object} initialValue An applicative to be the intial reduced value of accumulator
+ * @param {[Object]} list List of applicatives
+ * @returns {Object} The value resulting from traversing and reducing
+ */
+export const traverseReduceWhile = (predicate, accumulator, initialValue, list) => R.reduce(
+  (applicatorRes, applicator) => {
+    return applicatorRes.chain(
+      result => {
+        return applicator.map(v => {
+          // If the applicator's value passes the predicate, accumulate it and process the next item
+          // Otherwise we stop reducing by returning R.reduced()
+          return R.ifElse(
+            v => predicate(result, v),
+            v => accumulator(result, v),
+            // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
+            () => R.reduced(result)
+          )(v);
+        });
+      }
+    ).chain(
+      // Check if we're done
+      result => R.ifElse(
+        R.prop('@@transducer/reduced'),
+        // Done, wrap it in the type
+        result => initialValue.map(R.always(R.prop('@@transducer/value', result))),
+        result => initialValue.map(R.always(result))
+      )(result)
+    );
+  },
   initialValue,
   list
 );
