@@ -444,11 +444,18 @@ describe('helperFunctions', () => {
   test('traverseReduceTaskWhile', done => {
     const initialTask = initialValue(of);
     const task = f.traverseReduceWhile(
-      // Predicate should be false when we have a b accumulated
-      (accumulated, applicative) => R.not(R.prop('b', accumulated)),
+      // Make sure we accumulate up to b but don't run c
+      {
+        predicate: (accumulated, applicative) => R.not(R.equals('b', applicative[0])),
+        accumulateAfterPredicateFail: true
+      },
       merge,
       initialTask,
-      objOfApplicativesToApplicative(of, {a: of('a'), b: of('b'), c: of('c')})
+      objOfApplicativesToApplicative(of, {
+        a: of('a'), b: of('b'), c: of('c').map(() => {
+          throw new Error("This task should not run!");
+        })
+      })
     );
     task.run().listen({
       onRejected: reject => {

@@ -570,41 +570,64 @@ export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
  * Same arguments as reduceWhile, but the initialValue must be an applicative, like task.of({}) or Result.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
  * which must be an applicative
+ * @param {Object|Function} predicateOrObj Like ramda's reduceWhile predicate. Accepts the accumulated value an next value.
+ * These are the values of the container. If false is returned the accumulated value is returned without processing
+ * more values. Be aware that for Tasks the task must run to predicate on the result, so plan to check the previous
+ * task to prevent a certain task from running
+ @param {Boolean} [predicateOrObj.accumulateAfterPredicateFail] Default false. Because of Tasks, we have a boolean here to allow accumulation after
+ * the predicate fails. The default behavior is to not accumulate the value of a failed predicate. This makes
+ * sense for things like Result where there is no consequence of evaluating them. But we have to run a Task to
+ * evaluate it so, so we might want to quit after the previous task but also add that task result to the accumulation.
+ * In that case set this tru
  * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
- * @param {Function} predicate Unary function that is evaluated before each step. If the predicate returns
  * false it "short-circuits" the iteration and returns teh current value of the accumulator
  * @param {Object} initialValue An applicative to be the intial reduced value of accumulator
  * @param {[Object]} list List of applicatives
  * @returns {Object} The value resulting from traversing and reducing
  */
-export const traverseReduceWhile = (predicate, accumulator, initialValue, list) => R.reduce(
-  (applicatorRes, applicator) => {
-    return applicatorRes.chain(
-      result => {
-        return applicator.map(v => {
-          // If the applicator's value passes the predicate, accumulate it and process the next item
-          // Otherwise we stop reducing by returning R.reduced()
+export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, list) => {
+
+  // Determine if predicateOrObj is just a function or also an object
+  const {predicate, accumulateAfterPredicateFail} =
+    R.ifElse(
+      R.is(Function),
+      () => ({predicate: predicateOrObj, accumulateAfterPredicateFail: false}),
+      R.identity)(predicateOrObj);
+
+  return R.reduce(
+    (applicatorRes, applicator) => {
+      return applicatorRes.chain(
+        result => {
           return R.ifElse(
-            v => predicate(result, v),
-            v => accumulator(result, v),
-            // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
-            () => R.reduced(result)
-          )(v);
-        });
-      }
-    ).chain(
-      // Check if we're done
-      result => R.ifElse(
-        R.prop('@@transducer/reduced'),
-        // Done, wrap it in the type
-        result => initialValue.map(R.always(R.prop('@@transducer/value', result))),
-        result => initialValue.map(R.always(result))
-      )(result)
-    );
-  },
-  initialValue,
-  list
-);
+            R.prop('@@transducer/reduced'),
+            // Done, wrap it in the type
+            res => initialValue.map(R.always(R.prop('@@transducer/value', res))),
+            () => applicator.map(value => {
+              // If the applicator's value passes the predicate, accumulate it and process the next item
+              // Otherwise we stop reducing by returning R.reduced()
+              return R.ifElse(
+                v => predicate(result, v),
+                v => accumulator(result, v),
+                // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
+                // IF the user wants to add v to the accumulation after predicate failure, do it.
+                v => R.reduced(accumulateAfterPredicateFail ? accumulator(result, v) : result)
+              )(value);
+            })
+          )(result);
+        }
+      );
+    },
+    initialValue,
+    list
+  ).chain(value => {
+    // Strip reduced if if was returned on the last interation
+    return initialValue.map(() => R.ifElse(
+      R.prop('@@transducer/reduced'),
+      res => R.prop('@@transducer/value', res),
+      R.identity
+    )(value));
+  });
+};
 
 /**
  * Like mapObjToValues but flattens the values when an array is returned for each mapping

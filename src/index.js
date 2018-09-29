@@ -9,15 +9,15 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {
+export {
   reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
   mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, transformKeys, findOneValueByParams,
-  mapObjToValues, chainObjToValues, traverseReduce
+  mapObjToValues, chainObjToValues, traverseReduce, traverseReduceWhile
 } from './functions';
-import {
+export {
   throwIfSingleResultError,
   mappedThrowIfResultError,
   throwIfResultError,
@@ -29,64 +29,6 @@ import {
   reqPathThrowing,
   reqStrPathThrowing
 } from './throwingFunctions';
-import {
+export {
   defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise
 } from './taskHelpers';
-
-export {
-  reqStrPath,
-  camelCase,
-  capitalize,
-  compact,
-  compactEmpty,
-  compactJoin,
-  duplicateKey,
-  emptyToNull,
-  filterWithKeys,
-  findOne,
-  fromPairsMap,
-  hasStrPath,
-  idOrIdFromObj,
-  lowercase,
-  mapDefault,
-  mapDefaultAndPrefixOthers,
-  mapKeys,
-  mapKeysForLens,
-  mapProp,
-  mapPropValueAsIndex,
-  mapToObjValue,
-  mergeAllWithKey,
-  mergeDeep,
-  mergeDeepAll,
-  mergeDeepWith,
-  moveToKeys,
-  onlyOne,
-  onlyOneValue,
-  orEmpty,
-  promiseToTask,
-  alwaysFunc,
-  removeDuplicateObjectsByProp,
-  renameKey,
-  reqPath,
-  reqPathPropEq,
-  strPath,
-  strPathOr,
-  taskToPromise,
-  transformKeys,
-  findOneValueByParams,
-  throwIfSingleResultError,
-  reqPathPropEqThrowing,
-  reqPathThrowing,
-  onlyOneValueThrowing,
-  findOneThrowing,
-  reqStrPathThrowing,
-  mappedThrowIfResultError,
-  throwIfResultError,
-  findOneValueByParamsThrowing,
-  onlyOneThrowing,
-  mapObjToValues,
-  chainObjToValues,
-  traverseReduce,
-  defaultRunConfig,
-  defaultRunToResultConfig
-};
