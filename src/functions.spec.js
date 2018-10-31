@@ -453,7 +453,7 @@ describe('helperFunctions', () => {
       initialTask,
       objOfApplicativesToApplicative(of, {
         a: of('a'), b: of('b'), c: of('c').map(() => {
-          throw new Error("This task should not run!");
+          throw new Error('This task should not run!');
         })
       })
     );

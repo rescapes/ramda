@@ -10,7 +10,7 @@
  */
 
 
-import {task as folktask} from 'folktale/concurrency/task';
+import {task as folktask, rejected, of} from 'folktale/concurrency/task';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -93,3 +93,14 @@ export const promiseToTask = (promise, expectReject = false) => {
   return folktask(resolver => promise.then(resolver.resolve).catch(resolver.reject));
 };
 
+/**
+ * Natural transformation of a Result to a Task. This is useful for chained tasks that return Results.
+ * If the Result is a Result.Error, a Task.reject is called with the value. If the Result is a Result.Ok,
+ * a Task.of is created with the value
+ * @param {Result} result A Result.Ok or Result.Error
+ * @returns {Task} The Task.of or Task.reject
+ */
+export const resultToTask = result => result.matchWith({
+  Ok: ({value}) => of(value),
+  Error: ({value}) => rejected(value)
+});

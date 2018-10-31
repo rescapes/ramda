@@ -586,7 +586,6 @@ export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
  * @returns {Object} The value resulting from traversing and reducing
  */
 export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, list) => {
-
   // Determine if predicateOrObj is just a function or also an object
   const {predicate, accumulateAfterPredicateFail} =
     R.ifElse(
@@ -638,3 +637,4 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
 export const chainObjToValues = (f, obj) => {
   return R.flatten(mapObjToValues(f, obj));
 };
+

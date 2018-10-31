@@ -10,7 +10,7 @@
  */
 
 import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
-import {defaultRunConfig, promiseToTask, taskToPromise} from './taskHelpers';
+import {defaultRunConfig, promiseToTask, resultToTask, taskToPromise} from './taskHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import {defaultRunToResultConfig} from './taskHelpers';
@@ -143,6 +143,25 @@ describe('taskHelpers', () => {
         expect(result).toEqual(
           'shellacing'
         );
+        done();
+      }
+    });
+  });
+
+  test('resultToTask', done => {
+    resultToTask(Result.Ok(1)).run().listen(defaultRunConfig(
+      {
+        onResolved: response => {
+          expect(response).toEqual(1);
+          done();
+        }
+      }
+    ));
+  });
+  test('resultToTaskError', done => {
+    resultToTask(Result.Error(1)).run().listen({
+      onRejected: response => {
+        expect(response).toEqual(1);
         done();
       }
     });
