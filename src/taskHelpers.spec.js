@@ -10,9 +10,13 @@
  */
 
 import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
-import {defaultRunConfig, promiseToTask, resultToTask, taskToPromise} from './taskHelpers';
+import {
+  defaultRunConfig, objOfApplicativesToListOfApplicatives, promiseToTask, resultToTask,
+  taskToPromise
+} from './taskHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
+import * as Maybe from 'folktale/maybe';
 import {defaultRunToResultConfig} from './taskHelpers';
 
 
@@ -165,5 +169,82 @@ describe('taskHelpers', () => {
         done();
       }
     });
+  });
+
+  test('objOfApplicativesToListOfApplicatives', done => {
+    R.sequence(of, objOfApplicativesToListOfApplicatives(of, null, {a: of(1), b: of(2)})).run().listen({
+      onResolved: response => {
+        expect(response).toEqual([['a', 1], ['b', 2]]);
+        done();
+      }
+    });
+  });
+
+  test('objOfApplicativesToListOfApplicativesWithComplexAp', done => {
+    R.sequence(
+      of,
+      objOfApplicativesToListOfApplicatives(
+        // Each item of the list is a Task<Result>, so use a matching constructor
+        R.compose(of, Result.Ok),
+        // Use an apChainer to chain the task to it's underlying result and then map the result to a f, which appends
+        // the key to the value of result to make a pair
+        (f, tsk) => R.chain(result => R.chain(f, result), tsk),
+        {a: of(Result.Ok(1)), b: of(Result.Ok(2))})
+    ).run().listen({
+      onResolved: response => {
+        expect(response).toEqual([['a', Result.Ok(1)], ['b', Result.Ok(2)]]);
+        done();
+      }
+    });
+  });
+
+  test('chaining', () => {
+
+    // Map a Result an map a Maybe
+    expect(
+      R.map(
+        maybe => R.map(v => 2, maybe),
+        Result.Ok(Maybe.Just(1))
+      )
+    ).toEqual(Result.Ok(Maybe.Just(2)));
+
+    // Chain a Result
+    expect(
+      R.chain(
+        maybe => Result.Ok(Maybe.Just(2)),
+        Result.Ok(Maybe.Just(1))
+      )
+    ).toEqual(Result.Ok(Maybe.Just(2)));
+
+    // Chain a Result an map a Maybe
+    expect(
+      R.chain(
+        maybe => Result.Ok(R.map(v => 2, maybe)),
+        Result.Ok(Maybe.Just(1))
+      )
+    ).toEqual(Result.Ok(Maybe.Just(2)));
+
+    // Chain a Result and Chain a Maybe
+    expect(
+      R.chain(
+        maybe => Result.Ok(R.chain(v => Maybe.Just(2), maybe)),
+        Result.Ok(Maybe.Just(1))
+      )
+    ).toEqual(Result.Ok(Maybe.Just(2)));
+
+
+    // Map a Result and Chain a Maybe
+    expect(
+      R.map(
+        maybe => R.chain(v => Maybe.Just(2), maybe),
+        Result.Ok(Maybe.Just(1))
+      )
+    ).toEqual(Result.Ok(Maybe.Just(2)));
+
+    // Chain a Result and Chain a Maybe Differently
+    const constructor = x => R.compose(Result.Ok, Maybe.Just)(x+1);
+    expect(
+      R.chain(R.chain(constructor))(Result.Ok(Maybe.Just(1)))
+    ).toEqual(Result.Ok(Maybe.Just(2)));
   });
 });

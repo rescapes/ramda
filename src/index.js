@@ -30,5 +30,5 @@ export {
   reqStrPathThrowing
 } from './throwingFunctions';
 export {
-  defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise
+  defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise, resultToTask
 } from './taskHelpers';

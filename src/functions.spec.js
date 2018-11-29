@@ -377,7 +377,7 @@ describe('helperFunctions', () => {
   const merge = (res, [k, v]) => R.merge(res, {[k]: v});
   const initialValue = apConstructor => apConstructor({});
 
-  // Convert dict into list of Container([k,v])
+  // Convert dict into list of Container([k,v]) because ramda's reduce doesn't support non-lists
   const objOfApplicativesToApplicative = R.curry((apConstructor, objOfApplicatives) => f.mapObjToValues(
     (v, k) => {
       return v.chain(val => apConstructor([k, val]));

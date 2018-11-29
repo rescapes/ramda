@@ -11,6 +11,8 @@
 
 
 import {task as folktask, rejected, of} from 'folktale/concurrency/task';
+import * as R from 'ramda'
+import {mapObjToValues} from './functions';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -104,3 +106,76 @@ export const resultToTask = result => result.matchWith({
   Ok: ({value}) => of(value),
   Error: ({value}) => rejected(value)
 });
+
+
+/**
+ * TODO move to rescape-ramda
+ * Converts objects with applicative values into list of applicative([k,v]) because ramda's reduce doesn't support non-lists
+ * @sig objOfApplicativesToApplicative:: Applicative A, String k => <k, A<v>> -> [A<[k, v]>]
+ */
+export const objOfApplicativesToListOfApplicatives = R.curry((apConstructor, apChainer, objOfApplicatives) => {
+  apChainer = apChainer || R.chain;
+  return mapObjToValues(
+    (v, k) => {
+      // Chain the result of the applicative to the same applicative containing and array pair of the key and applicative value
+      return apChainer(
+        val => apConstructor([k, val]),
+        v
+      );
+    },
+    objOfApplicatives
+  )
+});
+
+/**
+ * TODO move to rescape-ramda
+ * This handles an object whose values are a list of applicatives. It outputs an array
+ * whose values are applicatives containing an array of arrays. The outer array contains pairs. The first of
+ * each pair is each key of objOfApplicatives and the values are the combined items from the array of tasks
+ *
+ * @sig objOfListOfApplicativesToApplicative:: <k, [Task<v>]> -> [Task<[k, v]>]
+ */
+export const objOfListOfApplicativesToListOfApplicatives = (apConstructor, apMapper, objOfApplicatives, label = 'nada') => {
+  apMapper = apMapper || R.map;
+  return mapObjToValues(
+    (v, k) => {
+      console.log(label);
+      return R.traverse(
+        apConstructor,
+        // Each ap is an applicative, namely a Task, containing a pairs representing key values. We map it
+        // to put in within another key including this k
+        apMapper(
+          res => {
+            console.log(label);
+            return [k, res];
+          },
+          ap
+        ),
+        v
+      );
+    },
+    objOfApplicatives
+  );
+};
+
+/**
+ * Just like objOfListOfApplicativesToListOfApplicatives but for pairs where the first value is the applicative
+ * and second is the Task. This is used to maintain order and to allow a 'key' that isn't a string.
+ * Map would accomplish the same but ramda methods don't play well with Map
+ */
+export const pairsOfListOfApplicativesToListOfApplicatives = R.curry((apConstructor, objOfApplicatives) => R.map(
+  ([v, k]) => {
+    return R.traverse(
+      apConstructor,
+      // Each ap is an applicative, such as a Task, containing a pairs representing key values.
+      // We map the result of each applicative to include the k with the result
+      ap => ap.map(
+        res => [k, res]
+      ),
+      v
+    );
+  },
+  objOfApplicatives
+));
+
+
