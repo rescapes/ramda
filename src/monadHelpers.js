@@ -130,65 +130,39 @@ export const objOfMLevelDeepMonadsToListWithSinglePairs = R.curry((monadDepth, m
   );
 });
 
+/**
+ * Handles objects whose values are lists of monads by sequencing each list of monads into a single monad
+ * and then packaging the keys into the monad as well
+ * @param {Number} monadDepth The depth of the monad for each item of the array for each value.
+ * @param {Function} monadConstructor Constructs the monad so that the key can be combined with the values monad
+ * @param {Function} objOfMonads Objects whose values are list of monads
+ * @returns {[Monad]} A list of monads each containing and origianl key value in the form monad [[k, values]]].
+ * This is thus an array with one pair, where the pair contains a key and values
+ * @sig objOfMLevelDeepListOfMonadsToListWithSinglePairs:: Monad M, String k => [<k, [M<v>]>] -> [M [[k, [v]]]]
+ * Example {a: [Maybe.Just(1), Maybe.Just(2)], b: [Maybe.Just(3), Maybe.Just(4)]} becomes
+ * [Maybe.Just([[['a'], [1, 2]]]], Maybe.Just([[['b'], [3, 4]]])]
+ *
+ */
 export const objOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
-  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [[k, v]]);
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [k, v]);
   return R.compose(
-    //R.map(([k, v]) => liftKeyIntoMonad(k, v)),
-    //R.toPairs,
-    R.map(R.sequence(liftKeyIntoMonad))
+    R.map(([k, v]) => liftKeyIntoMonad(k, v)),
+    R.toPairs,
+    // Map each value and then sequence each monad of the value into a single monad containing an array of values
+    // Monad m:: <k, [m v]> -> <k, m [v]>
+    // We want to combine the values of the arrays here. This is a bit messy, but I don't know how else
+    // to do it with the given monadConstructor
+    R.map(monadValues => traverseReduce((prev, next) => R.concat(prev, next), monadConstructor(), monadValues).map(Array.of))
   )(objOfMonads);
 });
 
-/**
- * TODO move to rescape-ramda
- * This handles an object whose values are a list of applicatives. It outputs an array
- * whose values are applicatives containing an array of arrays. The outer array contains pairs. The first of
- * each pair is each key of objOfApplicatives and the values are the combined items from the array of tasks
- *
- * @sig objOfListOfApplicativesToApplicative:: <k, [Task<v>]> -> [Task<[k, v]>]
- */
-export const objOfListOfApplicativesToListOfApplicatives = (apConstructor, apMapper, objOfApplicatives, label = 'nada') => {
-  apMapper = apMapper || R.map;
-  return mapObjToValues(
-    (v, k) => {
-      console.log(label);
-      return R.traverse(
-        apConstructor,
-        // Each ap is an applicative, namely a Task, containing a pairs representing key values. We map it
-        // to put in within another key including this k
-        apMapper(
-          res => {
-            console.log(label);
-            return [k, res];
-          },
-          ap
-        ),
-        v
-      );
-    },
-    objOfApplicatives
-  );
-};
-
-/**
- * Just like objOfListOfApplicativesToListOfApplicatives but for pairs where the first value is the applicative
- * and second is the Task. This is used to maintain order and to allow a 'key' that isn't a string.
- * Map would accomplish the same but ramda methods don't play well with Map
- */
-export const pairsOfListOfApplicativesToListOfApplicatives = R.curry((apConstructor, objOfApplicatives) => R.map(
-  ([v, k]) => {
-    return R.traverse(
-      apConstructor,
-      // Each ap is an applicative, such as a Task, containing a pairs representing key values.
-      // We map the result of each applicative to include the k with the result
-      ap => ap.map(
-        res => [k, res]
-      ),
-      v
-    );
-  },
-  objOfApplicatives
-));
+export const pairsOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, pairsOfMonads) => {
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(1, monadConstructor, (k, v) => [k, v]);
+  return R.compose(
+    R.map(([k, v]) => liftKeyIntoMonad(k, v)),
+    pairs => R.map(([k, monadValues]) => [k, R.sequence(monadConstructor, monadValues)], pairs)
+  )(pairsOfMonads);
+});
 
 /**
  * Lifts an M level deep monad using the given M-level monad constructor and applies a 2 argument function f

@@ -13,7 +13,7 @@ import {apply} from 'folktale/fantasy-land';
 import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
 import {
   defaultRunConfig, lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithSinglePairs,
-  objOfMLevelDeepMonadsToListWithSinglePairs,
+  objOfMLevelDeepMonadsToListWithSinglePairs, pairsOfMLevelDeepListOfMonadsToListWithSinglePairs,
   promiseToTask,
   resultToTask,
   taskToPromise
@@ -25,7 +25,7 @@ import {defaultRunToResultConfig} from './monadHelpers';
 import {traverseReduce} from './functions';
 
 
-describe('taskHelpers', () => {
+describe('monadHelpers', () => {
   test('Should convert Task to Promise', async () => {
     await expect(taskToPromise(folktask(
       resolver => resolver.resolve('donut')
@@ -210,7 +210,6 @@ describe('taskHelpers', () => {
   });
 
   test('lift1stOf2ForMDeepMonadWithLists', () => {
-
     // [a] -> Just [[a]]
     // We have to wrap the incoming array so that we apply concat to two 2D arrays
     // Otherwise when we step into the 2nd monad, and array, we'll be mapping over individual elements, as below
@@ -272,16 +271,24 @@ describe('taskHelpers', () => {
   });
 
   test('objOfMLevelDeepListOfMonadsToListWithSinglePairs', () => {
-    const constructor = Maybe.Just;
+    const constructor = R.compose(Maybe.Just, Array.of);
     const objOfMonads = R.map(R.map(constructor), {b: [1, 2], c: [3, 4], d: [4, 5]});
-    expect(objOfMLevelDeepListOfMonadsToListWithSinglePairs(1, constructor, objOfMonads)).toEqual(
-      R.map(constructor, [[['b', [1, 2]]], [['c', [3, 4]]], [['d', [4, 5]]]])
+
+    expect(objOfMLevelDeepListOfMonadsToListWithSinglePairs(2, constructor, objOfMonads)).toEqual(
+      R.map(constructor, [['b', [1, 2]], ['c', [3, 4]], ['d', [4, 5]]])
     );
   });
 
+  test('pairsOfMLevelDeepListOfMonadsToListWithSinglePairs', () => {
+    const constructor = Maybe.Just;
+    const pairsOfMonads = [['b', R.map(constructor, [1, 2])], ['c', R.map(constructor, [3, 4])]];
+
+    expect(pairsOfMLevelDeepListOfMonadsToListWithSinglePairs(1, constructor, pairsOfMonads)).toEqual(
+      R.map(constructor, [['b', [1, 2]], ['c', [3, 4]]])
+    );
+  });
 
   test('Technology test: chaining', () => {
-
     // Map a Result an map a Maybe
     expect(
       R.map(
@@ -322,8 +329,6 @@ describe('taskHelpers', () => {
         Result.Ok(Maybe.Just(1))
       )
     ).toEqual(Result.Ok(Maybe.Just(2)));
-
-
   });
 
   test('Lifting monads that include lists', () => {
@@ -344,7 +349,7 @@ describe('taskHelpers', () => {
     // I'm leaving R.identity here to display my confusion. There is no Array.of and the incoming value is an array
     const resultListConstructor = R.compose(Result.Ok, R.identity);
     // This should add the each item from each array
-    const myLittleResultWithListConcatter = lift2For2DeepMonad(resultListConstructor, R.add);
+    const myLittleResultWithListConcatter = lift1stOf2ForMDeepMonad(2, resultListConstructor, R.add);
     expect(myLittleResultWithListConcatter([1, 2])(resultListConstructor([10, 11]))).toEqual(resultListConstructor([11, 12, 12, 13]));
   });
 
@@ -352,7 +357,7 @@ describe('taskHelpers', () => {
     // Processing objects with monads
     const resultMaybeConstructor = R.compose(Result.Ok, Maybe.Just);
     const myObject = {a: resultMaybeConstructor(1), b: resultMaybeConstructor(2)};
-    const liftKeyIntoMonad = lift2For2DeepMonad(resultMaybeConstructor, (k, v) => [[k, v]]);
+    const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(2, resultMaybeConstructor, (k, v) => [[k, v]]);
     // We can map each to put the keys into the monad, converting the k, v to an array with one pair
     // Object <k, (Result (Maybe v))> -> [Result (Maybe [[k, v]]) ]
     const listOfResultOfMaybeOfListOfOnePair = R.map(

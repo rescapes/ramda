@@ -10,7 +10,7 @@ const config = {
     'src/index.js',
     'src/functions.js',
     'src/throwingFunctions.js',
-    'src/taskHelpers.js'
+    'src/monadHelpers.js'
   ],
   plugins: [
     // Automatically exclude dependencies and peerDependencies from cjs and es builds, (and excludes

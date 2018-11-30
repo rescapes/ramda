@@ -30,5 +30,7 @@ export {
   reqStrPathThrowing
 } from './throwingFunctions';
 export {
-  defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise, resultToTask
+  defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise, resultToTask,
+  lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithSinglePairs, objOfMLevelDeepMonadsToListWithSinglePairs,
+  pairsOfMLevelDeepListOfMonadsToListWithSinglePairs
 } from './monadHelpers';
