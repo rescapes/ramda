@@ -130,6 +130,15 @@ export const objOfMLevelDeepMonadsToListWithSinglePairs = R.curry((monadDepth, m
   );
 });
 
+export const objOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [[k, v]]);
+  return R.compose(
+    //R.map(([k, v]) => liftKeyIntoMonad(k, v)),
+    //R.toPairs,
+    R.map(R.sequence(liftKeyIntoMonad))
+  )(objOfMonads);
+});
+
 /**
  * TODO move to rescape-ramda
  * This handles an object whose values are a list of applicatives. It outputs an array
@@ -185,7 +194,8 @@ export const pairsOfListOfApplicativesToListOfApplicatives = R.curry((apConstruc
  * Lifts an M level deep monad using the given M-level monad constructor and applies a 2 argument function f
  * The given value is called as the first argument of f, the second argument if the unwrapped value of the monad
  * The value returned by f is converted back to a monad. So this is essentially monad.chain(v => f(value, v)
- * but the chaining works on the given depth
+ * but the chaining works on the given depth. This is useful for key value pairs when the key and value
+ * need to be packaged into the monad that is the value.
  *
  * @param {Number} The monad depth to process values at. Note that the given monads can be deeper than
  * this number but the processing will occur at the depth given here

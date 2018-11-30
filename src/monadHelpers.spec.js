@@ -12,7 +12,7 @@
 import {apply} from 'folktale/fantasy-land';
 import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
 import {
-  defaultRunConfig, lift1stOf2ForMDeepMonad,
+  defaultRunConfig, lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithSinglePairs,
   objOfMLevelDeepMonadsToListWithSinglePairs,
   promiseToTask,
   resultToTask,
@@ -185,7 +185,7 @@ describe('taskHelpers', () => {
     // f -> Result (Just (a) ) -> Result (Just (f (a)))
     expect(lifterFor1LevelDeep(resultConstructor(1))).toEqual(resultConstructor(6));
 
-    // Now use lift2For1DeepMonad
+    // Now use lift1stOf2ForMDeepMonad
     // f -> Result (Just (a) ) -> Result (Just (f (a)))
     const myLittleResulAdder = lift1stOf2ForMDeepMonad(1, resultConstructor, R.add);
     expect(myLittleResulAdder(5)(resultConstructor(1))).toEqual(resultConstructor(6));
@@ -202,40 +202,83 @@ describe('taskHelpers', () => {
     // f -> Result (Just (a) ) -> Result (Just (f (a)))
     expect(lifterFor2LevelDeep(resultOfMaybeConstructor(1))).toEqual(resultOfMaybeConstructor(6));
 
-    // Now use lift2For2DeepMonad
+    // Now use lift1stOf2ForMDeepMonad
     // f -> Result (Just (a) ) -> Result (Just (f (a)))
     const myLittleResultWithMaybeAdder = lift1stOf2ForMDeepMonad(2, resultOfMaybeConstructor, R.add);
     expect(myLittleResultWithMaybeAdder(5)(resultOfMaybeConstructor(1))).toEqual(resultOfMaybeConstructor(6));
     expect(myLittleResultWithMaybeAdder(6)(resultOfMaybeConstructor(1))).toEqual(resultOfMaybeConstructor(7));
   });
 
+  test('lift1stOf2ForMDeepMonadWithLists', () => {
+
+    // [a] -> Just [[a]]
+    // We have to wrap the incoming array so that we apply concat to two 2D arrays
+    // Otherwise when we step into the 2nd monad, and array, we'll be mapping over individual elements, as below
+    const maybeOfListConstructor = R.compose(Maybe.Just, a => [a]);
+    // Now use lift1stOf2ForMDeepMonad
+    // f -> (Just [a]) -> Just (f (a))
+    const myLittleMaybeListConcatter = lift1stOf2ForMDeepMonad(2, maybeOfListConstructor, R.concat);
+    expect(myLittleMaybeListConcatter(['a'])(
+      maybeOfListConstructor(['b', 'c', 'd'])
+    )).toEqual(maybeOfListConstructor(['a', 'b', 'c', 'd']));
+
+    // The same as above, but just operating on Just, so we don't need to wrap the array
+    const maybeOfListConstructor1D = R.compose(Maybe.Just, a => a);
+    // Now use lift1stOf2ForMDeepMonad
+    // f -> (Just [a]) -> Just (f (a))
+    const myLittleMaybeListConcatter1D = lift1stOf2ForMDeepMonad(1, maybeOfListConstructor1D, R.concat);
+    expect(myLittleMaybeListConcatter1D(['a'])(
+      maybeOfListConstructor1D(['b', 'c', 'd'])
+    )).toEqual(maybeOfListConstructor1D(['a', 'b', 'c', 'd']));
+
+    // [a] -> Just [a]
+    // In this case we want to operate on each item of the incoming array
+    const maybeOfItemsConstructor = R.compose(Maybe.Just, a => a);
+    // Now use lift1stOf2ForMDeepMonad
+    // f -> (Just [a]) -> Result (Just (f (a)))
+    const myLittleMaybeItemsAppender = lift1stOf2ForMDeepMonad(2, maybeOfItemsConstructor, R.concat);
+    expect(myLittleMaybeItemsAppender('a')(maybeOfItemsConstructor(['b', 'c', 'd']))).toEqual(maybeOfItemsConstructor(['ab', 'ac', 'ad']));
+
+    // [a] -> [Just a]
+    // We have to wrap the incoming array so that we apply functions to the internal array instead of each individual
+    // item of the array
+    const listOfMaybeConstructor = R.compose(x => [x], Maybe.Just);
+
+    // f -> [Just a] -> (Just (f (a)))
+    const listOfMaybeAppender = lift1stOf2ForMDeepMonad(2, listOfMaybeConstructor, R.concat);
+    const listOfMaybes = R.chain(listOfMaybeConstructor, ['b', 'c', 'd']);
+
+    expect(listOfMaybeAppender('a')(listOfMaybes)).toEqual(
+      R.chain(listOfMaybeConstructor, ['ab', 'ac', 'ad'])
+    );
+  });
+
   test('objOfMLevelDeepMonadsToListWithSinglePairs', () => {
-    expect(objOfMLevelDeepMonadsToListWithSinglePairs(1, Result.Ok, {a: Result.Ok(1), b: Result.Ok(2)})).toEqual(
+    expect(objOfMLevelDeepMonadsToListWithSinglePairs(
+      1,
+      Result.Ok,
+      {a: Result.Ok(1), b: Result.Ok(2)})
+    ).toEqual(
       [Result.Ok([['a', 1]]), Result.Ok([['b', 2]])]
     );
 
-    expect(objOfMLevelDeepMonadsToListWithSinglePairs(2, R.compose(Result.Ok, Maybe.Just), {a: Result.Ok(Maybe.Just(1)), b: Result.Ok(Maybe.Just(2))})).toEqual(
+    expect(objOfMLevelDeepMonadsToListWithSinglePairs(
+      2,
+      R.compose(Result.Ok, Maybe.Just),
+      {a: Result.Ok(Maybe.Just(1)), b: Result.Ok(Maybe.Just(2))})
+    ).toEqual(
       [Result.Ok(Maybe.Just([['a', 1]])), Result.Ok(Maybe.Just([['b', 2]]))]
     );
   });
 
-  test('objOfApplicativesToListOfApplicativesWithComplexAp', done => {
-    R.sequence(
-      of,
-      objOf2LevelDeepMonadsToListWithSinglePairs(
-        // Each item of the list is a Task<Result>, so use a matching constructor
-        R.compose(of, Result.Ok),
-        // Use an apChainer to chain the task to it's underlying result and then map the result to a f, which appends
-        // the key to the value of result to make a pair
-        (f, tsk) => R.chain(result => R.chain(f, result), tsk),
-        {a: of(Result.Ok(1)), b: of(Result.Ok(2))})
-    ).run().listen({
-      onResolved: response => {
-        expect(response).toEqual([['a', Result.Ok(1)], ['b', Result.Ok(2)]]);
-        done();
-      }
-    });
+  test('objOfMLevelDeepListOfMonadsToListWithSinglePairs', () => {
+    const constructor = Maybe.Just;
+    const objOfMonads = R.map(R.map(constructor), {b: [1, 2], c: [3, 4], d: [4, 5]});
+    expect(objOfMLevelDeepListOfMonadsToListWithSinglePairs(1, constructor, objOfMonads)).toEqual(
+      R.map(constructor, [[['b', [1, 2]]], [['c', [3, 4]]], [['d', [4, 5]]]])
+    );
   });
+
 
   test('Technology test: chaining', () => {
 
