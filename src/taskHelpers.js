@@ -11,7 +11,7 @@
 
 
 import {task as folktask, rejected, of} from 'folktale/concurrency/task';
-import * as R from 'ramda'
+import * as R from 'ramda';
 import {mapObjToValues} from './functions';
 
 /**
@@ -124,7 +124,7 @@ export const objOfApplicativesToListOfApplicatives = R.curry((apConstructor, apC
       );
     },
     objOfApplicatives
-  )
+  );
 });
 
 /**
@@ -177,5 +177,25 @@ export const pairsOfListOfApplicativesToListOfApplicatives = R.curry((apConstruc
   },
   objOfApplicatives
 ));
+
+/**
+ * Lifts a 2 level deep monad using the given 2-level monad constructor and applies a 2 argument function f
+ * The first argument to f is value, a plain value that is wrapped with the constructor
+ * The resulting function can then be called with a second monad value
+ * @param {Function} constructor 2-level deep monad constructor
+ * @param {Function} 2-arity function to combine value with the value of the last argument
+ * @param {*} value Unwrapped value as the first argument of the function
+ * @param {Object} monad Monad matching that of the constructor to apply the function(value) to
+ * Example:
+ *  const constructor = R.compose(Result.Ok, Result.Just)
+ *  const myLittleResultWithMaybeAdder = lifter2Generic(constructor, R.add);
+ *  myLittleResultWithMaybeAdder(5)(constructor(1))) -> constructor(6);
+ *  f -> Result (Just (a) ) -> Result (Just (f (a)))
+ */
+export const lifter2Generic = R.curry((constructor, f, value, monad) => R.liftN(2,
+  R.liftN(2,
+    f
+  )
+)(constructor(value))(monad));
 
 

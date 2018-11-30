@@ -9,15 +9,17 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import {apply} from 'folktale/fantasy-land';
 import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
 import {
-  defaultRunConfig, objOfApplicativesToListOfApplicatives, promiseToTask, resultToTask,
+  defaultRunConfig, lifter2Generic, objOfApplicativesToListOfApplicatives, promiseToTask, resultToTask,
   taskToPromise
 } from './taskHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import * as Maybe from 'folktale/maybe';
 import {defaultRunToResultConfig} from './taskHelpers';
+import {traverseReduce} from './functions';
 
 
 describe('taskHelpers', () => {
@@ -241,10 +243,53 @@ describe('taskHelpers', () => {
       )
     ).toEqual(Result.Ok(Maybe.Just(2)));
 
-    // Chain a Result and Chain a Maybe Differently
-    const constructor = x => R.compose(Result.Ok, Maybe.Just)(x+1);
-    expect(
-      R.chain(R.chain(constructor))(Result.Ok(Maybe.Just(1)))
-    ).toEqual(Result.Ok(Maybe.Just(2)));
+    // Chain a Result and Chain a Maybe Differently.
+    // This permits us to use a constructor
+    // a -> Result (Just a)
+    const constructor = R.compose(Result.Ok, Maybe.Just);
+    // To apply an 2-level monad to the same type of 2-level monad, we must lift twice
+    // This performs to maps of the monad to get at the underlying value
+    // Result (Just (a)) -> Result (Just b)
+    const lifter = R.liftN(2, R.liftN(2, R.add))(constructor(5));
+    // f -> Result (Just (a) ) -> Result (Just (f (a)))
+    expect(lifter(constructor(1))).toEqual(constructor(6));
+    // f -> Result (Just (a) ) -> Result (Just (f (a)))
+    const myLittleResultWithMaybeAdder = lifter2Generic(constructor, R.add);
+    expect(myLittleResultWithMaybeAdder(5)(constructor(1))).toEqual(constructor(6));
+    expect(myLittleResultWithMaybeAdder(6)(constructor(1))).toEqual(constructor(7));
+  });
+
+  test('Succinct chaining with arrays', () => {
+    // Now play with lists. If we could apply lists it would look like this
+    // List.of(R.add).ap([1, 2]).ap(10, 11), meaning map [1, 2] with R.add and then map [10, 11] to the results of that
+    // Because we are operating within the container of a list the four resulting values are in one single list
+    // It works using R.lift
+    // This First applies add to [1, 2], literally meaning we call R.map(R.add, [1, 2]), yielding
+    // two partials as a func: x => [R.add(1), R.add(2)]. Next we apply the partials to [10, 11], literally meaning we call
+    // R.map(x => [R.add(1), R.add(2)], [10, 11]), yielding [11, 12, 12, 13]
+    // The important thing to note is that R.add operates on each item of the list because each of the first list is mapped to
+    // the R.add to get partials and then each of the second list is mapped to that to each partial
+    // The reason the list is flat is because R.liftN detects arrays and does an array reduce,
+    // just as it does other reductions to combine other monad types, like Tasks
+    expect(R.liftN(2, R.add)([1, 2], [10, 11])).toEqual([11, 12, 12, 13]);
+
+    // Now combine lists with Result
+    const resultListConstructor = R.compose(Result.Ok, R.identity);
+    // This should add the each item from each array
+    const myLittleResultWithListConcatter = lifter2Generic(constructor, R.add);
+    expect(myLittleResultWithListConcatter([1, 2])(resultListConstructor([10, 11]))).toEqual(resultListConstructor([11, 12, 12, 13]));
+
+    /*
+    // Now for the real world usage:
+    const taskResultConstructor = R.compose(of, Result.Ok, );
+    const myLittleTaskWithResultConcatter = lifterGeneric(taskResultConstructor, R.concat);
+    const myObject = {a: of(Result.Ok(1)), b: of(Result.Ok(2))};
+    traverseReduce(
+      R.concat,
+      taskResultConstructor([]),
+      myObject
+    )
+    */
+
   });
 });
