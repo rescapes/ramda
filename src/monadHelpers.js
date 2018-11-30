@@ -12,7 +12,9 @@
 
 import {task as folktask, rejected, of} from 'folktale/concurrency/task';
 import * as R from 'ramda';
-import {mapObjToValues} from './functions';
+import {mapObjToValues, traverseReduce} from './functions';
+import * as Result from 'folktale/result/index';
+import * as Maybe from 'folktale/maybe/index';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -107,23 +109,24 @@ export const resultToTask = result => result.matchWith({
   Error: ({value}) => rejected(value)
 });
 
-
 /**
- * TODO move to rescape-ramda
- * Converts objects with applicative values into list of applicative([k,v]) because ramda's reduce doesn't support non-lists
- * @sig objOfApplicativesToApplicative:: Applicative A, String k => <k, A<v>> -> [A<[k, v]>]
+ * Converts objects with monad values into list of monads([[k,v], [k,v], ...])
+ * @param {Function} monadConstructor Constructs the one-level monad, e.g. Result.Ok
+ * @param {Object} objOfMonads Object with String keys and value that are monads matching that of the constructor
+ * e.g. {a: Result.Ok(1), b: Result.Ok(2)}
+ * @returns {[Object]} A list of the same type of Monads but containing an array with one key value pair
+ * e.g. [Result.Ok([['a',1]]), Result.Ok(['b', 2])]
+ * @sig objOfMLevelDeepMonadsToListWithSinglePairs:: Monad M, String k => <k, M<v>> -> [M<[k, v]>]
  */
-export const objOfApplicativesToListOfApplicatives = R.curry((apConstructor, apChainer, objOfApplicatives) => {
-  apChainer = apChainer || R.chain;
-  return mapObjToValues(
-    (v, k) => {
-      // Chain the result of the applicative to the same applicative containing and array pair of the key and applicative value
-      return apChainer(
-        val => apConstructor([k, val]),
-        v
-      );
-    },
-    objOfApplicatives
+export const objOfMLevelDeepMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
+  // Lifts k, which is not a monad, to the level of the monad v, then combines them into a single pair array,
+  // which is returned wrapped with the monad constructor
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [[k, v]]);
+  // Here we map each key into a monad with its value, converting the k, v to an array with one pair
+  // Object <k, (Result (Maybe v))> -> [Result (Maybe [[k, v]]) ]
+  return R.map(
+    ([k, v]) => liftKeyIntoMonad(k, v),
+    R.toPairs(objOfMonads)
   );
 });
 
@@ -179,23 +182,25 @@ export const pairsOfListOfApplicativesToListOfApplicatives = R.curry((apConstruc
 ));
 
 /**
- * Lifts a 2 level deep monad using the given 2-level monad constructor and applies a 2 argument function f
- * The first argument to f is value, a plain value that is wrapped with the constructor
- * The resulting function can then be called with a second monad value
- * @param {Function} constructor 2-level deep monad constructor
+ * Lifts an M level deep monad using the given M-level monad constructor and applies a 2 argument function f
+ * The given value is called as the first argument of f, the second argument if the unwrapped value of the monad
+ * The value returned by f is converted back to a monad. So this is essentially monad.chain(v => f(value, v)
+ * but the chaining works on the given depth
+ *
+ * @param {Number} The monad depth to process values at. Note that the given monads can be deeper than
+ * this number but the processing will occur at the depth given here
+ * @param {Function} constructor M-level deep monad constructor
  * @param {Function} 2-arity function to combine value with the value of the last argument
  * @param {*} value Unwrapped value as the first argument of the function
  * @param {Object} monad Monad matching that of the constructor to apply the function(value) to
+ * @returns {Object} the mapped monad
  * Example:
  *  const constructor = R.compose(Result.Ok, Result.Just)
- *  const myLittleResultWithMaybeAdder = lifter2Generic(constructor, R.add);
+ *  const myLittleResultWithMaybeAdder = lift1stOf2ForMDeepMonad(2, constructor, R.add);
  *  myLittleResultWithMaybeAdder(5)(constructor(1))) -> constructor(6);
- *  f -> Result (Just (a) ) -> Result (Just (f (a)))
+ *  f -> Result (Just (a) ) -> Result (Just (f (value, a)))
  */
-export const lifter2Generic = R.curry((constructor, f, value, monad) => R.liftN(2,
-  R.liftN(2,
-    f
-  )
-)(constructor(value))(monad));
-
-
+export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, value, monad) => R.compose(
+  // This composes the number of R.liftN(N) calls we need. We need one per monad level
+  ...R.times(R.always(R.liftN(2)), monadDepth)
+)(f)(constructor(value))(monad));
