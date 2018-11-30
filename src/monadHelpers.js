@@ -144,6 +144,8 @@ export const objOfMLevelDeepMonadsToListWithSinglePairs = R.curry((monadDepth, m
  *
  */
 export const objOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
+  // The call to .map(Array.of) holds the items together for this method
+  // If we don't do this then k is applied to each item of v
   const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [k, v]);
   return R.compose(
     R.map(([k, v]) => liftKeyIntoMonad(k, v)),
@@ -157,10 +159,19 @@ export const objOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDe
 });
 
 export const pairsOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, pairsOfMonads) => {
-  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(1, monadConstructor, (k, v) => [k, v]);
+  // The call to .map(Array.of) holds the items together for this method
+  // If we don't do this then k is applied to each item of v
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [k, v]);
   return R.compose(
     R.map(([k, v]) => liftKeyIntoMonad(k, v)),
-    pairs => R.map(([k, monadValues]) => [k, R.sequence(monadConstructor, monadValues)], pairs)
+    // Map each value and then sequence each monad of the value into a single monad containing an array of values
+    // Monad m:: [k, [m v]> -> [k, m [v]]
+    // We want to combine the values of the arrays here. This is a bit messy, but I don't know how else
+    // to do it with the given monadConstructor
+    pairs => R.map(([k, monadValues]) => [
+      k,
+      traverseReduce((prev, next) => R.concat(prev, next), monadConstructor(), monadValues).map(Array.of)
+    ], pairs)
   )(pairsOfMonads);
 });
 

@@ -280,10 +280,10 @@ describe('monadHelpers', () => {
   });
 
   test('pairsOfMLevelDeepListOfMonadsToListWithSinglePairs', () => {
-    const constructor = Maybe.Just;
+    const constructor = R.compose(Maybe.Just, Array.of);
     const pairsOfMonads = [['b', R.map(constructor, [1, 2])], ['c', R.map(constructor, [3, 4])]];
 
-    expect(pairsOfMLevelDeepListOfMonadsToListWithSinglePairs(1, constructor, pairsOfMonads)).toEqual(
+    expect(pairsOfMLevelDeepListOfMonadsToListWithSinglePairs(2, constructor, pairsOfMonads)).toEqual(
       R.map(constructor, [['b', [1, 2]], ['c', [3, 4]]])
     );
   });
