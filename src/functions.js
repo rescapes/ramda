@@ -638,3 +638,38 @@ export const chainObjToValues = (f, obj) => {
   return R.flatten(mapObjToValues(f, obj));
 };
 
+
+/**
+ *
+ * This is a deep fromPairs. If it encounters a two element array it assumes it's a pair if the first
+ * element is a string. If an array is not a pair it is iterated over and each element is recursed upon.
+ * The 2nd element of each pair is also recursed upon. The end case for recursion is that an element is not an array.
+ *
+ * This method doesn't currently expect objects but could be easily modified to handle them
+ * @param {[*]} deepPairs An array of deep pairs, with possibly other arrays at the top or lower levels
+ * that aren't pairs but might contain them
+ * @returns {Array|Object} All arrays of pairs are converted to objects. Arrays of non pairs are left as arrays
+ */
+export const fromPairsDeep = deepPairs => R.cond(
+  [
+    // It's array of pairs or some other array
+    [Array.isArray, list =>
+      R.ifElse(
+        // Is the first item a two element array whose first item is a string?
+        ([first]) => R.allPass(
+          [
+            Array.isArray,
+            R.compose(R.equals(2), R.length),
+            R.compose(R.is(String), R.head)
+          ])(first),
+        // Yes, return an object whose keys are the first element and values are the result of recursing on the second
+        R.compose(R.fromPairs, R.map(([k, v]) => [k, fromPairsDeep(v)])),
+        // No, recurse on each array item
+        R.map(v => fromPairsDeep(v))
+      )(list)
+    ],
+    // End case, return the given value unadulterated
+    [R.T, R.identity]
+  ])(deepPairs);
+
+

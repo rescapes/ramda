@@ -158,12 +158,19 @@ export const objOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDe
   )(objOfMonads);
 });
 
+/**
+ * Like objOfMLevelDeepListOfMonadsToListWithSinglePairs but where the input is already pairs
+ * The monad depth should be the depth of each monad in each list + 1 where 1 accounts for each list, which we
+ * want to treat as a monad layer.
+ */
 export const pairsOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, pairsOfMonads) => {
   // The call to .map(Array.of) holds the items together for this method
   // If we don't do this then k is applied to each item of v
   const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [k, v]);
   return R.compose(
-    R.map(([k, v]) => liftKeyIntoMonad(k, v)),
+    // Undo the results of .map(Array.of) with .map(R.chain(R.identity). We needed this extra array wrapping
+    // so that lift didn't operate on each array item, but after we want the monad value to be the flat array again
+    R.map(([k, v]) => liftKeyIntoMonad(k, v).map(R.chain(R.identity))),
     // Map each value and then sequence each monad of the value into a single monad containing an array of values
     // Monad m:: [k, [m v]> -> [k, m [v]]
     // We want to combine the values of the arrays here. This is a bit messy, but I don't know how else

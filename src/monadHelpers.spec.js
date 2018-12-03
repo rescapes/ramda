@@ -283,8 +283,11 @@ describe('monadHelpers', () => {
     const constructor = R.compose(Maybe.Just, Array.of);
     const pairsOfMonads = [['b', R.map(constructor, [1, 2])], ['c', R.map(constructor, [3, 4])]];
 
+    // Note that I pass 2 here to indicate that the monad is two levels A Maybe containing an array
+    // It's always confusing treating a list as monad because Array.of expects a list, which makes
+    // it hard to think about
     expect(pairsOfMLevelDeepListOfMonadsToListWithSinglePairs(2, constructor, pairsOfMonads)).toEqual(
-      R.map(constructor, [['b', [1, 2]], ['c', [3, 4]]])
+      R.map(Maybe.Just, [['b', [1, 2]], ['c', [3, 4]]])
     );
   });
 

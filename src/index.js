@@ -15,7 +15,7 @@ export {
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
   mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, transformKeys, findOneValueByParams,
-  mapObjToValues, chainObjToValues, traverseReduce, traverseReduceWhile
+  mapObjToValues, chainObjToValues, traverseReduce, traverseReduceWhile, fromPairsDeep
 } from './functions';
 export {
   throwIfSingleResultError,

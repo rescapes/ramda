@@ -15,6 +15,7 @@ import {Just} from 'folktale/maybe';
 import * as Result from 'folktale/result';
 
 import {of} from 'folktale/concurrency/task';
+import {fromPairsDeep} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -480,6 +481,58 @@ describe('helperFunctions', () => {
         expect(result).toEqual({a: 'a', b: 'b'});
         done();
       }
+    );
+  });
+
+  test('fromPairsDeep', () => {
+    // Outer element is non-pair array
+    const deepPairs = [
+      'Here',
+      'come',
+      'some',
+      'pairs:',
+      // This element is an array of pairs
+      [
+        ['I', [
+          ['A', [
+            ['i', [
+              // Some deep non-pair arrays
+              ['a', [1, 1, 'was', 'a', 'racehorse']],
+              ['b', [2, 2, 'was', 1, 2]],
+              ['c', {'I\'m': 'already an object!'}]
+            ]],
+            ['ii', [
+              ['d', 4],
+              ['e', 5],
+              ['f', 6]
+            ]]
+          ]]
+        ]]
+      ]
+    ];
+    expect(fromPairsDeep(deepPairs)).toEqual(
+      [
+        'Here',
+        'come',
+        'some',
+        'pairs:',
+        {
+          I: {
+            A: {
+              i: {
+                a: [1, 1, 'was', 'a', 'racehorse'],
+                b: [2, 2, 'was', 1, 2],
+                c: {'I\'m': 'already an object!'}
+              },
+              ii: {
+                d: 4,
+                e: 5,
+                f: 6
+              }
+            }
+          }
+        }
+      ]
     );
   });
 });
