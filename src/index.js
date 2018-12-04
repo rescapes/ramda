@@ -15,7 +15,7 @@ export {
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
   mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, transformKeys, findOneValueByParams,
-  mapObjToValues, chainObjToValues, traverseReduce, traverseReduceWhile, fromPairsDeep
+  mapObjToValues, chainObjToValues, fromPairsDeep
 } from './functions';
 export {
   throwIfSingleResultError,
@@ -32,5 +32,5 @@ export {
 export {
   defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise, resultToTask,
   lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithSinglePairs, objOfMLevelDeepMonadsToListWithSinglePairs,
-  pairsOfMLevelDeepListOfMonadsToListWithSinglePairs
+  pairsOfMLevelDeepListOfMonadsToListWithSinglePairs, traverseReduce, traverseReduceDeep, traverseReduceWhile
 } from './monadHelpers';

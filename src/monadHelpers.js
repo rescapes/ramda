@@ -12,9 +12,7 @@
 
 import {task as folktask, rejected, of} from 'folktale/concurrency/task';
 import * as R from 'ramda';
-import {mapObjToValues, traverseReduce} from './functions';
 import * as Result from 'folktale/result/index';
-import * as Maybe from 'folktale/maybe/index';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -154,7 +152,11 @@ export const objOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDe
     // Monad m:: <k, [m v]> -> <k, m [v]>
     // We want to combine the values of the arrays here. This is a bit messy, but I don't know how else
     // to do it with the given monadConstructor
-    R.map(monadValues => traverseReduce((prev, next) => R.concat(prev, next), monadConstructor(), monadValues).map(Array.of))
+    R.map(monadValues => traverseReduce(
+      (prev, next) => R.concat(prev, next),
+      monadConstructor(),
+      monadValues
+    ).map(Array.of))
   )(objOfMonads);
 });
 
@@ -177,7 +179,11 @@ export const pairsOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monad
     // to do it with the given monadConstructor
     pairs => R.map(([k, monadValues]) => [
       k,
-      traverseReduce((prev, next) => R.concat(prev, next), monadConstructor(), monadValues).map(Array.of)
+      traverseReduce(
+        (prev, next) => R.concat(prev, next),
+        monadConstructor(),
+        monadValues
+      ).map(Array.of)
     ], pairs)
   )(pairsOfMonads);
 });
@@ -188,6 +194,11 @@ export const pairsOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monad
  * The value returned by f is converted back to a monad. So this is essentially monad.chain(v => f(value, v)
  * but the chaining works on the given depth. This is useful for key value pairs when the key and value
  * need to be packaged into the monad that is the value.
+ *
+ * Inspiration: https://github.com/MostlyAdequate/mostly-adequate-guide (Ch 10)
+ * const tOfM = compose(Task.of, Maybe.of);
+ liftA2(liftA2(concat), tOfM('Rainy Days and Mondays'), tOfM(' always get me down'));
+ * Task(Maybe(Rainy Days and Mondays always get me down))
  *
  * @param {Number} The monad depth to process values at. Note that the given monads can be deeper than
  * this number but the processing will occur at the depth given here
@@ -206,3 +217,116 @@ export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, valu
   // This composes the number of R.liftN(N) calls we need. We need one per monad level
   ...R.times(R.always(R.liftN(2)), monadDepth)
 )(f)(constructor(value))(monad));
+
+
+/**
+ * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
+ * Same arguments as reduce, but the initialValue must be an applicative, like task.of({}) or Result.of({})
+ * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
+ * which must be an applicative
+ * @param {Function} accumulator Accepts the value of the reduced container and each result of sequencer,
+ * then returns a value that will be wrapped in a container for the subsequent interation
+ * Container C v => v -> v -> v
+ * @param {Object} initialValue A container to be the initial reduced value of accumulator
+ * @param {[Object]} list List of contianer
+ * @returns {Object} The value resulting from traversing and reducing
+ * @sig traverseReduce:: Container C v => (v -> v -> v) -> C v -> [C v] -> C v
+ */
+export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
+  (containerResult, container) => containerResult.chain(
+    res => container.map(v => accumulator(res, v))
+  ),
+  initialValue,
+  list
+);
+
+/**
+ * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
+ * The first argument specify the depth of the container (monad). So a container of R.compose(Task.of Result.Ok(1)) needs
+ * a depth or 2. A container of R.compose(Task.of, Result.Ok)([1,2,3]) needs a depth of 3, where the array is the 3rd container
+ * if you are operating on individual items. If you're treating the array as an singular entity then it remains level 2.
+ * After that Same arguments as reduce, but the initialValue must be an applicative,
+ * like task.of({}) or Result.of({}) (both level 1) or R.compose(Task.of, Result.Ok(0)) if adding values (level 2)
+ * or R.compose(Task.of, Result.Ok, Array.of)() (level 3) if combining each array item somehow.
+ * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
+ * Container C v => v -> v -> v
+ * @param {Object} initialValue A conatiner to be the initial reduced value of accumulator. This must match the
+ * expected container type
+ * @param {[Object]} list List of containers
+ * @returns {Object} The value resulting from traversing and reducing
+ * @sig traverseReduceDeep:: Number N, N-Depth-Container C v => N -> (v -> v -> v) -> C v -> [C v] -> C v
+ */
+export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialValue, deepContainer) =>
+  R.reduce(
+    (applicatorRes, applicator) => R.compose(
+      // This composes the number of R.lift2 calls we need. We need one per container level
+      ...R.times(R.always(R.liftN(2)), containerDepth)
+    )(accumulator)(applicatorRes, applicator),
+    initialValue,
+    deepContainer
+  )
+);
+
+
+/**
+ * A version of traverseReduce that also reduces until a boolean condition is met.
+ * Same arguments as reduceWhile, but the initialValue must be an applicative, like task.of({}) or Result.of({})
+ * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
+ * which must be an applicative
+ * @param {Object|Function} predicateOrObj Like ramda's reduceWhile predicate. Accepts the accumulated value an next value.
+ * These are the values of the container. If false is returned the accumulated value is returned without processing
+ * more values. Be aware that for Tasks the task must run to predicate on the result, so plan to check the previous
+ * task to prevent a certain task from running
+ @param {Boolean} [predicateOrObj.accumulateAfterPredicateFail] Default false. Because of Tasks, we have a boolean here to allow accumulation after
+ * the predicate fails. The default behavior is to not accumulate the value of a failed predicate. This makes
+ * sense for things like Result where there is no consequence of evaluating them. But we have to run a Task to
+ * evaluate it so, so we might want to quit after the previous task but also add that task result to the accumulation.
+ * In that case set this tru
+ * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
+ * false it "short-circuits" the iteration and returns teh current value of the accumulator
+ * @param {Object} initialValue An applicative to be the intial reduced value of accumulator
+ * @param {[Object]} list List of applicatives
+ * @returns {Object} The value resulting from traversing and reducing
+ */
+export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, list) => {
+  // Determine if predicateOrObj is just a function or also an object
+  const {predicate, accumulateAfterPredicateFail} =
+    R.ifElse(
+      R.is(Function),
+      () => ({predicate: predicateOrObj, accumulateAfterPredicateFail: false}),
+      R.identity)(predicateOrObj);
+
+  return R.reduce(
+    (applicatorRes, applicator) => {
+      return applicatorRes.chain(
+        result => {
+          return R.ifElse(
+            R.prop('@@transducer/reduced'),
+            // Done, wrap it in the type
+            res => initialValue.map(R.always(R.prop('@@transducer/value', res))),
+            () => applicator.map(value => {
+              // If the applicator's value passes the predicate, accumulate it and process the next item
+              // Otherwise we stop reducing by returning R.reduced()
+              return R.ifElse(
+                v => predicate(result, v),
+                v => accumulator(result, v),
+                // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
+                // IF the user wants to add v to the accumulation after predicate failure, do it.
+                v => R.reduced(accumulateAfterPredicateFail ? accumulator(result, v) : result)
+              )(value);
+            })
+          )(result);
+        }
+      );
+    },
+    initialValue,
+    list
+  ).chain(value => {
+    // Strip reduced if if was returned on the last iteration
+    return initialValue.map(() => R.ifElse(
+      R.prop('@@transducer/reduced'),
+      res => R.prop('@@transducer/value', res),
+      R.identity
+    )(value));
+  });
+};

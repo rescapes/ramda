@@ -16,13 +16,16 @@ import {
   objOfMLevelDeepMonadsToListWithSinglePairs, pairsOfMLevelDeepListOfMonadsToListWithSinglePairs,
   promiseToTask,
   resultToTask,
-  taskToPromise
+  taskToPromise,
+  defaultRunToResultConfig,
+  traverseReduce,
+  traverseReduceWhile,
+  traverseReduceDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import * as Maybe from 'folktale/maybe';
-import {defaultRunToResultConfig} from './monadHelpers';
-import {traverseReduce} from './functions';
+import * as f from './functions';
 
 
 describe('monadHelpers', () => {
@@ -380,4 +383,171 @@ describe('monadHelpers', () => {
     );
     expect(resultOfMaybeOfListOfPairs).toEqual(resultMaybeConstructor([['a', 1], ['b', 2]]));
   });
+
+
+  const merge = (res, [k, v]) => R.merge(res, {[k]: v});
+  const initialValue = apConstructor => apConstructor({});
+
+  // Convert dict into list of Container([k,v]) because ramda's reduce doesn't support non-lists
+  const objOfApplicativesToApplicative = R.curry((apConstructor, objOfApplicatives) => f.mapObjToValues(
+    (v, k) => {
+      return v.chain(val => apConstructor([k, val]));
+    },
+    objOfApplicatives
+  ));
+
+  test('traverseReduce', (done) => {
+    const initialResult = initialValue(Result.of);
+
+    expect(
+      traverseReduce(
+        merge,
+        initialResult,
+        objOfApplicativesToApplicative(Result.of, {a: Result.of('a'), b: Result.of('b')})
+      )
+    ).toEqual(
+      Result.of({a: 'a', b: 'b'})
+    );
+
+    const mapper = objOfApplicativesToApplicative(of);
+    const initialTask = initialValue(of);
+    // More complicated
+    const task = R.composeK(
+      // returns a single Task
+      letterToApplicative => traverseReduce(merge, initialTask, mapper(letterToApplicative)),
+      values =>
+        // wrap in task of to support composeK
+        of(
+          R.map(
+            // First reduce each letter value to get
+            //  {
+            //  a: Task({apple: Result.of('apple'), aardvark: Result.of('aardvark')}),
+            //  b: Task({banana: Result.of('banana'), bonobo: Result.of('bonobo')})
+            //  }
+            v => traverseReduce(
+              merge,
+              initialTask,
+              mapper(v)
+            ),
+            values
+          )
+        )
+    )(
+      {
+        a: {apple: of('apple'), aardvark: of('aardvark')},
+        b: {banana: of('banana'), bonobo: of('bonobo')}
+      }
+    );
+    task.run().listen({
+      onRejected: reject => {
+        throw(reject);
+      },
+      onResolved: result => {
+        expect(result).toEqual({
+          a: {apple: 'apple', aardvark: 'aardvark'},
+          b: {banana: 'banana', bonobo: 'bonobo'}
+        });
+        done();
+      }
+    });
+  });
+
+
+  test('traverseReduceDeep', () => {
+    const level2Constructor = R.compose(Result.Ok, Maybe.Just);
+
+    expect(
+      traverseReduceDeep(
+        2,
+        R.add,
+        level2Constructor(0),
+        R.map(level2Constructor, [1, 2, 3])
+      )
+    ).toEqual(
+      Result.of(Maybe.Just(6))
+    );
+
+    const level3Constructor = R.compose(Result.Ok, Maybe.Just, Array.of);
+
+    expect(
+      traverseReduceDeep(
+        3,
+        R.divide,
+        level3Constructor(1000),
+        [
+          // We ap R.divide(1000) with this container, meaning we call R.map(R.divide(2), [10,100,1000])
+          // this yields the reduction [100, 10, 1]
+          level3Constructor(10, 100, 1000),
+          // Now this iteration results in the operation
+          // R.ap([R.divide(10), R.multiply(100), R.multiply(1000)], [1, 2, 4]);
+          // Ramda's ap function applies [1, 2, 4] to each function
+          // to yield [100 / 1, 100 / 2, 100 / 4, 10 / 1, 10 / 2, 10 / 4, 1 / 1, 1 / 2, 1 / 4]
+          level3Constructor(1, 2, 4)
+        ]
+      )
+    ).toEqual(
+      Result.of(Maybe.Just([100 / 1, 100 / 2, 100 / 4, 10 / 1, 10 / 2, 10 / 4, 1 / 1, 1 / 2, 1 / 4]))
+    );
+
+    // Operating on a 3 deep container at level 2
+    // Even though our container is like above, we only lift twice so we can concat the two arrays
+    // We aren't lifting to operate on each array item
+    expect(
+      traverseReduceDeep(
+        2,
+        R.concat,
+        level3Constructor(),
+        [
+          level3Constructor(10, 100, 1000),
+          level3Constructor(1, 2, 4)
+        ]
+      )
+    ).toEqual(
+      Result.of(Maybe.Just([10, 100, 1000, 1, 2, 4]))
+    );
+  });
+
+  test('traverseReduceTaskWhile', done => {
+    const initialTask = initialValue(of);
+    const task = traverseReduceWhile(
+      // Make sure we accumulate up to b but don't run c
+      {
+        predicate: (accumulated, applicative) => R.not(R.equals('b', applicative[0])),
+        accumulateAfterPredicateFail: true
+      },
+      merge,
+      initialTask,
+      objOfApplicativesToApplicative(of, {
+        a: of('a'), b: of('b'), c: of('c').map(() => {
+          throw new Error('This task should not run!');
+        })
+      })
+    );
+    task.run().listen({
+      onRejected: reject => {
+        throw(reject);
+      },
+      onResolved: result => {
+        expect(result).toEqual({a: 'a', b: 'b'});
+        done();
+      }
+    });
+  });
+
+
+  test('traverseReduceResultWhile', done => {
+    const initialResult = initialValue(Result.of);
+    traverseReduceWhile(
+      // Predicate should be false when we have a b accumulated
+      (accumulated, applicative) => R.not(R.prop('b', accumulated)),
+      merge,
+      initialResult,
+      objOfApplicativesToApplicative(Result.of, {a: Result.of('a'), b: Result.of('b'), c: Result.of('c')})
+    ).map(result => {
+        expect(result).toEqual({a: 'a', b: 'b'});
+        done();
+      }
+    );
+  });
 });
+
