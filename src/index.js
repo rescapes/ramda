@@ -31,6 +31,6 @@ export {
 } from './throwingFunctions';
 export {
   defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise, resultToTask,
-  lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithSinglePairs, objOfMLevelDeepMonadsToListWithSinglePairs,
-  pairsOfMLevelDeepListOfMonadsToListWithSinglePairs, traverseReduce, traverseReduceDeep, traverseReduceWhile
+  lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithPairs, objOfMLevelDeepMonadsToListWithPairs,
+  pairsOfMLevelDeepListOfMonadsToListWithPairs, traverseReduce, traverseReduceDeep, traverseReduceWhile
 } from './monadHelpers';

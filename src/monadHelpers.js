@@ -108,118 +108,6 @@ export const resultToTask = result => result.matchWith({
 });
 
 /**
- * Converts objects with monad values into list of monads([[k,v], [k,v], ...])
- * @param {Function} monadConstructor Constructs the one-level monad, e.g. Result.Ok
- * @param {Object} objOfMonads Object with String keys and value that are monads matching that of the constructor
- * e.g. {a: Result.Ok(1), b: Result.Ok(2)}
- * @returns {[Object]} A list of the same type of Monads but containing an array with one key value pair
- * e.g. [Result.Ok([['a',1]]), Result.Ok(['b', 2])]
- * @sig objOfMLevelDeepMonadsToListWithSinglePairs:: Monad M, String k => <k, M<v>> -> [M<[k, v]>]
- */
-export const objOfMLevelDeepMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
-  // Lifts k, which is not a monad, to the level of the monad v, then combines them into a single pair array,
-  // which is returned wrapped with the monad constructor
-  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [[k, v]]);
-  // Here we map each key into a monad with its value, converting the k, v to an array with one pair
-  // Object <k, (Result (Maybe v))> -> [Result (Maybe [[k, v]]) ]
-  return R.map(
-    ([k, v]) => liftKeyIntoMonad(k, v),
-    R.toPairs(objOfMonads)
-  );
-});
-
-/**
- * Handles objects whose values are lists of monads by sequencing each list of monads into a single monad
- * and then packaging the keys into the monad as well
- * @param {Number} monadDepth The depth of the monad for each item of the array for each value.
- * @param {Function} monadConstructor Constructs the monad so that the key can be combined with the values monad
- * @param {Function} objOfMonads Objects whose values are list of monads
- * @returns {[Monad]} A list of monads each containing and origianl key value in the form monad [[k, values]]].
- * This is thus an array with one pair, where the pair contains a key and values
- * @sig objOfMLevelDeepListOfMonadsToListWithSinglePairs:: Monad M, String k => [<k, [M<v>]>] -> [M [[k, [v]]]]
- * Example {a: [Maybe.Just(1), Maybe.Just(2)], b: [Maybe.Just(3), Maybe.Just(4)]} becomes
- * [Maybe.Just([[['a'], [1, 2]]]], Maybe.Just([[['b'], [3, 4]]])]
- *
- */
-export const objOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
-  // The call to .map(Array.of) holds the items together for this method
-  // If we don't do this then k is applied to each item of v
-  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [k, v]);
-  return R.compose(
-    R.map(([k, v]) => liftKeyIntoMonad(k, v)),
-    R.toPairs,
-    // Map each value and then sequence each monad of the value into a single monad containing an array of values
-    // Monad m:: <k, [m v]> -> <k, m [v]>
-    // We want to combine the values of the arrays here. This is a bit messy, but I don't know how else
-    // to do it with the given monadConstructor
-    R.map(monadValues => traverseReduce(
-      (prev, next) => R.concat(prev, next),
-      monadConstructor(),
-      monadValues
-    ).map(Array.of))
-  )(objOfMonads);
-});
-
-/**
- * Like objOfMLevelDeepListOfMonadsToListWithSinglePairs but where the input is already pairs
- * The monad depth should be the depth of each monad in each list + 1 where 1 accounts for each list, which we
- * want to treat as a monad layer.
- */
-export const pairsOfMLevelDeepListOfMonadsToListWithSinglePairs = R.curry((monadDepth, monadConstructor, pairsOfMonads) => {
-  // The call to .map(Array.of) holds the items together for this method
-  // If we don't do this then k is applied to each item of v
-  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [k, v]);
-  return R.compose(
-    // Undo the results of .map(Array.of) with .map(R.chain(R.identity). We needed this extra array wrapping
-    // so that lift didn't operate on each array item, but after we want the monad value to be the flat array again
-    R.map(([k, v]) => liftKeyIntoMonad(k, v).map(R.chain(R.identity))),
-    // Map each value and then sequence each monad of the value into a single monad containing an array of values
-    // Monad m:: [k, [m v]> -> [k, m [v]]
-    // We want to combine the values of the arrays here. This is a bit messy, but I don't know how else
-    // to do it with the given monadConstructor
-    pairs => R.map(([k, monadValues]) => [
-      k,
-      traverseReduce(
-        (prev, next) => R.concat(prev, next),
-        monadConstructor(),
-        monadValues
-      ).map(Array.of)
-    ], pairs)
-  )(pairsOfMonads);
-});
-
-/**
- * Lifts an M level deep monad using the given M-level monad constructor and applies a 2 argument function f
- * The given value is called as the first argument of f, the second argument if the unwrapped value of the monad
- * The value returned by f is converted back to a monad. So this is essentially monad.chain(v => f(value, v)
- * but the chaining works on the given depth. This is useful for key value pairs when the key and value
- * need to be packaged into the monad that is the value.
- *
- * Inspiration: https://github.com/MostlyAdequate/mostly-adequate-guide (Ch 10)
- * const tOfM = compose(Task.of, Maybe.of);
- liftA2(liftA2(concat), tOfM('Rainy Days and Mondays'), tOfM(' always get me down'));
- * Task(Maybe(Rainy Days and Mondays always get me down))
- *
- * @param {Number} The monad depth to process values at. Note that the given monads can be deeper than
- * this number but the processing will occur at the depth given here
- * @param {Function} constructor M-level deep monad constructor
- * @param {Function} 2-arity function to combine value with the value of the last argument
- * @param {*} value Unwrapped value as the first argument of the function
- * @param {Object} monad Monad matching that of the constructor to apply the function(value) to
- * @returns {Object} the mapped monad
- * Example:
- *  const constructor = R.compose(Result.Ok, Result.Just)
- *  const myLittleResultWithMaybeAdder = lift1stOf2ForMDeepMonad(2, constructor, R.add);
- *  myLittleResultWithMaybeAdder(5)(constructor(1))) -> constructor(6);
- *  f -> Result (Just (a) ) -> Result (Just (f (value, a)))
- */
-export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, value, monad) => R.compose(
-  // This composes the number of R.liftN(N) calls we need. We need one per monad level
-  ...R.times(R.always(R.liftN(2)), monadDepth)
-)(f)(constructor(value))(monad));
-
-
-/**
  * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
  * Same arguments as reduce, but the initialValue must be an applicative, like task.of({}) or Result.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
@@ -330,3 +218,113 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
     )(value));
   });
 };
+
+
+/**
+ * Converts objects with monad values into list of [M [k,v]]
+ * @param {Function} monadConstructor Constructs the one-level monad, e.g. Result.Ok
+ * @param {Object} objOfMonads Object with String keys and value that are monads matching that of the constructor
+ * e.g. {a: Result.Ok(1), b: Result.Ok(2)}
+ * @returns {[Object]} A list of the same type of Monads but containing an array with one key value pair
+ * e.g. [Result.Ok([['a',1]]), Result.Ok(['b', 2])]
+ * @sig objOfMLevelDeepMonadsToListWithPairs:: Monad M, String k => <k, M v> -> [M [k, v] ]
+ */
+export const objOfMLevelDeepMonadsToListWithPairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
+  // Lifts k, which is not a monad, to the level of the monad v, then combines them into a single pair array,
+  // which is returned wrapped with the monad constructor
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, v) => [k, v]);
+  // Here we map each key into a monad with its value, converting the k, v to an array with one pair
+  // Object <k, (Result (Maybe v))> -> [Result (Maybe [[k, v]]) ]
+  return R.map(
+    ([k, v]) => liftKeyIntoMonad(k, v),
+    R.toPairs(objOfMonads)
+  );
+});
+
+/**
+ * Handles objects whose values are lists of monads by sequencing each list of monads into a single monad
+ * and then packaging the keys into the monad as well
+ * @param {Number} monadDepth The depth of the monad for each item of the array for each value.
+ * @param {Function} monadConstructor Constructs the monad so that the key can be combined with the values monad
+ * @param {Function} objOfMonads Objects whose values are list of monads
+ * @returns {[Monad]} A list of monads each containing and origianl key value in the form monad [[k, values]]].
+ * This is thus an array with one pair, where the pair contains a key and values
+ * @sig objOfMLevelDeepListOfMonadsToListWithPairs:: Monad M, String k => [<k, [M<v>]>] -> [M [k, [v]]]
+ * Example {a: [Maybe.Just(1), Maybe.Just(2)], b: [Maybe.Just(3), Maybe.Just(4)]} becomes
+ * [Maybe.Just(['a', [1, 2]]], Maybe.Just(['b', [3, 4]])]
+ */
+export const objOfMLevelDeepListOfMonadsToListWithPairs = R.curry((monadDepth, monadConstructor, objOfMonads) => {
+  // Here String k:: k -> [v] -> monadConstructor [k, [v]]
+  // So we lift k to the monad level and create a pair with the array of values
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, values) => R.prepend(k, [values]));
+  return R.compose(
+    R.map(([k, v]) => liftKeyIntoMonad(k, v)),
+    R.toPairs,
+    // Map each value and then sequence each monad of the value into a single monad containing an array of values
+    // Monad m:: <k, [m v]> -> <k, m [v]>
+    R.map(monadValues => traverseReduceDeep(
+      monadDepth,
+      // Prev is an array of previous monad values. Next is a value from monadValues
+      (prev, next) => R.append(next, prev),
+      monadConstructor([]),
+      monadValues
+    ))
+  )(objOfMonads);
+});
+
+/**
+ * Like objOfMLevelDeepListOfMonadsToListWithPairs but where the input is already pairs
+ * The monad depth should be the depth of each monad in each list + 1 where 1 accounts for each list, which we
+ * want to treat as a monad layer.
+ */
+export const pairsOfMLevelDeepListOfMonadsToListWithPairs = R.curry((monadDepth, monadConstructor, pairsOfMonads) => {
+  // Here String k:: k -> [v] -> monadConstructor [k, [v]]
+  // So we lift k to the monad level and create a pair with the array of values
+  const liftKeyIntoMonad = lift1stOf2ForMDeepMonad(monadDepth, monadConstructor, (k, values) => R.prepend(k, [values]));
+  return R.compose(
+    R.map(([k, v]) => liftKeyIntoMonad(k, v)),
+    // Map each value and then sequence each monad of the value into a single monad containing an array of values
+    // Monad m:: [k, [m v]> -> [k, m [v]]
+    pairs => R.map(([k, monadValues]) => [
+      k,
+      traverseReduceDeep(
+        monadDepth,
+        // Prev is an array of previous monad values. Next is a value from monadValues
+        (prev, next) => R.append(next, prev),
+        monadConstructor(),
+        monadValues
+      )
+    ], pairs)
+  )(pairsOfMonads);
+});
+
+/**
+ * Lifts an M level deep monad using the given M-level monad constructor and applies a 2 argument function f
+ * The given value is called as the first argument of f, the second argument if the unwrapped value of the monad
+ * The value returned by f is converted back to a monad. So this is essentially monad.chain(v => f(value, v)
+ * but the chaining works on the given depth. This is useful for key value pairs when the key and value
+ * need to be packaged into the monad that is the value.
+ *
+ * Inspiration: https://github.com/MostlyAdequate/mostly-adequate-guide (Ch 10)
+ * const tOfM = compose(Task.of, Maybe.of);
+ liftA2(liftA2(concat), tOfM('Rainy Days and Mondays'), tOfM(' always get me down'));
+ * Task(Maybe(Rainy Days and Mondays always get me down))
+ *
+ * @param {Number} The monad depth to process values at. Note that the given monads can be deeper than
+ * this number but the processing will occur at the depth given here
+ * @param {Function} constructor M-level deep monad constructor
+ * @param {Function} 2-arity function to combine value with the value of the last argument
+ * @param {*} value Unwrapped value as the first argument of the function
+ * @param {Object} monad Monad matching that of the constructor to apply the function(value) to
+ * @returns {Object} the mapped monad
+ * Example:
+ *  const constructor = R.compose(Result.Ok, Result.Just)
+ *  const myLittleResultWithMaybeAdder = lift1stOf2ForMDeepMonad(2, constructor, R.add);
+ *  myLittleResultWithMaybeAdder(5)(constructor(1))) -> constructor(6);
+ *  f -> Result (Just (a) ) -> Result (Just (f (value, a)))
+ */
+export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, value, monad) => R.compose(
+  // This composes the number of R.liftN(N) calls we need. We need one per monad level
+  ...R.times(R.always(R.liftN(2)), monadDepth)
+)(f)(constructor(value))(monad));
+
