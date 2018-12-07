@@ -458,7 +458,7 @@ describe('helperFunctions', () => {
   test('replaceValuesWithCountAtDepth', () => {
     expect(
       replaceValuesWithCountAtDepth(3, {a: {A: {å: [1, 2, 3], moo: {cow: 'yes', sheep: 'no'}, ø: 'æ'}, kitty: 2}})
-    ).toEqual({a: {A: {å: 3, moo: 2, ø: 'æ'}, kitty: 2}});
+    ).toEqual({a: {A: {å: '[...3]', moo: '{...2}', ø: 'æ'}, kitty: 2}});
   });
 
   test('replaceValuesAtDepthAndStringify', () => {

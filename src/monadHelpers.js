@@ -108,6 +108,33 @@ export const resultToTask = result => result.matchWith({
 });
 
 /**
+ * Passes a result to a function that returns a Task an maps the successful Task value to a Result.Ok
+ * and erroneous task to a Result.Error. If result is an error it is wrapped in a Task.Of
+ * @param {Function} f Function that receives result and returns a Task. This should not return a task
+ * with a result. If it does then you don't need resultToTaskNeedingResult.
+ * @param {Object} result A Result.Ok or Result.Eror
+ * @returns {Object} Task with Result.Ok or Result.Error inside.
+ * @sig resultToTaskNeedingResult:: Result r, Task t => (r -> t) -> r -> t r
+ */
+export const resultToTaskNeedingResult = R.curry((f, result) => result.matchWith({
+  Ok: ({value}) => f(value).map(Result.Ok).mapRejected(Result.Error),
+  Error: of
+}));
+
+/**
+ * Passes a result to a function that returns a Task containing a Result
+ * and erroneous task maps converts a Result.Ok to a Result.Error. If result is an error it is wrapped in a Task.Of
+ * @param {Function} f Function that receives result and returns a Task with a Result in it.
+ * @param {Object} result A Result.Ok or Result.Error
+ * @returns {Object} Task with Result.Ok or Result.Error inside.
+ * @sig resultToTaskNeedingResult:: Result r, Task t => (r -> t r) -> r -> t r
+ */
+export const resultToTaskWithResult = R.curry((f, result) => result.matchWith({
+  Ok: ({value}) => f(value).mapRejected(r => r.chain(v => Result.Error(v))),
+  Error: of
+}));
+
+/**
  * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
  * Same arguments as reduce, but the initialValue must be an applicative, like task.of({}) or Result.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
@@ -328,3 +355,14 @@ export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, valu
   ...R.times(R.always(R.liftN(2)), monadDepth)
 )(f)(constructor(value))(monad));
 
+/**
+ * Map based on the depth of the monad
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {Function} Mapping function that operates at the given depth.
+ * @param {Object} Monad of a least the given depth
+ * @returns {Object} The mapped monad value
+ */
+export const mapMDeep = R.curry((monadDepth, f, monad) => R.compose(
+  // This composes the number of R.liftN(N) calls we need. We need one per monad level
+  ...R.times(R.always(R.map), monadDepth)
+)(f)(monad));

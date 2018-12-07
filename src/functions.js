@@ -638,7 +638,17 @@ export const replaceValuesAtDepthAndStringify = (n, replaceString, obj) => {
  * @returns {Object} after the above replacement
  */
 export const replaceValuesWithCountAtDepth = (n, obj) => {
-  return replaceValuesAtDepth(n, R.when(R.is(Object), R.compose(R.length, R.keys)), obj);
+  return replaceValuesAtDepth(
+    n,
+    R.when(
+      R.is(Object),
+      o => R.compose(
+        // Show arrays and objs different
+        R.ifElse(R.always(Array.isArray(o)), c => `[...${c}]`, c => `{...${c}}`),
+        R.length,
+        R.keys)(o)
+    ),
+    obj);
 };
 
 /**

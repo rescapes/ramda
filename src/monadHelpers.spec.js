@@ -10,7 +10,7 @@
  */
 
 import {apply} from 'folktale/fantasy-land';
-import {task as folktask, of, fromPromised} from 'folktale/concurrency/task';
+import {task as folktask, of, rejected, fromPromised} from 'folktale/concurrency/task';
 import {
   defaultRunConfig, lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithPairs,
   objOfMLevelDeepMonadsToListWithPairs, pairsOfMLevelDeepListOfMonadsToListWithPairs,
@@ -20,7 +20,7 @@ import {
   defaultRunToResultConfig,
   traverseReduce,
   traverseReduceWhile,
-  traverseReduceDeep
+  traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -170,6 +170,7 @@ describe('monadHelpers', () => {
       }
     ));
   });
+
   test('resultToTaskError', done => {
     resultToTask(Result.Error(1)).run().listen({
       onRejected: response => {
@@ -179,6 +180,71 @@ describe('monadHelpers', () => {
     });
   });
 
+  test('resultToTaskNeedingResult', done => {
+    // Result.Ok is passed to f, which returns a Task
+    resultToTaskNeedingResult(v => of(v + 1), Result.Ok(1)).run().listen(defaultRunConfig(
+      {
+        onResolved: result => result.map(value => {
+          expect(value).toEqual(2);
+          done();
+        })
+      }
+    ));
+
+    // Result.Error goes straight to a Task.of
+    resultToTaskNeedingResult(v => of(v + 1), Result.Error(1)).run().listen(defaultRunConfig(
+      {
+        onResolved: result => result.mapError(value => {
+          expect(value).toEqual(1);
+          done();
+        })
+      }
+    ));
+
+    // If something goes wrong in the task. The value is put in a Result.Error
+    // I'm not sure if this is good practice, but there's no reason to have a valid Result in a rejected Task
+    resultToTaskNeedingResult(v => rejected(v), Result.Ok(1)).run().listen({
+        onRejected: result => result.mapError(value => {
+          expect(value).toEqual(1);
+          done();
+        }),
+        onResolved: result => expect('This should not ').toEqual('happen')
+      }
+    );
+  });
+
+  test('resultToTaskWithResult', done => {
+    // Result.Ok is passed to f, which returns a Task
+    resultToTaskWithResult(v => of(Result.Ok(v + 1)), Result.Ok(1)).run().listen(defaultRunConfig(
+      {
+        onResolved: result => result.map(value => {
+          expect(value).toEqual(2);
+          done();
+        })
+      }
+    ));
+
+    // Result.Error goes straight to a Task.of
+    resultToTaskWithResult(v => of(Result.Ok(v + 1)), Result.Error(1)).run().listen(defaultRunConfig(
+      {
+        onResolved: result => result.mapError(value => {
+          expect(value).toEqual(1);
+          done();
+        })
+      }
+    ));
+
+    // If something goes wrong in the task. The value is put in a Result.Error
+    // I'm not sure if this is good practice, but there's no reason to have a valid Result in a rejected Task
+    resultToTaskWithResult(v => rejected(Result.Ok(v)), Result.Ok(1)).run().listen({
+        onRejected: result => result.mapError(value => {
+          expect(value).toEqual(1);
+          done();
+        }),
+        onResolved: result => expect('This should not ').toEqual('happen')
+      }
+    );
+  });
 
   const merge = (res, [k, v]) => R.merge(res, {[k]: v});
   const initialValue = apConstructor => apConstructor({});
@@ -422,6 +488,24 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapMDeep', done => {
+    expect(mapMDeep(1, R.add(1), [1])).toEqual([2]);
+    expect(mapMDeep(2, R.add(1), [[1]])).toEqual([[2]]);
+    expect(mapMDeep(2, R.add(1), Result.Ok(Maybe.Just(1)))).toEqual(Result.Ok(Maybe.Just(2)));
+    mapMDeep(2, R.add(1), of(Maybe.Just(1))).run().listen(
+      defaultRunConfig({
+        onResolved: resolve =>
+          R.map(
+            value => {
+              expect(value).toEqual(2);
+              done();
+            },
+            resolve
+          )
+      })
+    );
+  });
+
   test('objOfMLevelDeepMonadsToListWithPairs', () => {
     expect(objOfMLevelDeepMonadsToListWithPairs(
       1,
@@ -437,6 +521,15 @@ describe('monadHelpers', () => {
       {a: Result.Ok(Maybe.Just(1)), b: Result.Ok(Maybe.Just(2))})
     ).toEqual(
       [Result.Ok(Maybe.Just(['a', 1])), Result.Ok(Maybe.Just(['b', 2]))]
+    );
+
+    expect(objOfMLevelDeepMonadsToListWithPairs(
+      2,
+      R.compose(Result.Ok, Maybe.Just),
+      {a: Result.Ok(Maybe.Just(1)), b: Result.Error(Maybe.Just(2))})
+    ).toEqual(
+      // Mapping doesn't happen on the Result.Error
+      [Result.Ok(Maybe.Just(['a', 1])), Result.Error(Maybe.Just(2))]
     );
   });
 
@@ -551,7 +644,12 @@ describe('monadHelpers', () => {
     // This shows us how we can map multiple values, solving the embedded map problem
     expect(R.liftN(2,
       (startEnd, routeResponse) => R.view(R.lensPath(['legs', 0, startEnd]), routeResponse)
-    )(['start_address', 'end_address'], [{legs: [{start_address: 'foo', end_address: 'bar'}]}])).toEqual(['foo', 'bar']);
+    )(['start_address', 'end_address'], [{
+      legs: [{
+        start_address: 'foo',
+        end_address: 'bar'
+      }]
+    }])).toEqual(['foo', 'bar']);
 
     // We can do the same thing with our method and not have to awkwardly wrap the object in an array
     expect(lift1stOf2ForMDeepMonad(1, Array.of,
