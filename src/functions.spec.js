@@ -18,6 +18,7 @@ import {of} from 'folktale/concurrency/task';
 import {fromPairsDeep} from './functions';
 import {replaceValuesAtDepth} from './functions';
 import {replaceValuesAtDepthAndStringify} from './functions';
+import {replaceValuesWithCountAtDepth} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -431,6 +432,7 @@ describe('helperFunctions', () => {
   });
 
   test('replaceValuesAtDepth', () => {
+    // Test various depths
     expect(
       replaceValuesAtDepth(3, '...', {a: {A: {å: 1}, kitty: 2}})
     ).toEqual({a: {A: {å: '...'}, kitty: 2}});
@@ -444,7 +446,19 @@ describe('helperFunctions', () => {
       replaceValuesAtDepth(0, '...', {a: {A: {å: 1}}})
     ).toEqual('...');
 
+    // Test arrays
     expect(replaceValuesAtDepth(2, '...', [['A', ['a']], 'b'])).toEqual([['...', '...'], 'b']);
+
+    // Test replacement function that takes length of objects and leaves primitives alone
+    expect(
+      replaceValuesAtDepth(3, R.when(R.is(Object), R.compose(R.length, R.keys)), {a: {A: {å: [1, 2, 3], moo: {cow: 'yes', sheep: 'no'}, ø: 'æ'}, kitty: 2}})
+    ).toEqual({a: {A: {å: 3, moo: 2, ø: 'æ'}, kitty: 2}});
+  });
+
+  test('replaceValuesWithCountAtDepth', () => {
+    expect(
+      replaceValuesWithCountAtDepth(3, {a: {A: {å: [1, 2, 3], moo: {cow: 'yes', sheep: 'no'}, ø: 'æ'}, kitty: 2}})
+    ).toEqual({a: {A: {å: 3, moo: 2, ø: 'æ'}, kitty: 2}});
   });
 
   test('replaceValuesAtDepthAndStringify', () => {

@@ -599,7 +599,8 @@ export const fromPairsDeep = deepPairs => R.cond(
  * Depth 2 converts {a: {b: {c: 1}}} to {a: {b: '...'}}
  * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
  * Depth 0 converts {a: {b: {c: 1}}} to '...'
- * @param {String} replaceString String such as '...'
+ * @param {String|Function} replaceString String such as '...' or a unary function that replaces the value
+ * e.g. R.when(R.is(Object), R.length(R.keys)) will count objects and arrays but leave primitives alone
  * @param {Object} obj Object to process
  * @returns {Object} with the above transformation. Use replaceValuesAtDepthAndStringify to get a string
  */
@@ -609,8 +610,8 @@ export function replaceValuesAtDepth(n, replaceString, obj) {
     R.both(R.always(R.lt(0, n)), R.is(Object)),
     // Then recurse on each object or array value
     o => R.map(oo => replaceValuesAtDepth(n - 1, replaceString, oo), o),
-    // Else If not an object replace it if we are down to level 0. Else leave 'er alone
-    o => R.when(R.always(R.equals(0, n)), R.always(replaceString))(o)
+    // If at level 0 replace the value. If not an object or not at level 0, leave it alone
+    o => R.when(R.always(R.equals(0, n)), alwaysFunc(replaceString))(o)
   )(obj);
 }
 
@@ -621,10 +622,31 @@ export function replaceValuesAtDepth(n, replaceString, obj) {
  * Depth 2 converts {a: {b: {c: 1}}} to {a: {b: '...'}}
  * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
  * Depth 0 converts {a: {b: {c: 1}}} to '...'
- * @param {String} replaceString String such as '...'
+ * @param {String|Function} replaceString String such as '...' or a unary function that replaces the value
+ * e.g. R.when(R.is(Object), R.length(R.keys)) will count objects and arrays but leave primitives alone
  * @param {Object} obj Object to process
  * @returns {String} after the above replacement
  */
 export const replaceValuesAtDepthAndStringify = (n, replaceString, obj) => {
   return JSON.stringify(replaceValuesAtDepth(n, replaceString, obj));
+};
+
+/**
+ * Convenient method to count objects and lists at the given depth but leave primitives alone
+ * @param {Number} n Depth to replace at.
+ * @param {Object} obj Object to process
+ * @returns {Object} after the above replacement
+ */
+export const replaceValuesWithCountAtDepth = (n, obj) => {
+  return replaceValuesAtDepth(n, R.when(R.is(Object), R.compose(R.length, R.keys)), obj);
+};
+
+/**
+ * Convenient method to count objects and lists at the given depth but leave primitives alone and stringify result
+ * @param {Number} n Depth to replace at.
+ * @param {Object} obj Object to process
+ * @returns {String} after the above replacement
+ */
+export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
+  return JSON.stringify(replaceValuesWithCountAtDepth(n, obj));
 };
