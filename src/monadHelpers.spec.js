@@ -547,6 +547,20 @@ describe('monadHelpers', () => {
     // This should add the each item from each array
     const myLittleResultWithListConcatter = lift1stOf2ForMDeepMonad(2, resultListConstructor, R.add);
     expect(myLittleResultWithListConcatter([1, 2])(resultListConstructor([10, 11]))).toEqual(resultListConstructor([11, 12, 12, 13]));
+
+    // This shows us how we can map multiple values, solving the embedded map problem
+    expect(R.liftN(2,
+      (startEnd, routeResponse) => R.view(R.lensPath(['legs', 0, startEnd]), routeResponse)
+    )(['start_address', 'end_address'], [{legs: [{start_address: 'foo', end_address: 'bar'}]}])).toEqual(['foo', 'bar']);
+
+    // We can do the same thing with our method and not have to awkwardly wrap the object in an array
+    expect(lift1stOf2ForMDeepMonad(1, Array.of,
+      R.curry((routeResponse, startEnd) => R.view(R.lensPath(['legs', 0, startEnd]), routeResponse)),
+      {legs: [{start_address: 'foo', end_address: 'bar'}]},
+      ['start_address', 'end_address']
+    )).toEqual(['foo', 'bar']);
+
+    // Using the above could we iterate through deep lists or objects and call a function on every combination?
   });
 
   test('Lifting objects with monads', () => {

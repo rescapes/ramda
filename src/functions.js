@@ -592,3 +592,39 @@ export const fromPairsDeep = deepPairs => R.cond(
   ])(deepPairs);
 
 
+/**
+ * At the given depth, object and array values are converted to the replacementString.
+ * @param {Number} n Depth to replace at.
+ * Depth 3 converts {a: {b: {c: 1}}} to {a: {b: {c: '...'}}}
+ * Depth 2 converts {a: {b: {c: 1}}} to {a: {b: '...'}}
+ * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
+ * Depth 0 converts {a: {b: {c: 1}}} to '...'
+ * @param {String} replaceString String such as '...'
+ * @param {Object} obj Object to process
+ * @returns {Object} with the above transformation. Use replaceValuesAtDepthAndStringify to get a string
+ */
+export function replaceValuesAtDepth(n, replaceString, obj) {
+  return R.ifElse(
+    // If we are above level 0 and we have an object
+    R.both(R.always(R.lt(0, n)), R.is(Object)),
+    // Then recurse on each object or array value
+    o => R.map(oo => replaceValuesAtDepth(n - 1, replaceString, oo), o),
+    // Else If not an object replace it if we are down to level 0. Else leave 'er alone
+    o => R.when(R.always(R.equals(0, n)), R.always(replaceString))(o)
+  )(obj);
+}
+
+/** *
+ * replaceValuesAtDepth but stringifies result
+ * @param {Number} n Depth to replace at.
+ * Depth 3 converts {a: {b: {c: 1}}} to {a: {b: {c: '...'}}}
+ * Depth 2 converts {a: {b: {c: 1}}} to {a: {b: '...'}}
+ * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
+ * Depth 0 converts {a: {b: {c: 1}}} to '...'
+ * @param {String} replaceString String such as '...'
+ * @param {Object} obj Object to process
+ * @returns {String} after the above replacement
+ */
+export const replaceValuesAtDepthAndStringify = (n, replaceString, obj) => {
+  return JSON.stringify(replaceValuesAtDepth(n, replaceString, obj));
+};

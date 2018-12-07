@@ -16,6 +16,8 @@ import * as Result from 'folktale/result';
 
 import {of} from 'folktale/concurrency/task';
 import {fromPairsDeep} from './functions';
+import {replaceValuesAtDepth} from './functions';
+import {replaceValuesAtDepthAndStringify} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -426,5 +428,28 @@ describe('helperFunctions', () => {
         }
       ]
     );
+  });
+
+  test('replaceValuesAtDepth', () => {
+    expect(
+      replaceValuesAtDepth(3, '...', {a: {A: {å: 1}, kitty: 2}})
+    ).toEqual({a: {A: {å: '...'}, kitty: 2}});
+    expect(
+      replaceValuesAtDepth(2, '...', {a: {A: {å: 1}}, kitty: 2})
+    ).toEqual({a: {A: '...'}, kitty: 2});
+    expect(
+      replaceValuesAtDepth(1, '...', {a: {A: {å: 1}}})
+    ).toEqual({a: '...'});
+    expect(
+      replaceValuesAtDepth(0, '...', {a: {A: {å: 1}}})
+    ).toEqual('...');
+
+    expect(replaceValuesAtDepth(2, '...', [['A', ['a']], 'b'])).toEqual([['...', '...'], 'b']);
+  });
+
+  test('replaceValuesAtDepthAndStringify', () => {
+    expect(
+      replaceValuesAtDepthAndStringify(3, '...', {a: {A: {å: 1}}})
+    ).toEqual('{"a":{"A":{"å":"..."}}}');
   });
 });
