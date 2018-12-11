@@ -500,10 +500,19 @@ describe('helperFunctions', () => {
     )).toEqual(
       {a: 1, 'b.johnny': 'b good', 'b.sam.0': 1, 'b.sam.1': 2, 'b.sam.2': 3}
     );
-    expect(flattenObj([1,2,3])).toEqual({0: 1, 1: 2, 2: 3})
+    expect(flattenObj([1, 2, 3])).toEqual({0: 1, 1: 2, 2: 3});
   });
-  test('unFlattenObj', () => {
+
+  test('unflattenObj', () => {
     const pancake = R.compose(unflattenObj, flattenObj);
+    const x = [
+      {
+        id: '2226274',
+        country: 'Norway'
+      }
+    ];
+    expect(pancake(x)).toEqual(x);
+
     expect(pancake({a: 1})).toEqual({a: 1});
     expect(pancake({a: 1, b: {johnny: 'b good'}})).toEqual({a: 1, b: {johnny: 'b good'}});
     expect(pancake({a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}})).toEqual(

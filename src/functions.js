@@ -668,15 +668,15 @@ export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
  * @returns {Object} The 1-D version of the object
  */
 export const flattenObj = obj => {
-  return R.fromPairs(_flattenObj(obj));
+  return R.fromPairs(_flatenObj(obj));
 };
 
-const _flattenObj = (obj, keys = []) => {
+const _flatenObj = (obj, keys = []) => {
   return R.ifElse(
     // If we are above level 0 and we have an object
     R.is(Object),
     // Then recurse on each object or array value
-    o => chainObjToValues((oo, k) => _flattenObj(oo, R.concat(keys, [k])), o),
+    o => chainObjToValues((oo, k) => _flatenObj(oo, R.concat(keys, [k])), o),
     // If not an object return flat pair
     o => [[R.join('.', keys), o]]
   )(obj);
@@ -688,13 +688,40 @@ const _flattenObj = (obj, keys = []) => {
  * @returns {Object} The original
  */
 export const unflattenObj = obj => {
-  return R.reduce(
-    (merged, [keyString, value]) => R.set(
-      R.lensPath(R.map(R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt), R.split('.', keyString))),
-      value,
-      merged
+  return R.compose(
+    R.reduce(
+      (accum, [keyString, value]) => {
+        const itemKeyPath = R.map(
+          R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt),
+          R.split('.', keyString)
+        );
+        // Current item lens
+        const itemLensPath = R.lensPath(itemKeyPath);
+        // All but the last segment gives us the item container lens
+        const constainerKeyPath = R.init(itemKeyPath);
+        const container = R.unless(
+          // If the path has any length (not []) and the value is set, don't do anything
+          R.both(R.always(R.length(constainerKeyPath)), R.view(R.lensPath(constainerKeyPath))),
+          // Else we are at the top level, so use the existing accum or create a [] or {}
+          // depending on if our item key is a number or not
+          x => R.defaultTo(
+            R.ifElse(
+              R.is(Number),
+              R.always([]),
+              R.always({})
+            )(R.head(itemKeyPath))
+          )(x)
+        )(accum);
+        // Finally set the container at the itemLensPath
+        return R.set(
+          itemLensPath,
+          value,
+          container
+        );
+      },
+      // null initial value
+      null
     ),
-    {},
-    R.toPairs(obj)
-  );
+    R.toPairs
+  )(obj);
 };
