@@ -667,24 +667,24 @@ export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
  * @param {Object} obj The object to flattened
  * @returns {Object} The 1-D version of the object
  */
-export const flatenObj = obj => {
-  return R.fromPairs(_flatenObj(obj));
+export const flattenObj = obj => {
+  return R.fromPairs(_flattenObj(obj));
 };
 
-export const _flatenObj = (obj, keys = []) => {
+const _flattenObj = (obj, keys = []) => {
   return R.ifElse(
     // If we are above level 0 and we have an object
     R.is(Object),
     // Then recurse on each object or array value
-    o => chainObjToValues((oo, k) => _flatenObj(oo, R.concat(keys, [k])), o),
+    o => chainObjToValues((oo, k) => _flattenObj(oo, R.concat(keys, [k])), o),
     // If not an object return flat pair
     o => [[R.join('.', keys), o]]
   )(obj);
 };
 
 /**
- * Undoes the work of flatenObj
- * @param {Object} obj 1-D object in the form returned by flatenObj
+ * Undoes the work of flattenObj
+ * @param {Object} obj 1-D object in the form returned by flattenObj
  * @returns {Object} The original
  */
 export const unflattenObj = obj => {

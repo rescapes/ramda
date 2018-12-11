@@ -21,7 +21,7 @@ import {replaceValuesAtDepthAndStringify} from './functions';
 import {replaceValuesWithCountAtDepth} from './functions';
 import {mapObjToValues} from './functions';
 import {chainObjToValues} from './functions';
-import {flatenObj} from './functions';
+import {flattenObj} from './functions';
 import {unflattenObj} from './functions';
 
 describe('helperFunctions', () => {
@@ -492,17 +492,18 @@ describe('helperFunctions', () => {
     })).toEqual([[1, 1], [1, 2, 3], [1, 4, 5]]);
   });
 
-  test('flatenObj', () => {
-    expect(flatenObj({a: 1})).toEqual({a: 1});
-    expect(flatenObj({a: 1, b: {johnny: 'b good'}})).toEqual({a: 1, 'b.johnny': 'b good'});
-    expect(flatenObj(
+  test('flattenObj', () => {
+    expect(flattenObj({a: 1})).toEqual({a: 1});
+    expect(flattenObj({a: 1, b: {johnny: 'b good'}})).toEqual({a: 1, 'b.johnny': 'b good'});
+    expect(flattenObj(
       {a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}}
     )).toEqual(
       {a: 1, 'b.johnny': 'b good', 'b.sam.0': 1, 'b.sam.1': 2, 'b.sam.2': 3}
     );
+    expect(flattenObj([1,2,3])).toEqual({0: 1, 1: 2, 2: 3})
   });
-  test('unFlatenObj', () => {
-    const pancake = R.compose(unflattenObj, flatenObj);
+  test('unFlattenObj', () => {
+    const pancake = R.compose(unflattenObj, flattenObj);
     expect(pancake({a: 1})).toEqual({a: 1});
     expect(pancake({a: 1, b: {johnny: 'b good'}})).toEqual({a: 1, b: {johnny: 'b good'}});
     expect(pancake({a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}})).toEqual(
