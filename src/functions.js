@@ -548,13 +548,13 @@ export const mapObjToValues = (f, obj) => {
 };
 
 /**
- * Like mapObjToValues but flattens the values when an array is returned for each mapping
+ * Like mapObjToValues but chains the values when an array is returned for each mapping
  * @param {Function} f Expects key, value, and obj
  * @param {Object} obj The object to chain
  * @return {[Object]} Mapped flattened values
  */
 export const chainObjToValues = (f, obj) => {
-  return R.flatten(mapObjToValues(f, obj));
+  return R.chain(R.identity, mapObjToValues(f, obj));
 };
 
 
@@ -659,4 +659,42 @@ export const replaceValuesWithCountAtDepth = (n, obj) => {
  */
 export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
   return JSON.stringify(replaceValuesWithCountAtDepth(n, obj));
+};
+
+/**
+ * Flattens an objects so deep keys and array indices become concatinated strings
+ * E.g. {a: {b: [1, 3]}} => {'a.b.0': 1, 'a.b.1': 2}
+ * @param {Object} obj The object to flattened
+ * @returns {Object} The 1-D version of the object
+ */
+export const flatenObj = obj => {
+  return R.fromPairs(_flatenObj(obj));
+};
+
+export const _flatenObj = (obj, keys = []) => {
+  return R.ifElse(
+    // If we are above level 0 and we have an object
+    R.is(Object),
+    // Then recurse on each object or array value
+    o => chainObjToValues((oo, k) => _flatenObj(oo, R.concat(keys, [k])), o),
+    // If not an object return flat pair
+    o => [[R.join('.', keys), o]]
+  )(obj);
+};
+
+/**
+ * Undoes the work of flatenObj
+ * @param {Object} obj 1-D object in the form returned by flatenObj
+ * @returns {Object} The original
+ */
+export const unflattenObj = obj => {
+  return R.reduce(
+    (merged, [keyString, value]) => R.set(
+      R.lensPath(R.map(R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt), R.split('.', keyString))),
+      value,
+      merged
+    ),
+    {},
+    R.toPairs(obj)
+  );
 };

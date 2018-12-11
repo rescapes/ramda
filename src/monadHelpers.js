@@ -13,6 +13,7 @@
 import {task as folktask, rejected, of} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result/index';
+import {chainObjToValues, mapObjToValues, mergeDeep} from './functions';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -366,3 +367,39 @@ export const mapMDeep = R.curry((monadDepth, f, monad) => R.compose(
   // This composes the number of R.liftN(N) calls we need. We need one per monad level
   ...R.times(R.always(R.map), monadDepth)
 )(f)(monad));
+
+
+/*
+export function liftObjDeep(obj, keys = []) {
+  if (R.anyPass([Array.isArray, R.complement(R.is)(Object)])(obj)) {
+    return R.cond([
+      [Array.isArray,
+        a => R.liftN(R.length(keys) + 1, (...args) => args)(R.addIndex(R.map)(
+          (v, k) => v,
+          a
+        ))
+      ],
+      [R.T,
+        o => R.liftN(R.length(keys) + 1, (...args) => args)([o])
+      ]
+    ])(obj);
+  }
+
+  // Get all combinations at this level. To do this we look at array values and scalars
+  // We put the scalar in a single array
+  return R.compose(
+    R.when(
+      pairs => {
+        return R.compose(R.lt(1), R.length)(pairs);
+      },
+      pairs => R.liftN(R.length(pairs), (...args) => [...args])(...R.map(R.compose(Array.of, R.last), pairs))
+    ),
+    //R.toPairs,
+    //R.map(R.unless(Array.isArray, Array.of)),
+    o => chainObjToValues(
+      (v, k) => liftObjDeep(v, R.concat(keys, [k])),
+      o
+    )
+  )(obj);
+};
+*/

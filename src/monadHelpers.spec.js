@@ -20,7 +20,7 @@ import {
   defaultRunToResultConfig,
   traverseReduce,
   traverseReduceWhile,
-  traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult
+  traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult, liftObjDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -685,5 +685,13 @@ describe('monadHelpers', () => {
     );
     expect(resultOfMaybeOfListOfPairs).toEqual(resultMaybeConstructor([['a', 1], ['b', 2]]));
   });
+
+
+  /*
+  test('liftObjDeep', () => {
+    const pairs = liftObjDeep({city: "Stavanger", data: {sidewalk: [0, 2], plazaSq: [0, 3]}})
+    R.liftN(R.length(pairs), (...pairs) => [...pairs], ...R.map(R.last, pairs))
+  })
+  */
 });
 
