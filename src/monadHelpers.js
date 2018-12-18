@@ -168,18 +168,19 @@ export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
  * Container C v => v -> v -> v
  * @param {Object} initialValue A conatiner to be the initial reduced value of accumulator. This must match the
  * expected container type
- * @param {[Object]} list List of containers
+ * @param {[Object]} list List of containers. The list does not itself count as a container toward containerDepth. So a list of Tasks of Results is still level containerDepth: 2
  * @returns {Object} The value resulting from traversing and reducing
  * @sig traverseReduceDeep:: Number N, N-Depth-Container C v => N -> (v -> v -> v) -> C v -> [C v] -> C v
  */
-export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialValue, deepContainer) =>
+export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialValue, deepContainers) =>
   R.reduce(
     (applicatorRes, applicator) => R.compose(
       // This composes the number of R.lift2 calls we need. We need one per container level
+      // The first one (final step of compose) is the call to the accumulator function with the lifted values
       ...R.times(R.always(R.liftN(2)), containerDepth)
     )(accumulator)(applicatorRes, applicator),
     initialValue,
-    deepContainer
+    deepContainers
   )
 );
 
@@ -246,6 +247,52 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
     )(value));
   });
 };
+
+
+/**
+ * Like traverseReduceDeep but also accepts an accumulate to deal with Result.Error objects.
+ * Like traverseReduceDeep accumulator is called on Result.Ok values, but Result.Error values are passed to
+ * accumulatorError. The returned value is within the outer container(s): {Ok: accumulator result, Error: errorAccumulator result}
+ *
+ * Example:
+ * traverseReduceDeepResults(2, R.flip(R.append), R.concat, Task.of({Ok: Result.Ok([]), Error: Result.Error('')}), [Task.of(Result.Ok(1), Task.of(Result.Error('a'),
+ * Task.of(Result.Ok(2), Task.of(Result.Error('b')])
+ * returns Task.of({Ok: Result.Ok([1, 2]), Error: Result.Error('ab')})
+ *
+ * @param {Function} accumulator Accepts a reduced applicative and each result that is a Result.Ok of reducer, then returns the new reduced applicative
+ * Container C v => v -> v -> v where the Container at containerDepth must be a Result
+ * @param {Function} accumulatorForErrors Accepts a reduced applicative and each result that is a Result.Error of reducer, then returns the new reduced applicative
+ * Container C v => v -> v -> v where the Container at containerDepth must be a Result
+ * @param {Object} initialValue A container to be the initial reduced values of accumulators. This must match the
+ * expected container type up to the Result and have an object with two initial Results: {Ok: initial Result.Ok, Error: initial Result.Error}
+ * @param {[Object]} list List of containers. The list does not itself count as a container toward containerDepth. So a list of Tasks of Results is still level containerDepth: 2
+ * @returns {Object} The value resulting from traversing and reducing
+ * @sig traverseReduceDeep:: Number N, N-Depth-Container C v => N -> (v -> v -> v) -> C v -> [C v] -> C v
+ */
+export const traverseReduceDeepResults = R.curry((containerDepth, accumulator, accumulatorForErrors, initialValue, deepContainers) =>
+  R.reduce(
+    (applicatorRes, applicator) => R.compose(
+      // This composes the number of R.lift2 calls we need. We need one per container level,
+      // but the penultimate level must determine which accumulator to call, so it handles the final level by calling
+      // accumulator or accumulatorForErrors
+      // This is containerDept - 1 because our accumulator below handles the last level
+      ...R.times(R.always(R.liftN(2)), containerDepth - 1)
+    )(
+      (accumulatedObj, result) => result.matchWith({
+        Ok: ({value}) => ({
+          Ok: accumulator(accumulatedObj.Ok, value),
+          Error: accumulatedObj.Error
+        }),
+        Error: ({value}) => ({
+          Error: accumulatorForErrors(accumulatedObj.Error, value),
+          Ok: accumulatedObj.Ok
+        })
+      })
+    )(applicatorRes, applicator),
+    initialValue,
+    deepContainers
+  )
+);
 
 
 /**

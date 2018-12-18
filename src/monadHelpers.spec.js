@@ -20,7 +20,8 @@ import {
   defaultRunToResultConfig,
   traverseReduce,
   traverseReduceWhile,
-  traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult, liftObjDeep
+  traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult, liftObjDeep,
+  traverseReduceDeepResults
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -367,6 +368,39 @@ describe('monadHelpers', () => {
       Result.of(Maybe.Just([10, 100, 1000, 1, 2, 4]))
     );
   });
+
+  test('traverseReduceDeepResults', () => {
+    const level2ConstructorOk = R.compose(Maybe.Just, Result.Ok);
+    const level2ConstructorError = R.compose(Maybe.Just, Result.Error);
+
+    expect(
+      traverseReduceDeepResults(
+        2,
+        R.add,
+        R.add,
+        Maybe.Just({Ok: 0, Error: 0}),
+        [level2ConstructorOk(1), level2ConstructorError(2), level2ConstructorOk(3)]
+      )
+    ).toEqual(
+      Maybe.Just({Ok: 4, Error: 2})
+    );
+
+    const level3ConstructorOk = R.compose(Maybe.Just, Maybe.Just, Result.Ok);
+    const level3ConstructorError = R.compose(Maybe.Just, Maybe.Just, Result.Error);
+
+    expect(
+      traverseReduceDeepResults(
+        3,
+        R.add,
+        R.add,
+        Maybe.Just(Maybe.Just({Ok: 0, Error: 0})),
+        [level3ConstructorOk(1), level3ConstructorError(2), level3ConstructorOk(3)]
+      )
+    ).toEqual(
+      Maybe.Just(Maybe.Just({Ok: 4, Error: 2}))
+    );
+  });
+
 
   test('traverseReduceTaskWhile', done => {
     const initialTask = initialValue(of);
