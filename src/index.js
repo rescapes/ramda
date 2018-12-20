@@ -16,7 +16,7 @@ export {
   mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, transformKeys, findOneValueByParams,
   mapObjToValues, chainObjToValues, fromPairsDeep, replaceValuesAtDepth, replaceValuesAtDepthAndStringify,
-  replaceValuesWithCountAtDepth, replaceValuesWithCountAtDepthAndStringify, flattenObj, unflattenObj
+  replaceValuesWithCountAtDepth, replaceValuesWithCountAtDepthAndStringify, flattenObj, unflattenObj, filterObjToValues
 } from './functions';
 export {
   throwIfSingleResultError,
