@@ -219,8 +219,9 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
         result => {
           return R.ifElse(
             R.prop('@@transducer/reduced'),
-            // Done, wrap it in the type
-            res => initialValue.map(R.always(R.prop('@@transducer/value', res))),
+            // Done, wrap it in the type. This will get called for every container of the reduction,
+            // since the containers are chained together. But we'll never map our applicator again
+            res => initialValue.map(R.always(res)),
             () => applicator.map(value => {
               // If the applicator's value passes the predicate, accumulate it and process the next item
               // Otherwise we stop reducing by returning R.reduced()

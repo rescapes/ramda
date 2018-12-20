@@ -413,9 +413,7 @@ describe('monadHelpers', () => {
       merge,
       initialTask,
       objOfApplicativesToApplicative(of, {
-        a: of('a'), b: of('b'), c: of('c').map(() => {
-          throw new Error('This task should not run!');
-        })
+        a: of('a'), b: of('b'), c: of('c'), d: of('d')
       })
     );
     task.run().listen({
@@ -437,12 +435,40 @@ describe('monadHelpers', () => {
       (accumulated, applicative) => R.not(R.prop('b', accumulated)),
       merge,
       initialResult,
-      objOfApplicativesToApplicative(Result.of, {a: Result.of('a'), b: Result.of('b'), c: Result.of('c')})
+      objOfApplicativesToApplicative(Result.of, {a: Result.of('a'), b: Result.of('b'), c: Result.of('c'), d: Result.of('d')})
     ).map(result => {
         expect(result).toEqual({a: 'a', b: 'b'});
         done();
       }
     );
+  });
+
+  test('traverseReduceTaskWithResultWhile', done => {
+    // This isn't actually a deep traverse. It processes the Results in the accumulator function
+    // In the future we should create a traverseReduceDeepWhile function
+    const task = traverseReduceWhile(
+      // Make sure we accumulate up to b but don't run c
+      {
+        predicate: (accumulated, applicative) => R.not(R.equals('b', applicative.unsafeGet())),
+        accumulateAfterPredicateFail: true
+      },
+      (prevResult, currentResult) => prevResult.chain(prev => currentResult.map(current => R.append(current, prev))),
+      R.compose(of, Result.Ok)([]),
+      [of(Result.Ok('a')),
+        of(Result.Ok('b')),
+        of(Result.Ok('c')),
+        of(Result.Ok('d'))
+      ]
+    );
+    task.run().listen({
+      onRejected: reject => {
+        throw(reject);
+      },
+      onResolved: result => {
+        expect(result).toEqual(Result.Ok(['a', 'b']));
+        done();
+      }
+    });
   });
 
 

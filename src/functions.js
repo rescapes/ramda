@@ -548,6 +548,15 @@ export const mapObjToValues = (f, obj) => {
 };
 
 /**
+ * Filter the given object and return the values, discarding the keys
+ * @param {Function} f Receives each value and key
+ * @param {Object} obj The object to filter
+ * @return {Object} The filtered object values
+ */
+export const filterObjToValues = (f, obj) => {
+  return R.values(filterWithKeys(f, obj));
+};
+/**
  * Like mapObjToValues but chains the values when an array is returned for each mapping
  * @param {Function} f Expects key, value, and obj
  * @param {Object} obj The object to chain

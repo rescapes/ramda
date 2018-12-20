@@ -23,6 +23,7 @@ import {mapObjToValues} from './functions';
 import {chainObjToValues} from './functions';
 import {flattenObj} from './functions';
 import {unflattenObj} from './functions';
+import {filterObjToValues} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -482,6 +483,11 @@ describe('helperFunctions', () => {
   test('mapObjToValues', () => {
     // Make sure values aren't flattened
     expect(mapObjToValues(R.ap([R.add(1)]), {a: [1], b: [2, 3]})).toEqual([[2], [3, 4]]);
+  });
+
+  test('filterObjToValues', () => {
+    // Make sure values aren't flattened
+    expect(filterObjToValues((v, k) => k !== 'toto', {dorothy: 1, toto: 2})).toEqual([1]);
   });
 
   test('chainObjToValues', () => {
