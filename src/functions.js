@@ -543,9 +543,9 @@ export const alwaysFunc = maybeFunc => R.unless(R.is(Function), R.always)(maybeF
  * @param {Object} obj The object to map
  * @return {[Object]} Mapped values
  */
-export const mapObjToValues = (f, obj) => {
+export const mapObjToValues = R.curry((f, obj) => {
   return R.values(R.mapObjIndexed(f, obj));
-};
+});
 
 /**
  * Filter the given object and return the values, discarding the keys
@@ -553,18 +553,18 @@ export const mapObjToValues = (f, obj) => {
  * @param {Object} obj The object to filter
  * @return {Object} The filtered object values
  */
-export const filterObjToValues = (f, obj) => {
+export const filterObjToValues = R.curry((f, obj) => {
   return R.values(filterWithKeys(f, obj));
-};
+});
 /**
  * Like mapObjToValues but chains the values when an array is returned for each mapping
  * @param {Function} f Expects key, value, and obj
  * @param {Object} obj The object to chain
  * @return {[Object]} Mapped flattened values
  */
-export const chainObjToValues = (f, obj) => {
+export const chainObjToValues = R.curry((f, obj) => {
   return R.chain(R.identity, mapObjToValues(f, obj));
-};
+});
 
 
 /**
