@@ -85,6 +85,13 @@ describe('helperFunctions', () => {
     )).toEqual({foo: 5, bar: {bizz: [5, 6], buzz: 7}});
   });
 
+  test('Should deep merge objects and concat arrays of matching keys', () => {
+    expect(f.mergeDeepWithConcatArrays(
+      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
+      {foo: 4, bar: {bizz: [5, 6]}}
+    )).toEqual({foo: 4, bar: {bizz: [2, 3, 5, 6], buzz: 7}});
+  });
+
   test('Should merge deep all objects', () => {
     expect(f.mergeDeepAll([
       {foo: 1, bar: {bizz: [2, 3], buzz: 7}},

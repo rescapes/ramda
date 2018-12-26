@@ -13,10 +13,12 @@ export {
   reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
   filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
-  mergeDeepWith, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
+  mergeDeepWith, mergeDeepWithConcatArrays, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, transformKeys, findOneValueByParams,
   mapObjToValues, chainObjToValues, fromPairsDeep, replaceValuesAtDepth, replaceValuesAtDepthAndStringify,
-  replaceValuesWithCountAtDepth, replaceValuesWithCountAtDepthAndStringify, flattenObj, unflattenObj, filterObjToValues
+  replaceValuesWithCountAtDepth, replaceValuesWithCountAtDepthAndStringify, flattenObj, unflattenObj, filterObjToValues,
+  findByParams
+
 } from './functions';
 export {
   throwIfSingleResultError,
