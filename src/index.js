@@ -34,5 +34,6 @@ export {
   defaultRunConfig, defaultRunToResultConfig, promiseToTask, taskToPromise, resultToTask, resultToTaskNeedingResult,
   resultToTaskWithResult,
   lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithPairs, objOfMLevelDeepMonadsToListWithPairs,
-  pairsOfMLevelDeepListOfMonadsToListWithPairs, traverseReduce, traverseReduceDeep, traverseReduceWhile, mapMDeep, traverseReduceDeepResults
+  pairsOfMLevelDeepListOfMonadsToListWithPairs, traverseReduce, traverseReduceDeep, traverseReduceWhile, mapMDeep, traverseReduceDeepResults,
+  chainMDeep
 } from './monadHelpers';

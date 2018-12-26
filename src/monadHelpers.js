@@ -416,6 +416,17 @@ export const mapMDeep = R.curry((monadDepth, f, monad) => R.compose(
   ...R.times(R.always(R.map), monadDepth)
 )(f)(monad));
 
+/**
+ * Chain based on the depth of the monad
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {Function} Mapping function that operates at the given depth.
+ * @param {Object} Monad of a least the given depth
+ * @returns {Object} The mapped monad value
+ */
+export const chainMDeep = R.curry((monadDepth, f, monad) => R.compose(
+  // This composes the number of R.liftN(N) calls we need. We need one per monad level
+  ...R.times(R.always(R.chain), monadDepth)
+)(f)(monad));
 
 /*
 export function liftObjDeep(obj, keys = []) {

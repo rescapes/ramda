@@ -21,7 +21,7 @@ import {
   traverseReduce,
   traverseReduceWhile,
   traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult, liftObjDeep,
-  traverseReduceDeepResults
+  traverseReduceDeepResults, chainMDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -553,6 +553,36 @@ describe('monadHelpers', () => {
     expect(mapMDeep(2, R.add(1), [[1]])).toEqual([[2]]);
     expect(mapMDeep(2, R.add(1), Result.Ok(Maybe.Just(1)))).toEqual(Result.Ok(Maybe.Just(2)));
     mapMDeep(2, R.add(1), of(Maybe.Just(1))).run().listen(
+      defaultRunConfig({
+        onResolved: resolve =>
+          R.map(
+            value => {
+              expect(value).toEqual(2);
+              done();
+            },
+            resolve
+          )
+      })
+    );
+  });
+
+
+  test('chainMDeep', done => {
+    // Level 1 chain on array behaves like map, so we don't actually need to wrap it in Array.of here
+    // I'm not sure why R.chain(R.identity, [2]) => [2] instead of 2,
+    expect(chainMDeep(1, R.compose(Array.of, R.add(1)), [1])).toEqual([2]);
+
+    expect(chainMDeep(1, R.compose(Maybe.Just, R.add(1)), Maybe.Just(1))).toEqual(Maybe.Just(2));
+    // Strips a layer of array either way
+    expect(chainMDeep(1, R.add(1), [[1]])).toEqual([2]);
+    expect(chainMDeep(2, R.add(1), [[1]])).toEqual([2]);
+
+    // Maintain the type by composing it within the chain function. Otherwise it gets unwrapped
+    expect(chainMDeep(2, R.compose(Result.Ok, Maybe.Just, R.add(1)), Result.Ok(Maybe.Just(1)))).toEqual(Result.Ok(Maybe.Just(2)));
+    expect(chainMDeep(2, R.add(1), Result.Ok(Maybe.Just(1)))).toEqual(2);
+
+    // Same here, but we couldn't unwrap a task
+    chainMDeep(2, R.compose(of, Maybe.Just, R.add(1)), of(Maybe.Just(1))).run().listen(
       defaultRunConfig({
         onResolved: resolve =>
           R.map(
