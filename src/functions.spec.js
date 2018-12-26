@@ -376,6 +376,32 @@ describe('helperFunctions', () => {
     );
   });
 
+  test('findByParams', () => {
+    const items = [
+      {brand: 'crush', flavor: 'grape'},
+      {brand: 'fanta', flavor: 'strawberry'},
+      {brand: 'crush', flavor: 'orange'}
+    ];
+    const params = {brand: 'crush', flavor: 'orange'};
+    expect(f.findByParams(params, items)).toEqual(
+      [{brand: 'crush', flavor: 'orange'}]
+    );
+    const badParams = {brand: 'crush', flavor: 'pretzel'};
+    expect(f.findByParams(badParams, items)).toEqual(
+      []
+    );
+    const tooGoodParams = {brand: 'crush'};
+    expect(f.findByParams(tooGoodParams, items)).toEqual(
+      [
+        {brand: 'crush', flavor: 'grape'},
+        {brand: 'crush', flavor: 'orange'}
+      ]
+    );
+    // With objs
+    const objs = {a: {foo: 1}, b: {foo: 2}};
+    expect(f.findByParams({foo: 2}, objs)).toEqual({b: {foo: 2}});
+  });
+
   test('alwaysFunc', () => {
     const alwaysIWannaFuncWithYou = R.identity;
     const str = 'and make believe with you';

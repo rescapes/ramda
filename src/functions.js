@@ -529,6 +529,25 @@ export const findOneValueByParams = (params, items) => {
 };
 
 /**
+ * Returns the items matching all param key values
+ * @param {Object} params Key values to match to items
+ * @param {Object|Array} items Object with values of objects or array of objects that can produce values to search
+ * @returns {[Object]} items that pass
+ */
+export const findByParams = (params, items) => {
+  return R.filter(
+    // Compare all the eqProps against each item
+    R.allPass(
+      // Create a eqProps for each prop of params
+      R.map(prop => R.eqProps(prop, params),
+        R.keys(params)
+      )
+    ),
+    items
+  );
+};
+
+/**
  * Converts the given value to an always function (that ignores all arguments) unless already a function
  * @param {Function} maybeFunc A function or something else
  * @return {Function} a function that always returns the non funcion value of maybeFunc, or maybeFunc

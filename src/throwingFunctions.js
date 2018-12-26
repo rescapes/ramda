@@ -149,6 +149,12 @@ export const onlyOneThrowing = obj =>
 export const onlyOneValueThrowing = obj =>
   throwIfSingleResultError('Did not find exactly one', R.omit(['matching'], onlyOneValue(obj)));
 
+/**
+ * Expects the given params when used to filter the given items to result in one item that matches
+ * @param {Object} params key values where keys might match the item keys and values might match the item values
+ * @param {[Object]} items Objects to test on the params
+ * @returns {Object} The matching item or throw an error
+ */
 export const findOneValueByParamsThrowing = (params, items) =>
   throwIfSingleResultError('Did not find exactly one', findOne(
     // Compare all theeeqProps against each item
