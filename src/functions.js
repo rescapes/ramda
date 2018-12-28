@@ -175,9 +175,9 @@ export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => 
 export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith((l, r) => {
   return R.cond(
     [
-      [R.always((l && l.concat && R.is(Array, l)) && (r && r.concat && R.is(Array, r))), ([l, r]) => R.concat(l, r)],
-      [([l, r]) => !(R.is(Object, l) && R.is(Object, r)), R.always(r)],
-      [R.T, ([l, r]) => mergeDeep(l, r)] // tail recursive
+      [R.all(R.allPass([R.identity, R.prop('concat'), R.is(Array)])), R.apply(R.concat)],
+      [R.complement(R.all)(R.is(Object)), R.last],
+      [R.T, R.apply(mergeDeepWithConcatArrays)] // tail recursive
     ]
   )([l, r]);
 })(left, right));
