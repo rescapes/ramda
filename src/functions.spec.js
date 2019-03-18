@@ -24,6 +24,10 @@ import {chainObjToValues} from './functions';
 import {flattenObj} from './functions';
 import {unflattenObj} from './functions';
 import {filterObjToValues} from './functions';
+import {overDeep} from './functions';
+import {keyStringToLensPath} from './functions';
+import {mapKeysAndValues} from './functions';
+import {omitDeep} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -90,6 +94,29 @@ describe('helperFunctions', () => {
       {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
       {foo: 4, bar: {bizz: [5, 6]}}
     )).toEqual({foo: 4, bar: {bizz: [2, 3, 5, 6], buzz: 7}});
+  });
+
+  test('mergeDeepWithRecurseArrayItems', () => {
+    expect(f.mergeDeepWithRecurseArrayItems(
+      (l, r) => R.when(
+        R.is(Number),
+        R.add(l)
+      )(r),
+      {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
+      {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
+    )).toEqual({foo: 5, bar: {bizz: [7, {brewer: 19}], buzz: 7}});
+  });
+
+  test('mergeDeepWithRecurseArrayItemsAndMapObjs', () => {
+    expect(f.mergeDeepWithRecurseArrayItemsAndMapObjs(
+      (l, r) => R.when(
+        R.is(Number),
+        R.add(l)
+      )(r),
+      (key, obj) => R.merge({key: R.toUpper(key)}, obj),
+      {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
+      {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
+    )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19}], buzz: 7}});
   });
 
   test('Should merge deep all objects', () => {
@@ -416,6 +443,12 @@ describe('helperFunctions', () => {
     expect(f.alwaysFunc(str)(1, 1, 'was', 'a racehorse')).toEqual(str);
   });
 
+  test('mapKeysAndValues', () => {
+    const obj = {neun: 'und_neinzig', luft: 'balons'};
+    expect(f.mapKeysAndValues((v, k) => [f.capitalize(k), f.camelCase(v)], obj)).toEqual(
+      {Neun: 'undNeinzig', Luft: 'balons'}
+    );
+  });
 
   test('fromPairsDeep', () => {
     // Outer element is non-pair array
@@ -558,4 +591,39 @@ describe('helperFunctions', () => {
       {a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}}
     );
   });
+
+  test('overDeep', () => {
+    const res = overDeep(
+      (k, v) => R.merge({butter: `${R.toUpper(k)} Butter`})(v),
+      {
+        peanut: {
+          almond: {
+            cashew: {
+              brazilNut: {}
+            },
+            filbert: [
+              {
+                walnut: {},
+                pecan: {}
+              }
+            ]
+          }
+        }
+      }
+    );
+    expect(res.peanut.almond.cashew.brazilNut).toEqual({butter: 'BRAZILNUT Butter'});
+    expect(res.peanut.almond.butter).toEqual('ALMOND Butter');
+  });
+
+  test('keyStringToLensPath', () => {
+    expect(keyStringToLensPath('foo.bar.0.wopper')).toEqual(['foo', 'bar', 0, 'wopper']);
+  });
+
+  test('omitDeep', () => {
+    expect(omitDeep(['foo'], {foo: {bunny: 1}, boo: {funny: {foo: {sunny: 1}, soo: 3}}})).toEqual({
+      boo: {
+        funny: {soo: 3}
+      }
+    })
+  })
 });

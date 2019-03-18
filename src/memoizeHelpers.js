@@ -80,7 +80,7 @@ export const memoizedWith = (argumentFilter, func) => {
     return R.compose(
       memo(args),
       flattenObj,
-      // Filter out unneeded parts of the arguments, or does nothing if argumentFilter is R.identity
+      // Filter out unneeded parts of the arguments, or does nothing if argumentFilter is ...args => args
       R.apply(argumentFilter)
     )(args);
   });

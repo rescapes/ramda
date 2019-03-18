@@ -183,6 +183,69 @@ export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith(
 })(left, right));
 
 /**
+ * Merge Deep and also apply the given function to array items with the same index
+ * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * @params {Object} left the 'left' side object to merge
+ * @params {Object} right the 'right' side object to morge
+ * @returns {Object} The deep-merged object
+ * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
+ */
+export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.cond(
+  [
+    // Arrays
+    [R.all(R.allPass([R.identity, R.prop('concat'), R.is(Array)])),
+      R.apply(R.zipWith((a, b) => mergeDeepWithRecurseArrayItems(fn, a, b)))
+    ],
+    // Primitives
+    [R.complement(R.all)(R.is(Object)), R.apply(fn)],
+    // Objects
+    [R.T, R.apply(R.mergeWith(mergeDeepWithRecurseArrayItems(fn)))]
+  ]
+  )([left, right])
+);
+
+/**
+ * Merge Deep and also apply the given function to array items with the same index.
+ * This adds another function that maps the object results to something else after the objects are recursed upon
+ * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @params {Object} left the 'left' side object to merge
+ * @params {Object} right the 'right' side object to morge
+ * @returns {Object} The deep-merged object
+ * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
+ */
+export const mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, left, right) =>
+  _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
+);
+
+const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => R.cond(
+  [
+    // Arrays
+    [R.all(R.allPass([R.identity, R.prop('concat'), R.is(Array)])),
+      // Recurse on each array item. We pass the key without the index
+      R.apply(R.zipWith((l, r) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, key, l, r)))
+    ],
+    // Primitives
+    [R.complement(R.all)(R.is(Object)), lr => fn(...lr, key)],
+    // Objects
+    [R.T,
+      R.apply(
+        R.mergeWithKey(
+          (k, l, r) => R.compose(
+            // Take key and the result and call the applyObj func, but only if res is an Object
+            R.when(R.both(R.is(Object), R.complement(R.is)(Array)), res => applyObj(k, res)),
+            // First recurse on l and r
+            R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj))
+          )([k, l, r])
+        )
+      )
+    ]
+  ]
+  )([left, right])
+);
+
+
+/**
  * http://stackoverflow.com/questions/40011725/point-free-style-capitalize-function-with-ramda
  * Capitalize the first letter
  * @param {String} str The string to capitalize
@@ -373,15 +436,15 @@ export const mapDefaultAndPrefixOthers = (defaultName, prefix, module) =>
   );
 
 /**
- * Maps a container with a function that returns pairs and create and object therefrom
+ * Maps an object with a function that returns pairs and create and object therefrom
  * Like R.mapObjIndexed, the function's first argument is the value of each item, and the seconds is the key if
  * iterating over objects
  * @params {Functor} f The mapping function
  * @params {Container} container Anything that can be mapped
  * @returns {Object} The mapped pairs made into key values
- * @sig fromPairsMap :: Functor F = (a -> [b,c]) -> F -> <k,v>
+ * @sig mapKeysAndValues :: Functor F = (a -> [b,c]) -> F -> <k,v>
  */
-export const fromPairsMap = R.curry((f, container) => R.fromPairs(R.mapObjIndexed(f, container)));
+export const mapKeysAndValues = R.curry((f, container) => R.fromPairs(mapObjToValues(f, container)));
 
 /**
  * https://github.com/ramda/ramda/wiki/Cookbook
@@ -644,19 +707,19 @@ export const fromPairsDeep = deepPairs => R.cond(
  * Depth 2 converts {a: {b: {c: 1}}} to {a: {b: '...'}}
  * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
  * Depth 0 converts {a: {b: {c: 1}}} to '...'
- * @param {String|Function} replaceString String such as '...' or a unary function that replaces the value
+ * @param {String|Function} replaceStringOrFunc String such as '...' or a unary function that replaces the value
  * e.g. R.when(R.is(Object), R.length(R.keys)) will count objects and arrays but leave primitives alone
  * @param {Object} obj Object to process
  * @returns {Object} with the above transformation. Use replaceValuesAtDepthAndStringify to get a string
  */
-export function replaceValuesAtDepth(n, replaceString, obj) {
+export function replaceValuesAtDepth(n, replaceStringOrFunc, obj) {
   return R.ifElse(
     // If we are above level 0 and we have an object
     R.both(R.always(R.lt(0, n)), R.is(Object)),
     // Then recurse on each object or array value
-    o => R.map(oo => replaceValuesAtDepth(n - 1, replaceString, oo), o),
+    o => R.map(oo => replaceValuesAtDepth(n - 1, replaceStringOrFunc, oo), o),
     // If at level 0 replace the value. If not an object or not at level 0, leave it alone
-    o => R.when(R.always(R.equals(0, n)), alwaysFunc(replaceString))(o)
+    o => R.when(R.always(R.equals(0, n)), alwaysFunc(replaceStringOrFunc))(o)
   )(obj);
 }
 
@@ -713,19 +776,29 @@ export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
  * @returns {Object} The 1-D version of the object
  */
 export const flattenObj = obj => {
-  return R.fromPairs(_flatenObj(obj));
+  return R.fromPairs(_flattenObj(obj));
 };
 
-const _flatenObj = (obj, keys = []) => {
+const _flattenObj = (obj, keys = []) => {
   return R.ifElse(
-    // If we are above level 0 and we have an object
+    // If we have an object
     R.is(Object),
     // Then recurse on each object or array value
-    o => chainObjToValues((oo, k) => _flatenObj(oo, R.concat(keys, [k])), o),
+    o => chainObjToValues((oo, k) => _flattenObj(oo, R.concat(keys, [k])), o),
     // If not an object return flat pair
     o => [[R.join('.', keys), o]]
   )(obj);
 };
+
+/**
+ * Converts a key string like 'foo.bar.0.wopper' to ['foo', 'bar', 0, 'wopper']
+ * @param {String} keyString The dot-separated key string
+ * @returns {[String]} The lens array containing string or integers
+ */
+export const keyStringToLensPath = keyString => R.map(
+  R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt),
+  R.split('.', keyString)
+);
 
 /**
  * Undoes the work of flattenObj
@@ -736,13 +809,10 @@ export const unflattenObj = obj => {
   return R.compose(
     R.reduce(
       (accum, [keyString, value]) => {
-        const itemKeyPath = R.map(
-          R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt),
-          R.split('.', keyString)
-        );
+        const itemKeyPath = keyStringToLensPath(keyString);
         // Current item lens
         const itemLensPath = R.lensPath(itemKeyPath);
-        // All but the last segment gives us the item container lens
+        // All but the last segment gives us the item container len
         const constainerKeyPath = R.init(itemKeyPath);
         const container = R.unless(
           // If the path has any length (not []) and the value is set, don't do anything
@@ -770,3 +840,33 @@ export const unflattenObj = obj => {
     R.toPairs
   )(obj);
 };
+
+/**
+ * Does something to every object
+ * @param {Function} func Called on each object that is the child of another object. Called with the key that
+ * points at it from the parent object and the object itself
+ * @param {Object} obj The object to process
+ */
+export const overDeep = R.curry((func, obj) => mergeDeepWithRecurseArrayItemsAndMapObjs(
+  // We are using a mergeDeepWithRecurseArrayItemsAndMapObjs but we only need the second function
+  (l, r, k) => l,
+  func,
+  // Use obj twice so that all keys match and get called with the merge function
+  obj,
+  obj
+  )
+);
+
+/***
+ * Omit the given keys anywhere in a data structure. Objects and arrays are recursed and omit_deep is called
+ * on each dictionary that hasn't been removed by omit_deep at a higher level
+ */
+export const omitDeep = R.curry((omit_keys, obj) => mergeDeepWithRecurseArrayItemsAndMapObjs(
+  // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
+  (l, r, k) => R.ifElse(k => R.contains(k, omit_keys), R.always({}), R.always(l))(k),
+  // Remove the keys at any level
+  (key, result) => R.omit(omit_keys, result),
+  // Use obj twice so that all keys match and get called with the merge function
+  obj,
+  obj
+));

@@ -13,7 +13,7 @@
 import {task as folktask, rejected, of} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result/index';
-import {chainObjToValues, mapObjToValues, mergeDeep} from './functions';
+import {reqStrPathThrowing} from './throwingFunctions';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -111,9 +111,9 @@ export const resultToTask = result => result.matchWith({
 /**
  * Passes a result to a function that returns a Task an maps the successful Task value to a Result.Ok
  * and erroneous task to a Result.Error. If result is an error it is wrapped in a Task.Of
- * @param {Function} f Function that receives result and returns a Task. This should not return a task
+ * @param {Function} f Function that receives a Result.Ok value and returns a Task. This should not return a task
  * with a result. If it does then you don't need resultToTaskNeedingResult.
- * @param {Object} result A Result.Ok or Result.Eror
+ * @param {Object} result A Result.Ok or Result.Error
  * @returns {Object} Task with Result.Ok or Result.Error inside.
  * @sig resultToTaskNeedingResult:: Result r, Task t => (r -> t) -> r -> t r
  */
@@ -190,15 +190,15 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
  * Same arguments as reduceWhile, but the initialValue must be an applicative, like task.of({}) or Result.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
  * which must be an applicative
- * @param {Object|Function} predicateOrObj Like ramda's reduceWhile predicate. Accepts the accumulated value an next value.
+ * @param {Object|Function} predicateOrObj Like ramda's reduceWhile predicate. Accepts the accumulated value and next value.
  * These are the values of the container. If false is returned the accumulated value is returned without processing
  * more values. Be aware that for Tasks the task must run to predicate on the result, so plan to check the previous
  * task to prevent a certain task from running
  @param {Boolean} [predicateOrObj.accumulateAfterPredicateFail] Default false. Because of Tasks, we have a boolean here to allow accumulation after
  * the predicate fails. The default behavior is to not accumulate the value of a failed predicate. This makes
  * sense for things like Result where there is no consequence of evaluating them. But we have to run a Task to
- * evaluate it so, so we might want to quit after the previous task but also add that task result to the accumulation.
- * In that case set this tru
+ * evaluate it so we might want to quit after the previous task but also add that task result to the accumulation.
+ * In that case set this true
  * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
  * false it "short-circuits" the iteration and returns teh current value of the accumulator
  * @param {Object} initialValue An applicative to be the intial reduced value of accumulator
@@ -427,6 +427,47 @@ export const chainMDeep = R.curry((monadDepth, f, monad) => R.compose(
   // This composes the number of R.liftN(N) calls we need. We need one per monad level
   ...R.times(R.always(R.chain), monadDepth)
 )(f)(monad));
+
+/**
+ * Given a monad whose return value can be mapped and a single input object,
+ * map the monad return value to return an obj with the value at 'value', merged with input object in its original form
+ * of the function. Example: mapToResponseAndInputs(({a, b, c}) => task.of(someValue))({a, b, c}) -> task.of({a, b, c, value: someValue})
+ * @param {Function} f Function expecting an object and returning a monad that can be mapped
+ * @return {Object} The value of the monad at the value key merged with the input args
+ */
+export const mapToResponseAndInputs = f => arg => R.map(value => R.merge(arg, {value}), f(arg));
+
+/**
+ * Given a monad whose return value can be mapped and a single input object,
+ * map the monad return value to return an obj with the value at 'value', merged with input object in its original form
+ * of the function. Example: mapToNamedResponseAndInputs('foo', ({a, b, c}) => task.of(someValue))({a, b, c}) -> task.of({a, b, c, foo: someValue})
+ * @param {String} name The key name for the output
+ * @param {Function} f Function expecting an object and returning a monad that can be mapped
+ * @return {Object} The value of the monad at the value key merged with the input args
+ */
+export const mapToNamedResponseAndInputs = (name, f) => arg => R.map(value => R.merge(arg, {[name]: value}), f(arg));
+
+/**
+ * Like mapToResponseAndInputs, but resolves the value of the monad to a certain path and gives it a name .
+ * Given a monad whose return value can be mapped and a single input object,
+ * map the monad return value, getting its value at strPath and giving it the key name, them merge it with the input object in its original form
+ * of the function.
+ * Example: mapToResponseAndInputs('billy', 'is.1.goat', ({a, b, c}) => task.of({is: [{cow: 'grass'}, {goat: 'can'}]}))({a, b, c}) ->
+ * task.of({a, b, c, billy: 'can'})
+ * @param {String} name The key name for the output
+ * @param {String} strPath dot-separated path with strings and indexes
+ * @param {Function} f Function that returns a monad
+ * @return  {Object} The strPath value of the monad at the name key merged with the input args
+ */
+export const mapToNamedPathAndInputs = R.curry(
+  (name, strPath, f) => arg => R.map(
+    value => R.merge(
+      arg,
+      {[name]: reqStrPathThrowing(strPath, value)}
+    ),
+    f(arg)
+  )
+);
 
 /*
 export function liftObjDeep(obj, keys = []) {

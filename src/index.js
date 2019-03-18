@@ -11,14 +11,16 @@
 
 export {
   reqStrPath, camelCase, capitalize, compact, compactEmpty, compactJoin, duplicateKey, emptyToNull,
-  filterWithKeys, findOne, fromPairsMap, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
+  filterWithKeys, findOne, mapKeysAndValues, hasStrPath, idOrIdFromObj, lowercase, mapDefault, mapDefaultAndPrefixOthers,
   mapKeys, mapKeysForLens, mapProp, mapPropValueAsIndex, mapToObjValue, mergeAllWithKey, mergeDeep, mergeDeepAll,
-  mergeDeepWith, mergeDeepWithConcatArrays, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
+  mergeDeepWith, mergeDeepWithConcatArrays, mergeDeepWithRecurseArrayItemsAndMapObjs, mergeDeepWithRecurseArrayItems, moveToKeys, onlyOne, onlyOneValue, orEmpty, alwaysFunc, strPathOr,
   removeDuplicateObjectsByProp, renameKey, reqPath, reqPathPropEq, strPath, transformKeys, findOneValueByParams,
   mapObjToValues, chainObjToValues, fromPairsDeep, replaceValuesAtDepth, replaceValuesAtDepthAndStringify,
   replaceValuesWithCountAtDepth, replaceValuesWithCountAtDepthAndStringify, flattenObj, unflattenObj, filterObjToValues,
-  findByParams
-
+  overDeep,
+  findByParams,
+  keyStringToLensPath,
+  omitDeep
 } from './functions';
 export {
   throwIfSingleResultError,
@@ -49,6 +51,9 @@ export {
   traverseReduceWhile,
   mapMDeep,
   traverseReduceDeepResults,
-  chainMDeep
+  chainMDeep,
+  mapToResponseAndInputs,
+  mapToNamedResponseAndInputs,
+  mapToNamedPathAndInputs
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';

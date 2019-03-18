@@ -21,7 +21,7 @@ import {
   traverseReduce,
   traverseReduceWhile,
   traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult, liftObjDeep,
-  traverseReduceDeepResults, chainMDeep
+  traverseReduceDeepResults, chainMDeep, mapToResponseAndInputs, mapToNamedPathAndInputs, mapToNamedResponseAndInputs
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -435,7 +435,12 @@ describe('monadHelpers', () => {
       (accumulated, applicative) => R.not(R.prop('b', accumulated)),
       merge,
       initialResult,
-      objOfApplicativesToApplicative(Result.of, {a: Result.of('a'), b: Result.of('b'), c: Result.of('c'), d: Result.of('d')})
+      objOfApplicativesToApplicative(Result.of, {
+        a: Result.of('a'),
+        b: Result.of('b'),
+        c: Result.of('c'),
+        d: Result.of('d')
+      })
     ).map(result => {
         expect(result).toEqual({a: 'a', b: 'b'});
         done();
@@ -783,5 +788,49 @@ describe('monadHelpers', () => {
     R.liftN(R.length(pairs), (...pairs) => [...pairs], ...R.map(R.last, pairs))
   })
   */
+
+  test('mapToResponseAndInputs', done => {
+    R.compose(
+      mapToResponseAndInputs(({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', value: {d: 2, f: 2, g: 'was 1 2'}});
+          done();
+        }
+      })
+    );
+  });
+
+  test('mapToNamedResponseAndInputs', done => {
+    R.compose(
+      mapToNamedResponseAndInputs('foo', ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+          done();
+        }
+      })
+    );
+  });
+
+
+  test('mapToNamedPathAndInputs', done => {
+    R.compose(
+      mapToNamedPathAndInputs(
+        'billy',
+        'is.1.goat',
+        ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
+      )
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', billy: 'can'});
+          done();
+        }
+      })
+    );
+  });
 });
 
