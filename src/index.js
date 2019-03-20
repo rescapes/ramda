@@ -52,6 +52,8 @@ export {
   mapMDeep,
   traverseReduceDeepResults,
   chainMDeep,
+  filterMDeep,
+  doMDeep,
   mapToResponseAndInputs,
   mapToNamedResponseAndInputs,
   mapToNamedPathAndInputs

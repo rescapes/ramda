@@ -411,10 +411,7 @@ export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, valu
  * @param {Object} Monad of a least the given depth
  * @returns {Object} The mapped monad value
  */
-export const mapMDeep = R.curry((monadDepth, f, monad) => R.compose(
-  // This composes the number of R.liftN(N) calls we need. We need one per monad level
-  ...R.times(R.always(R.map), monadDepth)
-)(f)(monad));
+export const mapMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.map, f, monad));
 
 /**
  * Chain based on the depth of the monad
@@ -423,9 +420,19 @@ export const mapMDeep = R.curry((monadDepth, f, monad) => R.compose(
  * @param {Object} Monad of a least the given depth
  * @returns {Object} The mapped monad value
  */
-export const chainMDeep = R.curry((monadDepth, f, monad) => R.compose(
+export const chainMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.chain, f, monad));
+
+/**
+ * Map/Chain/Filter etc based on the depth of the monad and the iterFunction
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {Function} func R.map, R.chain, R.filter or similar
+ * @param {Function} f Mapping function that operates at the given depth.
+ * @param {Object} Monad of a least the given depth
+ * @returns {Object} The mapped monad value
+ */
+export const doMDeep = R.curry((monadDepth, func, f, monad) => R.compose(
   // This composes the number of R.liftN(N) calls we need. We need one per monad level
-  ...R.times(R.always(R.chain), monadDepth)
+  ...R.times(R.always(func), monadDepth)
 )(f)(monad));
 
 /**
