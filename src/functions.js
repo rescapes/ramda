@@ -205,6 +205,17 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.con
 );
 
 /**
+ * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key
+ * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * @params {Object} left the 'left' side object to merge
+ * @params {Object} right the 'right' side object to morge
+ * @returns {Object} The deep-merged object
+ * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
+ */
+export const applyDeep = R.curry((fn, obj) => mergeDeepWithRecurseArrayItems(fn, obj, obj));
+
+
+/**
  * Merge Deep and also apply the given function to array items with the same index.
  * This adds another function that maps the object results to something else after the objects are recursed upon
  * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
@@ -216,6 +227,19 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.con
  */
 export const mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, left, right) =>
   _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
+);
+
+/**
+ * Same as mergeDeepWithRecurseArrayItemsAndMapObjs but sends the same left and right value so fn is called on every key
+ * of ob * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @params {Object} left the 'left' side object to merge
+ * @params {Object} right the 'right' side object to morge
+ * @returns {Object} The deep-merged object
+ * @sig applyDeepAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
+ */
+export const applyDeepAndMapObjs = R.curry((fn, applyObj, obj) =>
+  mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
 );
 
 const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => R.cond(
@@ -233,9 +257,13 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
         R.mergeWithKey(
           (k, l, r) => R.compose(
             // Take key and the result and call the applyObj func, but only if res is an Object
-            R.when(R.both(R.is(Object), R.complement(R.is)(Array)), res => applyObj(k, res)),
+            v => R.when(
+              // When it's an object and not an array call applyObj
+              R.both(R.is(Object), R.complement(R.is)(Array)),
+              res => applyObj(k, res)
+            )(v),
             // First recurse on l and r
-            R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj))
+            ([k, l, r]) => R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj), [k, l, r])
           )([k, l, r])
         )
       )
@@ -861,12 +889,17 @@ export const overDeep = R.curry((func, obj) => mergeDeepWithRecurseArrayItemsAnd
  * Omit the given keys anywhere in a data structure. Objects and arrays are recursed and omit_deep is called
  * on each dictionary that hasn't been removed by omit_deep at a higher level
  */
-export const omitDeep = R.curry((omit_keys, obj) => mergeDeepWithRecurseArrayItemsAndMapObjs(
-  // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
-  (l, r, k) => R.ifElse(k => R.contains(k, omit_keys), R.always({}), R.always(l))(k),
-  // Remove the keys at any level
-  (key, result) => R.omit(omit_keys, result),
-  // Use obj twice so that all keys match and get called with the merge function
-  obj,
-  obj
-));
+export const omitDeep = R.curry(
+  (omit_keys, obj) => R.compose(
+    obj => applyDeepAndMapObjs(
+      // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
+      (l, r, k) => R.ifElse(k => R.contains(k, omit_keys), R.always({}), R.always(l))(k),
+      // Removes the keys at any level except the topmost level
+      (key, result) => R.omit(omit_keys, result),
+      obj
+    ),
+    // Omit at the top level. We have to do this because applyObj of applyDeepAndMapObjs only gets called starting
+    // on the object of each key
+    obj => R.omit(omit_keys, obj)
+  )(obj)
+);

@@ -620,10 +620,13 @@ describe('helperFunctions', () => {
   });
 
   test('omitDeep', () => {
-    expect(omitDeep(['foo'], {foo: {bunny: 1}, boo: {funny: {foo: {sunny: 1}, soo: 3}}})).toEqual({
+    expect(omitDeep(
+      ['foo'],
+      {foo: {bunny: 1}, boo: {funny: {foo: {sunny: 1}, soo: 3}}}
+    )).toEqual({
       boo: {
         funny: {soo: 3}
       }
-    })
-  })
+    });
+  });
 });
