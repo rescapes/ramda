@@ -263,7 +263,7 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
               res => applyObj(k, res)
             )(v),
             // First recurse on l and r
-            ([k, l, r]) => R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj), [k, l, r])
+            ([kk, ll, rr]) => R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj), [kk, ll, rr])
           )([k, l, r])
         )
       )
@@ -303,7 +303,7 @@ export const lowercase = str => R.compose(
  * @returns {String} The camel-cased string
  */
 export const camelCase = str =>
-  str.replace(
+  R.toLower(str).replace(
     /[_.-](\w|$)/g,
     (_, x) => x.toUpperCase()
   );
@@ -885,21 +885,154 @@ export const overDeep = R.curry((func, obj) => mergeDeepWithRecurseArrayItemsAnd
   )
 );
 
-/***
+/**
  * Omit the given keys anywhere in a data structure. Objects and arrays are recursed and omit_deep is called
  * on each dictionary that hasn't been removed by omit_deep at a higher level
  */
 export const omitDeep = R.curry(
   (omit_keys, obj) => R.compose(
-    obj => applyDeepAndMapObjs(
+    o => applyDeepAndMapObjs(
       // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
-      (l, r, k) => R.ifElse(k => R.contains(k, omit_keys), R.always({}), R.always(l))(k),
+      (l, r, kk) => R.ifElse(k => R.contains(k, omit_keys), R.always({}), R.always(l))(kk),
       // Removes the keys at any level except the topmost level
       (key, result) => R.omit(omit_keys, result),
-      obj
+      o
     ),
     // Omit at the top level. We have to do this because applyObj of applyDeepAndMapObjs only gets called starting
     // on the object of each key
-    obj => R.omit(omit_keys, obj)
+    o => R.omit(omit_keys, o)
+  )(obj)
+);
+
+const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrIndex) => {
+  // Keep paths that match keyOrIndex as the first item. Remove other paths
+  // since they can't match item or its descendants
+  const tailPathsStillMatchingItemPath = compact(R.map(
+    R.compose(
+      R.ifElse(
+        R.compose(
+          R.equals(keyOrIndex),
+          R.head
+        ),
+        // Matches the keyOrIndex at the head. Return the tail
+        R.tail,
+        // Mark null to remove from list
+        R.always(null)),
+      // Convert path to array with string keys and number indexes
+      keyStringToLensPath
+    ),
+    paths
+  ));
+  // For omit:
+  // If any path matches the path to the item return null so we can throw away the item
+  // If no path is down to zero length return the item and the paths
+  // For pick:
+  // If no path matches the path to the item return null so we can throw away the item
+  // If any path is not down to zero return the item and the paths
+  return R.ifElse(
+    eliminateItemPredicate,
+    R.always(null),
+    p => ({item: item, paths: R.map(R.join('.'), p)})
+  )(tailPathsStillMatchingItemPath);
+};
+
+// This predicate looks for any path that's zero length, meaning it matches the path to an item and we should
+// omit that item
+const _omitDeepPathsEliminateItemPredicate = paths => R.any(R.compose(R.equals(0), R.length), paths);
+
+/**
+ * Omit matching paths in a a structure. For instance omitDeepPaths(['a.b.c', 'a.0.1']) will omit keys
+ * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
+ */
+export const omitDeepPaths = R.curry((pathSet, obj) => R.cond([
+
+    // Arrays
+    [o => Array.isArray(o),
+      list => {
+        // Recurse on each array item that doesn't match the paths.
+        // We pass the key without the index
+        // If any path matches the path to the value we return the item and the matching paths
+        const survivingItems = compact(R.addIndex(R.map)(
+          (item, index) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, item, index),
+          list
+        ));
+        return R.map(({paths, item}) => omitDeepPaths(paths, item), survivingItems);
+      }
+    ],
+    // Primitives always pass.
+    [R.complement(R.is(Object)), primitive => primitive],
+    // Objects
+    [R.T,
+      o => {
+        // Recurse on each object value that doesn't match the paths.
+        const survivingItems = compact(R.mapObjIndexed(
+          // If any path matches the path to the value we return the value and the matching paths
+          // If no path matches it we know the value shouldn't be omitted so we don't recurse on it below
+          (value, key) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, value, key),
+          o
+        ));
+        // Only recurse on items from the object that are still eligible for omitting
+        return R.map(({paths, item}) => omitDeepPaths(paths, item), survivingItems);
+      }
+    ]
+  ]
+  )(obj)
+);
+
+// This eliminate predicate returns true if no path is left matching the item's path so the item should not
+// be picked
+const _pickDeepPathsEliminateItemPredicate = paths => R.compose(R.equals(0), R.length)(paths);
+/**
+ * Omit matching paths in a a structure. For instance omitDeepPaths(['a.b.c', 'a.0.1']) will omit keys
+ * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
+ */
+export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
+    // Arrays
+    [o => Array.isArray(o),
+      list => {
+        // Recurse on each array item that doesn't match the paths. We pass the key without the index
+        // We pass the key without the index
+        // If any path matches the path to the value we return the item and the matching paths
+        const survivingItems = compact(R.addIndex(R.map)(
+          (item, index) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index),
+          list
+        ));
+        return R.map(
+          R.ifElse(
+            // If the only path is now empty we have a match with the items path and keep the item.
+            // Otherwise we pick recursively
+            ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+            R.prop('item'),
+            ({item, paths}) => pickDeepPaths(paths, item)
+          ),
+          survivingItems
+        );
+      }
+    ],
+    // Primitives always pass.
+    [R.complement(R.is(Object)), primitive => primitive],
+    // Objects
+    [R.T,
+      o => {
+        // Recurse on each array item that doesn't match the paths. We pass the key without the index
+        // If any path matches the path to the value we return the value and the matching paths
+        // If no path matches it we know the value shouldn't be picked so we don't recurse on it below
+        const survivingItems = compact(R.mapObjIndexed(
+          (item, key) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, key),
+          o
+        ));
+        return R.map(
+          R.ifElse(
+            // If the only path is now empty we have a match with the items path and keep the item.
+            // Otherwise we pick recursively
+            ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+            R.prop('item'),
+            ({item, paths}) => pickDeepPaths(paths, item)
+          ),
+          survivingItems
+        );
+      }
+    ]
+  ]
   )(obj)
 );

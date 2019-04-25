@@ -46,13 +46,14 @@ describe('throwingFunctions', () => {
   });
 
   test('reqStrPathThrowing', () => {
-    expect(reqStrPathThrowing('foo.bar.goo', {
+    expect(reqStrPathThrowing('foo.bar.myboo.1.gone', {
       foo: {
         bar: {
-          goo: 1
+          goo: 1,
+          myboo: ['is', {gone: 'forever'}]
         }
       }
-    })).toEqual(1);
+    })).toEqual('forever');
 
     expect(() => reqStrPathThrowing('foo.bar.goo', {
       foo: {

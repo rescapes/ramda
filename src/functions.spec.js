@@ -28,6 +28,9 @@ import {overDeep} from './functions';
 import {keyStringToLensPath} from './functions';
 import {mapKeysAndValues} from './functions';
 import {omitDeep} from './functions';
+import {mergeDeepWithRecurseArrayItems} from './functions';
+import {omitDeepPaths} from './functions';
+import {pickDeepPaths} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -113,7 +116,7 @@ describe('helperFunctions', () => {
         R.is(Number),
         R.add(l)
       )(r),
-      (key, obj) => R.merge({key: R.toUpper(key)}, obj),
+      (key, obj) => R.merge({key: R.toUpper(key.toString())}, obj),
       {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
     )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19}], buzz: 7}});
@@ -594,7 +597,7 @@ describe('helperFunctions', () => {
 
   test('overDeep', () => {
     const res = overDeep(
-      (k, v) => R.merge({butter: `${R.toUpper(k)} Butter`})(v),
+      (k, v) => R.merge({butter: `${R.toUpper(k.toString())} Butter`})(v),
       {
         peanut: {
           almond: {
@@ -628,5 +631,74 @@ describe('helperFunctions', () => {
         funny: {soo: 3}
       }
     });
+  });
+
+  test('omitDeepPaths', () => {
+    expect(omitDeepPaths(
+      ['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'],
+      {
+        foo: {
+          bunny: {
+            humorous: 'stuff'
+          }
+        },
+        boo: {
+          funny: {
+            foo: {
+              sunny: [
+                8,
+                [10,
+                  'more',
+                  'miles',
+                  'to',
+                  {
+                    go: 'teo',
+                    wo: 1
+                  }
+                ], 9
+              ]
+            },
+            soo: 3
+          }
+        }
+      }
+    )).toEqual(
+      {
+        foo: {},
+        boo: {
+          funny: {
+            foo: {
+              sunny: [
+                8, [
+                  10,
+                  'more',
+                  'miles',
+                  'to', {
+                    wo: 1
+                  }
+                ]
+              ]
+            },
+            soo: 3
+          }
+        }
+      }
+    );
+  });
+
+  test('pickDeepPaths', () => {
+    expect(pickDeepPaths(
+      ['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'],
+      {
+        foo: {bunny: {humorous: 'stuff'}},
+        boo: {funny: {foo: {sunny: [8, [10, 'more', 'miles', 'to', {go: 'teo', wo: 1}], 9]}, soo: 3}}
+      }
+    )).toEqual(
+      {foo: {bunny: {humorous: 'stuff'}}, boo: {funny: {foo: {sunny: [[{go: 'teo'}], 9]}}}}
+    );
+  });
+
+  test('camelCase', () => {
+    expect(f.camelCase('Tough_Mudder_Hubbard')).toEqual('toughMudderHubbard');
   });
 });

@@ -468,10 +468,15 @@ export const mapToNamedResponseAndInputs = (name, f) => arg => R.map(value => R.
  */
 export const mapToNamedPathAndInputs = R.curry(
   (name, strPath, f) => arg => R.map(
-    value => R.merge(
-      arg,
-      {[name]: reqStrPathThrowing(strPath, value)}
-    ),
+    value => {
+      if (R.not(R.is(Object, value))) {
+        throw new Error(`value ${value} is not an object. arg: ${arg}, f: ${f}`);
+      }
+      return R.merge(
+        arg,
+        {[name]: reqStrPathThrowing(strPath, value)}
+      );
+    },
     f(arg)
   )
 );

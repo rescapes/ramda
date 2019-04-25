@@ -20,7 +20,11 @@ export {
   overDeep,
   findByParams,
   keyStringToLensPath,
-  omitDeep
+  omitDeep,
+  omitDeepPaths,
+  pickDeepPaths,
+  applyDeep,
+  applyDeepAndMapObjs
 } from './functions';
 export {
   throwIfSingleResultError,
@@ -52,7 +56,6 @@ export {
   mapMDeep,
   traverseReduceDeepResults,
   chainMDeep,
-  filterMDeep,
   doMDeep,
   mapToResponseAndInputs,
   mapToNamedResponseAndInputs,

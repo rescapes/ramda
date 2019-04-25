@@ -21,8 +21,7 @@ import {
   traverseReduce,
   traverseReduceWhile,
   traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult, liftObjDeep,
-  traverseReduceDeepResults, chainMDeep, mapToResponseAndInputs, mapToNamedPathAndInputs, mapToNamedResponseAndInputs,
-  filterMDeep
+  traverseReduceDeepResults, chainMDeep, mapToResponseAndInputs, mapToNamedPathAndInputs, mapToNamedResponseAndInputs
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
