@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.5.29",
+  "version": "1.5.30",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -9,9 +9,8 @@
   "module": "esm/index.mjs",
   "jsnext:main": "esm/index.mjs",
   "files": [
-    "dist",
     "lib",
-    "es",
+    "esm",
     "src"
   ],
   "repository": "git@github.com:calocan/rescape-ramda.git",
