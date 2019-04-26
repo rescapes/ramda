@@ -1,10 +1,11 @@
-import {uglify} from 'rollup-plugin-uglify';
 import nodeResolve from 'rollup-plugin-node-resolve';
 import babel from 'rollup-plugin-babel';
 import replace from 'rollup-plugin-replace';
 import {terser} from 'rollup-plugin-terser';
+import commonjs from 'rollup-plugin-commonjs';
 import pkg from './package.json';
-import * as R from 'ramda'
+import * as R from 'ramda';
+
 const env = process.env.NODE_ENV;
 
 const config = {
@@ -16,53 +17,69 @@ const config = {
   ],
   plugins: []
 };
+const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/result/index'];
 
-const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/result'];
-config.plugins.push(
-  babel({
-    exclude: ['node_modules/**']
-  })
-);
-
-config.plugins.push(
-  nodeResolve({}),
-  replace({
-    'process.env.NODE_ENV': JSON.stringify(env)
-  })
-);
-
-const configs = R.map(c => R.merge(config, c), [
+const configs = R.map(c => {
+  const x = R.merge(config, c);
+  //console.warn(x);
+  return x;
+}, [
   // CommonJS
   {
-    output: {dir: 'lib', format: 'cjs', indent: false},
+    output: {
+      dir: 'lib',
+      format: 'cjs',
+      indent: true,
+      sourcemap: true
+    },
     external: [
       ...externals,
       ...Object.keys(pkg.dependencies || {}),
       ...Object.keys(pkg.peerDependencies || {})
     ],
-    plugins: R.concat(config.plugins, [babel()])
+    plugins: R.concat(config.plugins, [
+      commonjs({
+        'node_modules/folktale/result/index.js': ['Result', 'Error', 'Ok'],
+        'node_modules/folktale/concurrency/task/index.js': ['task', 'rejected', 'of']
+      }),
+      babel()
+    ])
   },
-
   // ES
   {
-    input: 'src/index.js',
-    output: {file: 'es', format: 'es', indent: false},
+    output: {
+      dir: 'esm',
+      format: 'esm',
+      indent: true,
+      sourcemap: true
+    },
     external: [
       ...externals,
       ...Object.keys(pkg.dependencies || {}),
       ...Object.keys(pkg.peerDependencies || {})
     ],
-    plugins: R.concat(config.plugins, [babel()])
+    plugins: R.concat(config.plugins, [
+      nodeResolve({}), babel()
+    ])
   },
 
   // ES for Browsers
   {
-    input: 'src/index.js',
-    output: {file: 'es/redux.mjs', format: 'es', indent: false},
+    output: {
+      dir: 'esm',
+      chunkFileNames: "[name]-[hash].mjs",
+      entryFileNames: "[name].mjs",
+      format: 'esm',
+      indent: true,
+      sourcemap: true
+    },
+    external: [
+      ...externals,
+      ...Object.keys(pkg.dependencies || {}),
+      ...Object.keys(pkg.peerDependencies || {})
+    ],
     plugins: R.concat(config.plugins, [
-      nodeResolve({
-        jsnext: true
-      }),
+      nodeResolve({}),
       replace({
         'process.env.NODE_ENV': JSON.stringify('production')
       }),
@@ -77,13 +94,13 @@ const configs = R.map(c => R.merge(config, c), [
     ])
   },
 
+  /*
+  ?/ TODO I don't understand the point of UMD and it always errors
   // UMD Development
   {
-    input: 'src/index.js',
     output: {
-      file: 'dist/redux.js',
+      dir: 'dist',
       format: 'umd',
-      name: 'Redux',
       indent: false
     },
     plugins: R.concat(config.plugins, [
@@ -101,12 +118,11 @@ const configs = R.map(c => R.merge(config, c), [
 
   // UMD Production
   {
-    input: 'src/index.js',
     output: {
-      file: 'dist/redux.min.js',
       format: 'umd',
       name: 'Redux',
-      indent: false
+      indent: false,
+      chunkFileNames: "[name]-[hash].min.js"
     },
     plugins: R.concat(config.plugins, [
       nodeResolve({
@@ -128,5 +144,6 @@ const configs = R.map(c => R.merge(config, c), [
       })
     ])
   }
+  */
 ]);
-export default configs
+export default configs;

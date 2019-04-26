@@ -425,8 +425,17 @@ export const reqPathPropEq = R.curry((path, val, obj) =>
  * @returns {Object} The mapped keys of the object
  * @sig mapKeys :: (String -> String) -> Object -> Object
  */
-export const mapKeys = R.curry((fn, obj) =>
-  R.fromPairs(R.map(R.adjust(fn, 0), R.toPairs(obj))));
+export const mapKeys = R.curry(
+  (fn, obj) => R.compose(
+    R.fromPairs,
+    pairs => R.map(
+      // Apply fn to index 0 of pair
+      pair => R.adjust(0, fn, pair),
+      pairs
+    ),
+    R.toPairs
+  )(obj)
+);
 
 
 /**
