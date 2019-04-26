@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.5.28",
+  "version": "1.5.29",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -45,8 +45,10 @@
   "devDependencies": {
     "@babel/core": "^7.0.0",
     "@babel/plugin-proposal-object-rest-spread": "^7.4.3",
+    "@babel/plugin-transform-runtime": "^7.4.3",
     "@babel/polyfill": "^7.0.0-beta.51",
     "@babel/preset-env": "^7.0.0-beta.51",
+    "@babel/runtime": "^7.4.3",
     "@types/jest": "^24.0.11",
     "babel-core": "^7.0.0-bridge.0",
     "babel-eslint": "^10.0.1",
@@ -88,6 +90,9 @@
     "setupFiles": [
       "<rootDir>/config/polyfills.js"
     ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/config/jestsetup.js"
+    ],
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.{js,jsx,mjs}",
       "<rootDir>/src/**/?(*.)(spec|test).{js,jsx,mjs}"
@@ -107,12 +112,12 @@
     },
     "moduleFileExtensions": [
       "web.js",
-      "mjs",
       "js",
       "json",
       "web.jsx",
       "jsx",
-      "node"
+      "node",
+      "mjs"
     ]
   },
   "babel": {
@@ -127,6 +132,13 @@
             "transform-es2015-modules-commonjs-simple",
             {
               "noMangle": true
+            }
+          ],
+          [
+            "@babel/plugin-transform-runtime",
+            {
+              "helpers": true,
+              "regenerator": true
             }
           ]
         ]
