@@ -9,19 +9,29 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {apply} from 'folktale/fantasy-land';
-import {task as folktask, of, rejected, fromPromised} from 'folktale/concurrency/task';
+import {of, rejected, fromPromised, task} from 'folktale/concurrency/task';
 import {
-  defaultRunConfig, lift1stOf2ForMDeepMonad, objOfMLevelDeepListOfMonadsToListWithPairs,
-  objOfMLevelDeepMonadsToListWithPairs, pairsOfMLevelDeepListOfMonadsToListWithPairs,
+  defaultRunConfig,
+  lift1stOf2ForMDeepMonad,
+  objOfMLevelDeepListOfMonadsToListWithPairs,
+  objOfMLevelDeepMonadsToListWithPairs,
+  pairsOfMLevelDeepListOfMonadsToListWithPairs,
   promiseToTask,
   resultToTask,
   taskToPromise,
   defaultRunToResultConfig,
   traverseReduce,
   traverseReduceWhile,
-  traverseReduceDeep, resultToTaskNeedingResult, mapMDeep, resultToTaskWithResult, liftObjDeep,
-  traverseReduceDeepResults, chainMDeep, mapToResponseAndInputs, mapToNamedPathAndInputs, mapToNamedResponseAndInputs
+  traverseReduceDeep,
+  resultToTaskNeedingResult,
+  mapMDeep,
+  resultToTaskWithResult,
+  traverseReduceDeepResults,
+  chainMDeep,
+  mapToResponseAndInputs,
+  mapToNamedPathAndInputs,
+  mapToNamedResponseAndInputs,
+  defaultOnRejected, mapAndMapErrorToNamedPathAndInputs
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -30,33 +40,89 @@ import * as f from './functions';
 
 
 describe('monadHelpers', () => {
-  test('Should convert Task to Promise', async () => {
-    await expect(taskToPromise(folktask(
-      resolver => resolver.resolve('donut')
-    ))).resolves.toBe('donut');
-    const err = new Error('octopus');
-    await expect(taskToPromise(folktask(resolver => resolver.reject(err)))).rejects.toBe(err);
+  // Demonstrates accumulating errors with defaultRunConfig
+  test('defaultRunConfig', done => {
+    let errors = [];
+    const tummy = new Error('Tummy');
+    const t = of(5).chain(
+      () => task(resolver => {
+        // Our task detects an errors and pushes it, then rejecteds another error
+        errors.push(new Error('Ache'));
+        resolver.reject(tummy);
+      })
+    ).orElse(reason => {
+      // Our task reject handler takes the reason and pushes it too, then rejects again
+      errors.push(reason);
+      // This reason is the error that goes to defaultOnRejected
+      return rejected(reason);
+    });
+    t.run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
+        },
+        onRejected: (errs, error) => {
+          // Wrap the default defaultOnRejected with an expect.toThrow
+          expect(() => defaultOnRejected(errs, error)).toThrow();
+        }
+      }, errors, done)
+    );
   });
 
-  test('Should convert Promise to Task', async () => {
-    await expect(taskToPromise(promiseToTask(new Promise(function (resolve, reject) {
-      resolve('donut');
-    })))).resolves.toBe('donut');
-    const err = new Error('octopus');
-    await expect(taskToPromise(promiseToTask(new Promise(function (resolve, reject) {
-      reject(err);
-    }), true))).rejects.toBe(err);
-    // What if a chained task rejects
-    await expect(taskToPromise(R.composeK(
-      value => folktask(resolver => resolver.reject('2 2 1 1 2')),
-      value => folktask(resolver => resolver.reject('1 1 1 race')),
-      value => folktask(resolver => resolver.reject('was 1 2')),
-      value => of('was a race horse')
-    )('1 1'))).rejects.toEqual('was 1 2');
+  // Demonstrates test error handling using async function and promise
+  test('folktale simple test error handling', async () => {
+    let errors = [];
+    const tummy = new Error('Tummy');
+    try {
+      const t = rejected(tummy).orElse(reason => {
+        errors.push(reason);
+        return rejected(reason);
+      });
+      await t.run().promise();
+    } catch (e) {
+      expect(e).toEqual(tummy);
+    } finally {
+      expect(errors).toEqual([tummy]);
+    }
+  });
+
+  test('folktale error handling', async done => {
+    //  https://folktale.origamitower.com/api/v2.1.0/en/folktale.concurrency.task.html
+    let errors = [];
+    const retry = (tsk, times) => {
+      return tsk.orElse(reason => {
+        errors.push(reason);
+        if (times > 1) {
+          return retry(tsk, times - 1);
+        }
+        return rejected('I give up');
+      });
+    };
+
+    let runs = 0;
+    const ohNoes = task(r => {
+      runs = runs + 1;
+      r.reject('fail');
+    });
+
+    try {
+      const result2 = await retry(ohNoes, 3).run().promise();
+      throw new Error('never happens');
+    } catch (error) {
+      try {
+        expect(runs).toEqual(3);
+        expect(errors).toEqual(['fail', 'fail', 'fail']);
+        expect(error).toEqual('I give up');
+      } catch (e) {
+        // console.log('Error in catch', e);
+      }
+    } finally {
+      done();
+    }
   });
 
   test('defaultRunConfig Resolved', done => {
-    folktask(resolver => resolver.resolve('Re solved!')).run().listen(
+    task(resolver => resolver.resolve('Re solved!')).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual('Re solved!');
@@ -68,7 +134,7 @@ describe('monadHelpers', () => {
 
   test('defaultRunConfig Throws', () => {
     expect(
-      () => folktask(resolver => {
+      () => task(resolver => {
         throw new Error('Oh noo!!!');
       }).run().listen(
         defaultRunConfig({
@@ -81,7 +147,7 @@ describe('monadHelpers', () => {
   });
 
   test('defaultRunToResultConfig Resolved', done => {
-    folktask(resolver => resolver.resolve(Result.Ok('Re solved!'))).run().listen(
+    task(resolver => resolver.resolve(Result.Ok('Re solved!'))).run().listen(
       defaultRunToResultConfig({
         onResolved: resolve => {
           expect(resolve).toEqual('Re solved!');
@@ -91,19 +157,47 @@ describe('monadHelpers', () => {
     );
   });
 
-  test('defaultRunResultConfig Throws', () => {
+  test('defaultRunToResultConfig Throws', done => {
+    let errors = [];
     expect(
-      () => folktask(resolver => {
-        // Result.Error should result in onRejected being called, which throws
+      () => task(resolver => {
+        // Result.Error should result in defaultOnRejected being called, which throws
+        errors.push(new Error('Expect this warning about some bad Result'));
         resolver.resolve(Result.Error('Oh noo!!!'));
       }).run().listen(
         defaultRunToResultConfig({
           onResolved: resolve => {
             throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
           }
-        })
+        }, errors, done)
       )
     ).toThrow();
+  });
+
+
+  test('Should convert Task to Promise', async () => {
+    await expect(taskToPromise(task(
+      resolver => resolver.resolve('donut')
+    ))).resolves.toBe('donut');
+    const err = new Error('octopus');
+    await expect(taskToPromise(task(resolver => resolver.reject(err)))).rejects.toBe(err);
+  });
+
+  test('Should convert Promise to Task', async () => {
+    await expect(taskToPromise(promiseToTask(new Promise(function (resolve, reject) {
+      resolve('donut');
+    })))).resolves.toBe('donut');
+    const err = new Error('octopus');
+    await expect(taskToPromise(promiseToTask(new Promise(function (resolve, reject) {
+      reject(err);
+    }), true))).rejects.toBe(err);
+    // What if a chained task rejects
+    await expect(taskToPromise(R.composeK(
+      value => task(resolver => resolver.reject('2 2 1 1 2')),
+      value => task(resolver => resolver.reject('1 1 1 race')),
+      value => task(resolver => resolver.reject('was 1 2')),
+      value => of('was a race horse')
+    )('1 1'))).rejects.toEqual('was 1 2');
   });
 
   test('composeK with new Tasks (technology test)', done => {
@@ -128,7 +222,7 @@ describe('monadHelpers', () => {
   test('composeK with new Tasks and error (technology test)', done => {
     R.composeK(
       v => of('I never get called :<'),
-      v => folktask(resolver => resolver.reject(`${v} Oh no!`)),
+      v => task(resolver => resolver.reject(`${v} Oh no!`)),
       v => of(`${v} a`),
       v => of(`${v} was`),
       v => of(`${v} 1`)
@@ -147,8 +241,8 @@ describe('monadHelpers', () => {
 
   test('fromPromised (technology test)', done => {
     // fromPromised works on an n-arity function that returns a promise
-    const task = fromPromised(receive => Promise.resolve(`shellac${receive}`))('ing');
-    task.run().listen({
+    const t = fromPromised(receive => Promise.resolve(`shellac${receive}`))('ing');
+    t.run().listen({
       onRejected: reject => {
         throw(reject);
       },
@@ -274,7 +368,7 @@ describe('monadHelpers', () => {
     const mapper = objOfApplicativesToApplicative(of);
     const initialTask = initialValue(of);
     // More complicated
-    const task = R.composeK(
+    const t = R.composeK(
       // returns a single Task
       letterToApplicative => traverseReduce(merge, initialTask, mapper(letterToApplicative)),
       values =>
@@ -300,7 +394,7 @@ describe('monadHelpers', () => {
         b: {banana: of('banana'), bonobo: of('bonobo')}
       }
     );
-    task.run().listen({
+    t.run().listen({
       onRejected: reject => {
         throw(reject);
       },
@@ -404,7 +498,7 @@ describe('monadHelpers', () => {
 
   test('traverseReduceTaskWhile', done => {
     const initialTask = initialValue(of);
-    const task = traverseReduceWhile(
+    const t = traverseReduceWhile(
       // Make sure we accumulate up to b but don't run c
       {
         predicate: (accumulated, applicative) => R.not(R.equals('b', applicative[0])),
@@ -416,7 +510,7 @@ describe('monadHelpers', () => {
         a: of('a'), b: of('b'), c: of('c'), d: of('d')
       })
     );
-    task.run().listen({
+    t.run().listen({
       onRejected: reject => {
         throw(reject);
       },
@@ -451,7 +545,7 @@ describe('monadHelpers', () => {
   test('traverseReduceTaskWithResultWhile', done => {
     // This isn't actually a deep traverse. It processes the Results in the accumulator function
     // In the future we should create a traverseReduceDeepWhile function
-    const task = traverseReduceWhile(
+    const t = traverseReduceWhile(
       // Make sure we accumulate up to b but don't run c
       {
         predicate: (accumulated, applicative) => R.not(R.equals('b', applicative.unsafeGet())),
@@ -465,7 +559,7 @@ describe('monadHelpers', () => {
         of(Result.Ok('d'))
       ]
     );
-    task.run().listen({
+    t.run().listen({
       onRejected: reject => {
         throw(reject);
       },

@@ -10,7 +10,7 @@
  */
 
 
-import {task as folktask, rejected, of} from 'folktale/concurrency/task';
+import {_Task, task as folktask, rejected, of} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result/index';
 import {reqStrPathThrowing} from './throwingFunctions';
@@ -18,58 +18,114 @@ import {reqStrPathThrowing} from './throwingFunctions';
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
  * with a useful stack and message
+ * @param {[Object]} Errors that are accumulated
  * @param {*} reject Rejection value from a Task
  * @returns {void} No return
  */
-export const onRejected = reject => {
+export const defaultOnRejected = R.curry((errors, reject) => {
+  console.warn('Accumulated task errors:\n', errors); // eslint-disable-line no-console
   throw(reject);
-};
+});
+const _onRejected = defaultOnRejected;
 
 /**
- * Default behavior for task listener onCancelled, which simply logs
+ * Default behavior for task listener defaultOnCancelled, which simply logs
  * @returns {void} No return
  */
-export const onCancelled = () => {
+export const defaultOnCancelled = () => {
   console.log('The task was cancelled. This is the default action'); // eslint-disable-line no-console
 };
+const _onCanceled = defaultOnCancelled;
 
 /**
- * Defaults the onRejected and onCancelled to throw or log, respectively, when neither is expected to occur.
+ * Defaults the defaultOnRejected and defaultOnCancelled to throw or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result. Example:
  * task.listen().run(defaultRunConfig({
  *  onResolved: value => ... do something with value ...
  * }))
- * @param {Function} onResolved Unary function expecting the resolved value
- * @returns {Object} Run config with onCancelled, onRejected, and onReolved handlers
+ * @param {Object} obj Object of callbacks
+ * @param {Function} obj.onResolved Unary function expecting the resolved value
+ * @param {Function} obj.onCancelled optional cancelled handler. Default is to log
+ * @param {Function} obj.onRejected optional rejected handler. Default is to throw. This function is first
+ * passed the errors that have accumulated and then the final error. You should make a curried function
+ * or similarly that expects two arguments, error and error
+ * @param {[Object]} errors Optional list of errors that accumulated
+ * @param {Function} done Optional or tests. Will be called after rejecting, canceling or resolving
+ * @returns {Object} Run config with defaultOnCancelled, defaultOnRejected, and onReolved handlers
  */
-export const defaultRunConfig = ({onResolved}) => ({
-  onCancelled,
-  onRejected,
-  onResolved
-});
+export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, done) => {
+  const whenDone = () => {
+    if (done) {
+      done();
+    }
+  };
+  return ({
+    onCancelled: () => {
+      (onCancelled || _onCanceled)();
+      whenDone();
+    },
+    onRejected: error => {
+      // Since the default defaultOnRejected throws, wrap it
+      try {
+        (onRejected || _onRejected)(errors, error);
+      } finally {
+        whenDone();
+      }
+    },
+    onResolved: result => {
+      onResolved(result);
+      whenDone();
+    }
+  });
+};
 
 /**
  * For a task that returns an Result.
- * Defaults the onRejected and onCancelled to throw or log, respectively, when neither is expected to occur.
+ * Defaults the defaultOnRejected and defaultOnCancelled to throw or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result.
  * If the task resolves to an Result.Ok, resolves the underlying value and passes it to the onResolved function
  * that you define. If the task resolves ot an Result.Error, the underlying value is passed to on Rejected.
- * rejection and cancellation resolves the underlying value of the Result.Ok or Result.Error. In practice onRejected shouldn't
- * get called directly. Rather a Result.Error should be resolved and then this function calls onRejected. cancellation
+ * rejection and cancellation resolves the underlying value of the Result.Ok or Result.Error. In practice defaultOnRejected shouldn't
+ * get called directly. Rather a Result.Error should be resolved and then this function calls defaultOnRejected. cancellation
  * should probably ignores the value
  * Example:
  * task.listen().run(defaultRunConfig({
  *  onResolved: value => ... do something with value ...
  * }))
- * @param {Function} onResolved Unary function expecting the resolved value
- * @returns {Object} Run config with onCancelled, onRejected, and onReolved handlers
+ * @param {Object} obj Object of callbacks
+ * @param {Function} obj.onResolved Unary function expecting the resolved value
+ * @param {Function} [obj.onRejected] Optional expects a list of accumulated errors and the final error. This function
+ *  will be called for normal task rejection and also if the result of the task is a result.Error, in which
+ *  case errors will be R.concat(errors || [], [result.Error]) and error will be result.Error
+ * @param {Function} obj.onResolved Unary function expecting the resolved value of Result.Ok
+ * @param {Function} obj.onCancelled Optional cancelled function
+ * @param {[Object]} errors Optional accumulated errors
+ * @param {Function} done Optional done function for jest
+ * @returns {Object} Run config with defaultOnCancelled, defaultOnRejected, and onReolved handlers
  */
-export const defaultRunToResultConfig = ({onResolved}) => ({
-  onCancelled,
-  onRejected: result => result.map(onRejected).mapError(onRejected),
-  // resolve Result.Ok, reject Result.Error
-  onResolved: result => result.map(onResolved).mapError(onRejected)
-});
+export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, errors, done) => {
+  // We have to do this here instead of using defaultRunConfig's version
+  const reject = (errs, error) => {
+    try {
+      (onRejected || _onRejected)(errs, error);
+    } finally {
+      if (done) {
+        done();
+      }
+    }
+  };
+
+  return defaultRunConfig({
+      onResolved: result => result.map(value => onResolved(value)).mapError(
+        error => reject(R.concat(errors || [], [error]), error)
+      ),
+      onRejected: reject,
+      onCancelled: onCancelled
+    },
+    errors,
+    done
+  );
+};
 
 /**
  * Wraps a Task in a Promise.
@@ -468,10 +524,13 @@ export const mapToNamedResponseAndInputs = (name, f) => arg => R.map(value => R.
  */
 export const mapToNamedPathAndInputs = R.curry(
   (name, strPath, f) => arg => R.map(
+    // Container value
     value => {
+      // It has to be an object to be merged
       if (R.not(R.is(Object, value))) {
         throw new Error(`value ${value} is not an object. arg: ${arg}, f: ${f}`);
       }
+      // Merge the current args with the value object
       return R.merge(
         arg,
         {[name]: reqStrPathThrowing(strPath, value)}

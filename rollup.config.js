@@ -6,8 +6,6 @@ import commonjs from 'rollup-plugin-commonjs';
 import pkg from './package.json';
 import * as R from 'ramda';
 
-const env = process.env.NODE_ENV;
-
 const config = {
   input: [
     'src/index.js',
@@ -17,7 +15,7 @@ const config = {
   ],
   plugins: []
 };
-const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/result/index'];
+const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/result'];
 
 const configs = R.map(c => {
   const x = R.merge(config, c);
