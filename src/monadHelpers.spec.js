@@ -9,7 +9,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {of, rejected, fromPromised, task} from 'folktale/concurrency/task';
+import {of, rejected, fromPromised, task, waitAll} from 'folktale/concurrency/task';
 import {
   defaultRunConfig,
   lift1stOf2ForMDeepMonad,
@@ -174,6 +174,40 @@ describe('monadHelpers', () => {
     ).toThrow();
   });
 
+
+  test('defaultRunToRebsultConfig pending deferred problem', done => {
+    const delay = (timeout, result, isError = false) => task(resolver =>
+      setTimeout(() => {
+        // This prevents the pending deferred message the when task c rejects after task b's rejection has cancelled
+        // the whole waitAll
+        if (resolver.isCancelled) {
+          return;
+        }
+        if (isError) {
+          resolver.reject(result);
+        } else {
+          resolver.resolve(result);
+        }
+      }, timeout)
+    );
+    // https://github.com/origamitower/folktale/issues/153
+    const tsk = waitAll([delay(50, 'a'), delay(20, 'b', true), delay(30, 'c', true)])
+      .orElse(e => rejected(console.log('Error: ', e))); // eslint-disable-line no-console
+
+    tsk.run().listen(
+      {
+        onResolved: v => {
+          done();
+        },
+        onRejected: e => {
+          // Finish after all three tasks have run
+          setTimeout(() => {
+            done();
+          }, 100);
+        }
+      }
+    );
+  });
 
   test('Should convert Task to Promise', async () => {
     await expect(taskToPromise(task(

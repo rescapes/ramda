@@ -149,7 +149,17 @@ export const promiseToTask = (promise, expectReject = false) => {
   if (!promise.then) {
     throw new TypeError(`Expected a Promise, got ${typeof promise}`);
   }
-  return folktask(resolver => promise.then(resolver.resolve).catch(resolver.reject));
+  return folktask(resolver => promise.then(result => {
+    if (resolver.isCancelled) {
+      return;
+    }
+    resolver.resolve(result);
+  }).catch(error => {
+    if (resolver.isCancelled) {
+      return;
+    }
+    resolver.reject(error);
+  }));
 };
 
 /**
