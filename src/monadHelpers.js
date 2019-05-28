@@ -10,7 +10,7 @@
  */
 
 
-import {_Task, task as folktask, rejected, of} from 'folktale/concurrency/task';
+import {rejected, of, fromPromised} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result/index';
 import {reqStrPathThrowing} from './throwingFunctions';
@@ -140,26 +140,14 @@ export const taskToPromise = (task) => {
 };
 
 /**
+ * @deprecated Use fromPromised from folktale/concurrency/task
  * Wraps a Promise in a Task
  * @param {Promise} promise The promise
  * @param {boolean} expectReject default false. Set true for testing to avoid logging rejects
  * @returns {Task} The promise as a Task
  */
-export const promiseToTask = (promise, expectReject = false) => {
-  if (!promise.then) {
-    throw new TypeError(`Expected a Promise, got ${typeof promise}`);
-  }
-  return folktask(resolver => promise.then(result => {
-    if (resolver.isCancelled) {
-      return;
-    }
-    resolver.resolve(result);
-  }).catch(error => {
-    if (resolver.isCancelled) {
-      return;
-    }
-    resolver.reject(error);
-  }));
+export const promiseToTask = promise => {
+  return fromPromised(() => promise)();
 };
 
 /**

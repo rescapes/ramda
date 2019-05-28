@@ -90,58 +90,6 @@ const configs = R.map(c => {
         }
       })
     ])
-  },
-
-  /*
-  ?/ TODO I don't understand the point of UMD and it always errors
-  // UMD Development
-  {
-    output: {
-      dir: 'dist',
-      format: 'umd',
-      indent: false
-    },
-    plugins: R.concat(config.plugins, [
-      nodeResolve({
-        jsnext: true
-      }),
-      babel({
-        exclude: 'node_modules/**'
-      }),
-      replace({
-        'process.env.NODE_ENV': JSON.stringify('development')
-      })
-    ])
-  },
-
-  // UMD Production
-  {
-    output: {
-      format: 'umd',
-      name: 'Redux',
-      indent: false,
-      chunkFileNames: "[name]-[hash].min.js"
-    },
-    plugins: R.concat(config.plugins, [
-      nodeResolve({
-        jsnext: true
-      }),
-      babel({
-        exclude: 'node_modules/**'
-      }),
-      replace({
-        'process.env.NODE_ENV': JSON.stringify('production')
-      }),
-      terser({
-        compress: {
-          pure_getters: true,
-          unsafe: true,
-          unsafe_comps: true,
-          warnings: false
-        }
-      })
-    ])
   }
-  */
 ]);
 export default configs;

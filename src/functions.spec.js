@@ -623,6 +623,7 @@ describe('helperFunctions', () => {
   });
 
   test('omitDeep', () => {
+    /*
     expect(omitDeep(
       ['foo'],
       {foo: {bunny: 1}, boo: {funny: {foo: {sunny: 1}, soo: 3}}}
@@ -631,6 +632,89 @@ describe('helperFunctions', () => {
         funny: {soo: 3}
       }
     });
+    */
+
+    const tricky = {
+      urlObjSpots: [],
+      location: {},
+      routeResponses: [
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json; charset=UTF-8',
+            date: 'Tue, 28 May 2019 13:22:04 GMT',
+            expires: 'Wed, 29 May 2019 13:22:04 GMT',
+            'cache-control': 'public, max-age=86400',
+            server: 'mafe',
+            'x-xss-protection': '0',
+            'x-frame-options': 'SAMEORIGIN',
+            'server-timing': 'gfet4t7; dur=57',
+            'alt-svc': 'quic=":443"; ma=2592000; v="46,44,43,39"',
+            'accept-ranges': 'none',
+            vary: 'Accept-Language,Accept-Encoding',
+            connection: 'close'
+          }
+        },
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json; charset=UTF-8',
+            date: 'Tue, 28 May 2019 13:22:04 GMT',
+            expires: 'Wed, 29 May 2019 13:22:04 GMT',
+            'cache-control': 'public, max-age=86400',
+            server: 'mafe',
+            'x-xss-protection': '0',
+            'x-frame-options': 'SAMEORIGIN',
+            'server-timing': 'gfet4t7; dur=74',
+            'alt-svc': 'quic=":443"; ma=2592000; v="46,44,43,39"',
+            'accept-ranges': 'none',
+            vary: 'Accept-Language,Accept-Encoding',
+            connection: 'close'
+          }
+        }
+      ]
+    };
+    expect(omitDeep(
+      ['date', 'expires'],
+      tricky
+    )).toEqual(
+      {
+        urlObjSpots: [],
+        location: {},
+        routeResponses: [
+          {
+            status: 200,
+            headers: {
+              'content-type': 'application/json; charset=UTF-8',
+              'cache-control': 'public, max-age=86400',
+              server: 'mafe',
+              'x-xss-protection': '0',
+              'x-frame-options': 'SAMEORIGIN',
+              'server-timing': 'gfet4t7; dur=57',
+              'alt-svc': 'quic=":443"; ma=2592000; v="46,44,43,39"',
+              'accept-ranges': 'none',
+              vary: 'Accept-Language,Accept-Encoding',
+              connection: 'close'
+            }
+          },
+          {
+            status: 200,
+            headers: {
+              'content-type': 'application/json; charset=UTF-8',
+              'cache-control': 'public, max-age=86400',
+              server: 'mafe',
+              'x-xss-protection': '0',
+              'x-frame-options': 'SAMEORIGIN',
+              'server-timing': 'gfet4t7; dur=74',
+              'alt-svc': 'quic=":443"; ma=2592000; v="46,44,43,39"',
+              'accept-ranges': 'none',
+              vary: 'Accept-Language,Accept-Encoding',
+              connection: 'close'
+            }
+          }
+        ]
+      }
+    );
   });
 
   test('omitDeepPaths', () => {

@@ -131,7 +131,7 @@ export const idOrIdFromObj = R.when(
 export const mergeDeep = R.mergeWith((l, r) => {
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
-  return ((l && l.concat && R.is(Array, l)) || (r && r.concat && R.is(Array, r))) || !(R.is(Object, l) && R.is(Object, r)) ?
+  return ((l && l.concat && Array.isArray(l)) || (r && r.concat && Array.isArray(r))) || !(R.is(Object, l) && R.is(Object, r)) ?
     r :
     mergeDeep(l, r); // tail recursive
 });
@@ -156,8 +156,8 @@ export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => 
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
   return (
-    (l && l.concat && R.is(Array, l)) ||
-    (r && r.concat && R.is(Array, r))
+    (l && l.concat && Array.isArray(l)) ||
+    (r && r.concat && Array.isArray(r))
   ) ||
   !(R.all(R.is(Object)))([l, r]) ||
   R.any(R.is(Function))([l, r]) ?
@@ -175,7 +175,7 @@ export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => 
 export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith((l, r) => {
   return R.cond(
     [
-      [R.all(R.allPass([R.identity, R.prop('concat'), R.is(Array)])), R.apply(R.concat)],
+      [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
       [R.complement(R.all)(R.is(Object)), R.last],
       [R.T, R.apply(mergeDeepWithConcatArrays)] // tail recursive
     ]
@@ -193,7 +193,7 @@ export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith(
 export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.cond(
   [
     // Arrays
-    [R.all(R.allPass([R.identity, R.prop('concat'), R.is(Array)])),
+    [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
       R.apply(R.zipWith((a, b) => mergeDeepWithRecurseArrayItems(fn, a, b)))
     ],
     // Primitives
@@ -245,7 +245,7 @@ export const applyDeepAndMapObjs = R.curry((fn, applyObj, obj) =>
 const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => R.cond(
   [
     // Arrays
-    [R.all(R.allPass([R.identity, R.prop('concat'), R.is(Array)])),
+    [R.all(Array.isArray),
       // Recurse on each array item. We pass the key without the index
       R.apply(R.zipWith((l, r) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, key, l, r)))
     ],
@@ -259,7 +259,8 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
             // Take key and the result and call the applyObj func, but only if res is an Object
             v => R.when(
               // When it's an object and not an array call applyObj
-              R.both(R.is(Object), R.complement(R.is)(Array)),
+              // typeof x === 'object' check because sometimes values that are objects are not returning true
+              R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
               res => applyObj(k, res)
             )(v),
             // First recurse on l and r
