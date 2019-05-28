@@ -1,13 +1,13 @@
 {
   "name": "rescape-ramda",
-  "version": "1.5.42",
+  "version": "1.5.43",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "esm/index.js",
-  "jsnext:main": "esm/index.mjs",
+  "jsnext:main": "esm/index.js",
   "files": [
     "lib",
     "esm",
