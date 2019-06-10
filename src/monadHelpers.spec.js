@@ -31,7 +31,10 @@ import {
   mapToResponseAndInputs,
   mapToNamedPathAndInputs,
   mapToNamedResponseAndInputs,
-  defaultOnRejected, mapAndMapErrorToNamedPathAndInputs
+  defaultOnRejected,
+  mapAndMapErrorToNamedPathAndInputs,
+  mapResultMonadWithOtherInputs,
+  mapResultTaskWithOtherInputs
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -945,6 +948,7 @@ describe('monadHelpers', () => {
 
 
   test('mapToNamedPathAndInputs', done => {
+    const errors = [];
     R.compose(
       mapToNamedPathAndInputs(
         'billy',
@@ -955,9 +959,115 @@ describe('monadHelpers', () => {
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', billy: 'can'});
-          done();
         }
-      })
+      }, errors, done)
+    );
+  });
+
+  test('mapResultMonadWithOtherInputs', done => {
+    expect.assertions(4);
+    const errors = [];
+
+    // Case: f returns a Result.Ok
+    mapResultMonadWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        inputKey: 'kid',
+        resultOutputKey: 'billyGoatResult',
+        monad: of
+      },
+      ({kid}) => of(Result.Ok(R.concat(kid, ' became a billy goat')))
+    )({a: 1, b: 1, kidResult: Result.Ok('Billy the kid')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.map(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy the kid became a billy goat'});
+        })
+      }, errors, done)
+    );
+
+    // Case: f returns a value that needs to be wrapped in a Result.Ok
+    mapResultMonadWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        inputKey: 'kid',
+        resultOutputKey: 'billyGoatResult',
+        wrapFunctionOutputInResult: true,
+        monad: of
+      },
+      ({kid}) => of(R.concat(kid, ' became a billy goat'))
+    )({a: 1, b: 1, kidResult: Result.Ok('Billy the kid')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.map(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy the kid became a billy goat'});
+        })
+      }, errors, done)
+    );
+
+    // Case: incoming Result is a Result.Error
+    mapResultMonadWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        inputKey: 'kid',
+        resultOutputKey: 'billyGoatResult',
+        monad: of
+      },
+      ({kid}) => of(R.concat(kid, Result.Ok(' became a billy goat')))
+    )({a: 1, b: 1, kidResult: Result.Error('Billy was never a kid')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy was never a kid'});
+        })
+      }, errors, done)
+    );
+
+    // Case: outgoing Result is a Result.Error
+    mapResultMonadWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        inputKey: 'kid',
+        resultOutputKey: 'billyGoatResult',
+        monad: of
+      },
+      ({kid}) => of(Result.Error(R.concat(kid, ' never became a billy goat')))
+    )({a: 1, b: 1, kidResult: Result.Ok('Billy the kid')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy the kid never became a billy goat'});
+        })
+      }, errors, done)
+    );
+  });
+
+  test('mapResultTaskWithOtherInputs', done => {
+    expect.assertions(2);
+    const errors = [];
+    mapResultTaskWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        resultOutputKey: 'billyGoatResult'
+      },
+      ({kid}) => of(Result.Ok(R.concat(kid, ' became a billy goat')))
+    )({a: 1, b: 1, kidResult: Result.Ok('Billy the kid')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.map(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy the kid became a billy goat'});
+        })
+      }, errors, done)
+    );
+
+    // Make sure that the monad defaults to Task for error Results
+    mapResultTaskWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        resultOutputKey: 'billyGoatResult',
+      },
+      ({kid}) => of(R.concat(kid, Result.Ok(' became a billy goat')))
+    )({a: 1, b: 1, kidResult: Result.Error('Billy was never a kid')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy was never a kid'});
+        })
+      }, errors, done)
     );
   });
 });

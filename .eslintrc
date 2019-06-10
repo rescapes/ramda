@@ -6,6 +6,7 @@
     "jest/globals": true
   },
 
+  "parser": "babel-eslint",
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 8

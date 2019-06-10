@@ -59,6 +59,8 @@ export {
   doMDeep,
   mapToResponseAndInputs,
   mapToNamedResponseAndInputs,
-  mapToNamedPathAndInputs
+  mapToNamedPathAndInputs,
+  mapResultMonadWithOtherInputs,
+  mapResultTaskWithOtherInputs
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';
