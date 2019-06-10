@@ -1059,7 +1059,7 @@ describe('monadHelpers', () => {
     mapResultTaskWithOtherInputs(
       {
         resultInputKey: 'kidResult',
-        resultOutputKey: 'billyGoatResult',
+        resultOutputKey: 'billyGoatResult'
       },
       ({kid}) => of(R.concat(kid, Result.Ok(' became a billy goat')))
     )({a: 1, b: 1, kidResult: Result.Error('Billy was never a kid')}).run().listen(
