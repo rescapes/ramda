@@ -965,7 +965,7 @@ describe('monadHelpers', () => {
   });
 
   test('mapResultMonadWithOtherInputs', done => {
-    expect.assertions(4);
+    expect.assertions(6);
     const errors = [];
 
     // Case: f returns a Result.Ok
@@ -1033,6 +1033,42 @@ describe('monadHelpers', () => {
       defaultRunConfig({
         onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
           expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy the kid never became a billy goat'});
+        })
+      }, errors, done)
+    );
+
+    // Case: resultInputKey and resultOutputKey is not specified, so use all of the inputObj as a Result
+    mapResultMonadWithOtherInputs(
+      {
+        monad: of
+      },
+      ({kid, ...rest}) => of(
+        Result.Ok(
+          R.merge(R.map(R.add(5), rest), {kid: R.concat(kid, ' and his friends became a billy goats')})
+        )
+      )
+    )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(
+      defaultRunConfig({
+        onResolved: result => result.map(stuff => {
+          expect(stuff).toEqual({a: 6, b: 6, kid: 'Billy the kid and his friends became a billy goats'});
+        })
+      }, errors, done)
+    );
+
+    // Case: resultInputKey and resultOutputKey is not specified, outgoing Result is a Result.Error
+    mapResultMonadWithOtherInputs(
+      {
+        monad: of
+      },
+      ({kid, ...rest}) => of(
+        Result.Error(
+          R.merge(rest, {kid: R.concat(kid, ' and his friends were shot')})
+        )
+      )
+    )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(
+      defaultRunConfig({
+        onResolved: result => result.mapError(stuff => {
+          expect(stuff).toEqual({a: 1, b: 1, kid: 'Billy the kid and his friends were shot'});
         })
       }, errors, done)
     );

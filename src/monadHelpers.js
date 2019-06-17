@@ -111,7 +111,7 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
   // We have to do this here instead of using defaultRunConfig's version
   const reject = (errs, error) => {
     try {
-      (onRejected || _onRejected)(errs, error);
+      (onRejected || _onRejected)(R.concat(errs, [error]), error);
     } finally {
       if (done) {
         done();
@@ -524,9 +524,14 @@ export const mapToNamedResponseAndInputs = (name, f) => arg => R.map(value => R.
  * from each call of the composition. We also want to keep passing unaltered input parameters to each call in the composition
  *
  * @param {Object} inputOutputConfig
- * @param {String} inputOutputConfig.resultInputKey A key of arg that is a Result.Ok. The value of this is passed to f with the key inputKey
- * @param {String} inputOutputConfig.inputKey A key name to use to pass arg[resultInputKey]'s value in to f
- * @param {String} inputOutputConfig.resultOutputKey The key name for the output, it should have a suffix 'Result' since the output is always a Result
+ * @param {String} [inputOutputConfig.resultInputKey] A key of arg that is a Result.Ok.
+ * The value of this is passed to f with the key inputKey. If not specified all of inputObj is expected to be a result
+ * and it's value is passed to f
+ * @param {String} [inputOutputConfig.inputKey] A key name to use to pass arg[resultInputKey]'s value in to f. Only
+ * specify if resultInputKey is
+ * @param {String} [inputOutputConfig.resultOutputKey] The key name for the output,
+ * it should have a suffix 'Result' since the output is always a Result. If not specified then the result of f
+ * is returned instead of assigning it to resultOutputKey
  * @param {String} inputOutputConfig.monad Specify the outer monad, such as Task.of, in case the incoming
  * Result is a Result.Error and we therefore can't run f on its mapped value. This is not used on the Result that is
  * returned by f, since even if that is a Result.Error f will have it wrapped in the monad.
@@ -547,20 +552,37 @@ export const mapResultMonadWithOtherInputs = R.curry(
   // Map Result inputObj[resultInputKey] to a merge of its value at key inputKey with inputObj (inputObj omits resultInputKey)
   // Monad M, Result R: R a -> R M b
   ({resultInputKey, inputKey, resultOutputKey, wrapFunctionOutputInResult, monad}, f, inputObj) => {
-    // Omit resultInputKey since we need to process it separately
-    const limitedInputObj = R.omit([resultInputKey], inputObj);
-    // inputObj[resultInputKey] must exist
-    const inputResult = reqStrPathThrowing(resultInputKey, inputObj);
+    let remainingInputObj, inputResult;
+    if (resultInputKey) {
+      // Omit resultInputKey since we need to process it separately
+      remainingInputObj = R.omit([resultInputKey], inputObj);
+      // inputObj[resultInputKey] must exist
+      inputResult = reqStrPathThrowing(resultInputKey, inputObj);
+    } else {
+      // No resultInputKey, so the the entire input is an inputObj
+      remainingInputObj = {};
+      inputResult = inputObj;
+    }
+
+    // If we have a resultOutputKey, put the result under that key and
+    const mapResultToOutputkey = (resultOutputKey, remainingInputObj, result) => R.ifElse(
+      R.always(resultOutputKey),
+      // Leave the remainingInputObj out
+      result => R.merge(remainingInputObj, {[resultOutputKey]: result}),
+      // If there is anything in the remainingInputObj, merge it with the result.value
+      result => result.map(R.merge(remainingInputObj))
+    )(result);
+
     // If our incoming Result is a Result.Error, just wrap it in the monad with the expected resultOutputKey
     // This is the same resulting structure if the f produces a Result.Error
     if (Result.Error.hasInstance(inputResult)) {
       return inputResult.orElse(
-        error => monad(R.merge(limitedInputObj, {[resultOutputKey]: inputResult}))
+        error => monad(mapResultToOutputkey(resultOutputKey, remainingInputObj, inputResult))
       );
     }
     return R.chain(
       value => R.compose(
-        resultMonad => R.map(result => R.merge(limitedInputObj, {[resultOutputKey]: result}), resultMonad),
+        resultMonad => R.map(result => mapResultToOutputkey(resultOutputKey, remainingInputObj, result), resultMonad),
         // Wrap the monad value from f in a Result if needed (if f didn't produce one)
         // Monad M: Result R: M b | M R b -> M R b
         outputMonad => R.when(R.always(wrapFunctionOutputInResult), mon => R.map(m => Result.Ok(m), mon))(outputMonad),
@@ -568,8 +590,9 @@ export const mapResultMonadWithOtherInputs = R.curry(
         // Monad M: Result R: R <k, v> -> M b | M R b
         obj => f(obj),
         // Merge the inputObj with the valued value
+        // Assign the value to inputKey if it's specified
         // Result R: R a -> <k, v>
-        v => R.merge(limitedInputObj, {[inputKey]: v})
+        v => R.merge(remainingInputObj, R.when(R.always(inputKey), vv => ({[inputKey]: vv}))(v))
       )(value),
       inputResult
     );
@@ -582,7 +605,11 @@ export const mapResultMonadWithOtherInputs = R.curry(
  */
 export const mapResultTaskWithOtherInputs = R.curry(
   ({resultInputKey, resultOutputKey, wrapFunctionOutputInResult}, f, inputObj) => {
-    const inputKey = R.replace(/Result$/, '', resultInputKey);
+    // assign inputKey to resultInputKey value minus Result if resultInputKey is specified
+    const inputKey = R.when(
+      R.identity,
+      rik => R.replace(/Result$/, '', rik)
+    )(resultInputKey);
     if (R.concat(inputKey, 'Result') !== resultInputKey) {
       throw new Error(`Expected resultInputKey to end with 'Result' but got ${resultInputKey}`);
     }
