@@ -189,7 +189,18 @@ export const resultToTaskNeedingResult = R.curry((f, result) => result.matchWith
  * @sig resultToTaskNeedingResult:: Result r, Task t => (r -> t r) -> r -> t r
  */
 export const resultToTaskWithResult = R.curry((f, result) => result.matchWith({
-  Ok: ({value}) => f(value).mapRejected(r => r.chain(v => Result.Error(v))),
+  Ok: ({value}) => f(value).mapRejected(
+    r => {
+      return R.cond([
+        // Chain Result.Ok to Result.Error
+        [Result.Ok.hasInstance, R.chain(v => Result.Error(v))],
+        // Leave Result.Error alone
+        [Result.Error.hasInstance, R.identity],
+        // If the rejected function didn't produce a Result then wrap it in a Result.Error
+        [R.T, Result.Error]
+      ])(r);
+    }
+  ),
   Error: of
 }));
 
@@ -511,7 +522,14 @@ export const mapToResponseAndInputs = f => arg => R.map(value => R.merge(arg, {v
  * @param {Object} arg The object containing the incoming named arguments that f is called with
  * @return {Object} The value of the monad at the value key merged with the input args
  */
-export const mapToNamedResponseAndInputs = (name, f) => arg => R.map(value => R.merge(arg, {[name]: value}), f(arg));
+export const mapToNamedResponseAndInputs = (name, f) => arg => R.map(
+  value => R.merge(
+    arg,
+    {[name]: value}
+  ),
+  // Must return a monad
+  f(arg)
+);
 
 /**
  * Like mapToNamedResponseAndInputs but operates on one incoming Result.Ok|Error and outputs a monad with it's internal
@@ -565,12 +583,12 @@ export const mapResultMonadWithOtherInputs = R.curry(
     }
 
     // If we have a resultOutputKey, put the result under that key and
-    const mapResultToOutputkey = (resultOutputKey, remainingInputObj, result) => R.ifElse(
-      R.always(resultOutputKey),
+    const mapResultToOutputkey = (_resultOutputKey, _remainingInputObj, result) => R.ifElse(
+      R.always(_resultOutputKey),
       // Leave the remainingInputObj out
-      result => R.merge(remainingInputObj, {[resultOutputKey]: result}),
+      _result => R.merge(_remainingInputObj, {[_resultOutputKey]: _result}),
       // If there is anything in the remainingInputObj, merge it with the result.value
-      result => result.map(R.merge(remainingInputObj))
+      _result => R.map(R.merge(_remainingInputObj), _result)
     )(result);
 
     // If our incoming Result is a Result.Error, just wrap it in the monad with the expected resultOutputKey
@@ -585,7 +603,13 @@ export const mapResultMonadWithOtherInputs = R.curry(
         resultMonad => R.map(result => mapResultToOutputkey(resultOutputKey, remainingInputObj, result), resultMonad),
         // Wrap the monad value from f in a Result if needed (if f didn't produce one)
         // Monad M: Result R: M b | M R b -> M R b
-        outputMonad => R.when(R.always(wrapFunctionOutputInResult), mon => R.map(m => Result.Ok(m), mon))(outputMonad),
+        outputMonad => R.when(
+          R.always(wrapFunctionOutputInResult),
+          mon => R.map(
+            m => Result.Ok(m),
+            mon
+          )
+        )(outputMonad),
         // Call f on the merged object
         // Monad M: Result R: R <k, v> -> M b | M R b
         obj => f(obj),
@@ -608,11 +632,14 @@ export const mapResultTaskWithOtherInputs = R.curry(
     // assign inputKey to resultInputKey value minus Result if resultInputKey is specified
     const inputKey = R.when(
       R.identity,
-      rik => R.replace(/Result$/, '', rik)
+      rik => {
+        const key = R.replace(/Result$/, '', rik);
+        if (R.concat(key, 'Result') !== rik) {
+          throw new Error(`Expected resultInputKey to end with 'Result' but got ${resultInputKey}`);
+        }
+        return key;
+      }
     )(resultInputKey);
-    if (R.concat(inputKey, 'Result') !== resultInputKey) {
-      throw new Error(`Expected resultInputKey to end with 'Result' but got ${resultInputKey}`);
-    }
     return mapResultMonadWithOtherInputs(
       {resultInputKey, inputKey, resultOutputKey, wrapFunctionOutputInResult, monad: of},
       f,
@@ -631,7 +658,7 @@ export const mapResultTaskWithOtherInputs = R.curry(
  * @param {String} name The key name for the output
  * @param {String} strPath dot-separated path with strings and indexes
  * @param {Function} f Function that returns a monad
- * @return  {Object} The strPath value of the monad at the name key merged with the input args
+ * @returns {Object} The resulting monad containing the strPath value of the monad at the named key merged with the input args
  */
 export const mapToNamedPathAndInputs = R.curry(
   (name, strPath, f) => arg => R.map(
@@ -646,6 +673,41 @@ export const mapToNamedPathAndInputs = R.curry(
         arg,
         {[name]: reqStrPathThrowing(strPath, value)}
       );
+    },
+    f(arg)
+  )
+);
+
+/**
+ * Calls a function that returns a monad and maps the result to the given string path
+ * @param {String} strPath dot-separated path with strings and indexes
+ * @param {Function} f Function that returns a monad
+ * @returns {*} The monad containing the value at the string path
+ */
+export const mapToPath = R.curry(
+  (strPath, monad) => R.map(
+    // Container value
+    value => {
+      // Find the path in the returned value
+      return reqStrPathThrowing(strPath, value);
+    },
+    monad
+  )
+);
+
+/**
+ * Calls a function with arg that returns a monad and maps the result to the given string path
+ * @param {String} strPath dot-separated path with strings and indexes
+ * @param {Function} f Function that returns a monad
+ * @param {*} arg Passed to f
+ * @returns {*} The monad containing the value at the string path
+ */
+export const mapWithArgToPath = R.curry(
+  (strPath, f) => arg => R.map(
+    // Container value
+    value => {
+      // Find the path in the returned value
+      return reqStrPathThrowing(strPath, value);
     },
     f(arg)
   )

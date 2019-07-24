@@ -34,7 +34,7 @@ import {
   defaultOnRejected,
   mapAndMapErrorToNamedPathAndInputs,
   mapResultMonadWithOtherInputs,
-  mapResultTaskWithOtherInputs
+  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -346,31 +346,60 @@ describe('monadHelpers', () => {
   });
 
   test('resultToTaskWithResult', done => {
+    const errors = [];
     // Result.Ok is passed to f, which returns a Task
-    resultToTaskWithResult(v => of(Result.Ok(v + 1)), Result.Ok(1)).run().listen(defaultRunConfig(
+    resultToTaskWithResult(
+      v => of(Result.Ok(v + 1)),
+      Result.Ok(1)
+    ).run().listen(defaultRunConfig(
       {
         onResolved: result => result.map(value => {
           expect(value).toEqual(2);
-          done();
         })
-      }
+      },
+      errors,
+      done
     ));
 
     // Result.Error goes straight to a Task.of
-    resultToTaskWithResult(v => of(Result.Ok(v + 1)), Result.Error(1)).run().listen(defaultRunConfig(
+    resultToTaskWithResult(
+      // This is never called
+      v => of(Result.Ok(v + 1)),
+      // Error
+      Result.Error(1)
+    ).run().listen(defaultRunConfig(
       {
         onResolved: result => result.mapError(value => {
           expect(value).toEqual(1);
-          done();
         })
-      }
+      },
+      errors,
+      done
     ));
 
     // If something goes wrong in the task. The value is put in a Result.Error
     // I'm not sure if this is good practice, but there's no reason to have a valid Result in a rejected Task
-    resultToTaskWithResult(v => rejected(Result.Ok(v)), Result.Ok(1)).run().listen({
+    resultToTaskWithResult(
+      v => rejected(Result.Ok(v)),
+      Result.Ok(1)
+    ).run().listen({
         onRejected: result => result.mapError(value => {
           expect(value).toEqual(1);
+          done();
+        }),
+        onResolved: result => expect('This should not ').toEqual('happen')
+      }
+    );
+
+    // If something goes wrong in the task and the rejection doesn't produce a Result.Error, the rejected
+    // value should get wrapped in a Resuilt.Error by resultToTaskWithResult
+    // I'm not sure if this is good practice, but there's no reason to have a valid Result in a rejected Task
+    resultToTaskWithResult(
+      v => rejected('Something terrible happened!'),
+      Result.Ok(1)
+    ).run().listen({
+        onRejected: result => result.mapError(value => {
+          expect(value).toEqual('Something terrible happened!');
           done();
         }),
         onResolved: result => expect('This should not ').toEqual('happen')
@@ -534,6 +563,7 @@ describe('monadHelpers', () => {
 
 
   test('traverseReduceTaskWhile', done => {
+    expect.assertions(1);
     const initialTask = initialValue(of);
     const t = traverseReduceWhile(
       // Make sure we accumulate up to b but don't run c
@@ -557,7 +587,6 @@ describe('monadHelpers', () => {
       }
     });
   });
-
 
   test('traverseReduceResultWhile', done => {
     const initialResult = initialValue(Result.of);
@@ -946,6 +975,33 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapToPath', done => {
+    const errors = [];
+    mapToPath(
+      'is.1.goat',
+      of({is: [{cow: 'grass'}, {goat: 'can'}]})
+    ).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual('can');
+        }
+      }, errors, done)
+    );
+  });
+
+  test('mapWithArgToPath', done => {
+    const errors = [];
+    mapWithArgToPath(
+      'is.1.goat',
+      ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual('can');
+        }
+      }, errors, done)
+    );
+  });
 
   test('mapToNamedPathAndInputs', done => {
     const errors = [];
@@ -1075,7 +1131,7 @@ describe('monadHelpers', () => {
   });
 
   test('mapResultTaskWithOtherInputs', done => {
-    expect.assertions(2);
+    expect.assertions(3);
     const errors = [];
     mapResultTaskWithOtherInputs(
       {
@@ -1097,11 +1153,23 @@ describe('monadHelpers', () => {
         resultInputKey: 'kidResult',
         resultOutputKey: 'billyGoatResult'
       },
-      ({kid}) => of(R.concat(kid, Result.Ok(' became a billy goat')))
+      ({kid}) => of(Result.Ok(R.concat(kid, ' became a billy goat')))
     )({a: 1, b: 1, kidResult: Result.Error('Billy was never a kid')}).run().listen(
       defaultRunConfig({
         onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
           expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy was never a kid'});
+        })
+      }, errors, done)
+    );
+
+    // When we don't map keys things still work
+    mapResultTaskWithOtherInputs(
+      {},
+      ({kid, ...rest}) => of(Result.Ok({kid: R.concat(kid, ' and his friends became a billy goat'), ...rest}))
+    )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(
+      defaultRunConfig({
+        onResolved: result => result.map(stuff => {
+          expect(stuff).toEqual({a: 1, b: 1, kid: 'Billy the kid and his friends became a billy goat'});
         })
       }, errors, done)
     );

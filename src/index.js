@@ -59,6 +59,8 @@ export {
   doMDeep,
   mapToResponseAndInputs,
   mapToNamedResponseAndInputs,
+  mapToPath,
+  mapWithArgToPath,
   mapToNamedPathAndInputs,
   mapResultMonadWithOtherInputs,
   mapResultTaskWithOtherInputs
