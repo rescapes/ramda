@@ -38,7 +38,8 @@
     "namedtuplemap": "^1.0.0",
     "ramda": "^0.26.1",
     "ramda-fantasy": "^0.8.0",
-    "ramda-maybe": "^0.18.0"
+    "ramda-maybe": "^0.18.0",
+    "util": "^0.12.1"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
