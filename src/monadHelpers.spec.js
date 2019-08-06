@@ -32,9 +32,8 @@ import {
   mapToNamedPathAndInputs,
   mapToNamedResponseAndInputs,
   defaultOnRejected,
-  mapAndMapErrorToNamedPathAndInputs,
   mapResultMonadWithOtherInputs,
-  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath
+  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath, taskToResultTask
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -218,6 +217,44 @@ describe('monadHelpers', () => {
     ))).resolves.toBe('donut');
     const err = new Error('octopus');
     await expect(taskToPromise(task(resolver => resolver.reject(err)))).rejects.toBe(err);
+  });
+
+  test('Should convert Task to Result.Ok Task', done => {
+    const errors = [];
+    taskToResultTask(
+      task(
+        resolver => resolver.resolve('donut')
+      )
+    ).run().listen(defaultRunToResultConfig({
+        onResolved: v => expect(v).toEqual('donut')
+      }, errors, done)
+    );
+  });
+
+  test('Should convert rejecting Task to resolved Result.Error Task', done => {
+    const errors = [];
+    const err = new Error('octopus');
+    taskToResultTask(
+      task(
+        resolver => resolver.reject(err)
+      )
+    ).run().listen(defaultRunConfig({
+        onResolved: result => result.mapError(v => expect(v).toEqual(err))
+      }, errors, done)
+    );
+  });
+
+  test('Should convert Task rejecting with a Result.Ok to resolved Result.Error Task', done => {
+    const errors = [];
+    const err = new Error('octopus');
+    taskToResultTask(
+      task(
+        resolver => resolver.reject(Result.Ok(err))
+      )
+    ).run().listen(defaultRunConfig({
+        onResolved: result => result.mapError(v => expect(v).toEqual(err))
+      }, errors, done)
+    );
   });
 
   test('Should convert Promise to Task', async () => {

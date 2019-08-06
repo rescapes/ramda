@@ -12,7 +12,7 @@
 
 import {rejected, of, fromPromised} from 'folktale/concurrency/task';
 import * as R from 'ramda';
-import * as Result from 'folktale/result/index';
+import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
 
 /**
@@ -84,7 +84,7 @@ export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, 
 };
 
 /**
- * For a task that returns an Result.
+ * For a task that returns a Result.
  * Defaults the defaultOnRejected and defaultOnCancelled to throw or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result.
  * If the task resolves to an Result.Ok, resolves the underlying value and passes it to the onResolved function
@@ -142,6 +142,7 @@ export const taskToPromise = (task) => {
   }
   return task.run().promise();
 };
+
 
 /**
  * @deprecated Use fromPromised from folktale/concurrency/task
@@ -203,6 +204,36 @@ export const resultToTaskWithResult = R.curry((f, result) => result.matchWith({
   ),
   Error: of
 }));
+
+/**
+ * Wraps the value of a successful task in a Result.Ok if it isn't already a Result
+ * Converts a rejected task to a resolved task and
+ * wraps the value of a rejected task in a Result.Error if it isn't already a Result.Error or converts
+ * Result.Ok to Result.Error.
+ * @param {Task} task The task to map
+ * @returns {Task} The task whose resolved or rejected value is wrapped in a Result and is always resolved
+ */
+export const taskToResultTask = task => {
+  return task.map(v => {
+    return R.cond([
+      // Chain Result.Ok to Result.Error
+      [Result.Ok.hasInstance, R.chain(e => Result.Error(e))],
+      // Leave Result.Error alone
+      [Result.Error.hasInstance, R.identity],
+      // If the rejected function didn't produce a Result then wrap it in a Result.Ok
+      [R.T, Result.Ok]
+    ])(v);
+  }).orElse(v => {
+    return of(R.cond([
+      // Chain Result.Ok to Result.Error
+      [Result.Ok.hasInstance, R.chain(e => Result.Error(e))],
+      // Leave Result.Error alone
+      [Result.Error.hasInstance, R.identity],
+      // If the rejected function didn't produce a Result then wrap it in a Result.Error
+      [R.T, Result.Error]
+    ])(v));
+  });
+};
 
 /**
  * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
