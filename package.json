@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.5.69",
+  "version": "1.5.70",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -64,7 +64,7 @@
     "raf": "^3.4.1",
     "react-dev-utils": "^9.0.1",
     "rimraf": "^2.6.3",
-    "rollup": "^1.19.3",
+    "rollup": "^1.19.4",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-commonjs": "10.0.2",
     "rollup-plugin-json": "^4.0.0",
