@@ -37,6 +37,11 @@ export const defaultOnCancelled = () => {
 };
 const _onCanceled = defaultOnCancelled;
 
+const whenDone = done => {
+  if (done) {
+    done();
+  }
+};
 /**
  * Defaults the defaultOnRejected and defaultOnCancelled to throw or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result. Example:
@@ -54,30 +59,25 @@ const _onCanceled = defaultOnCancelled;
  * @returns {Object} Run config with defaultOnCancelled, defaultOnRejected, and onReolved handlers
  */
 export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, done) => {
-  const whenDone = () => {
-    if (done) {
-      done();
-    }
-  };
   return ({
     onCancelled: () => {
       (onCancelled || _onCanceled)();
-      whenDone();
+      whenDone(done);
     },
     onRejected: error => {
       // Since the default defaultOnRejected throws, wrap it
       try {
         (onRejected || _onRejected)(errors, error);
       } finally {
-        whenDone();
+        whenDone(done);
       }
     },
-    onResolved: result => {
+    onResolved: value => {
       try {
         // Wrap in case anything goes wrong with the assertions
-        onResolved(result);
+        onResolved(value);
       } finally {
-        whenDone();
+        whenDone(done);
       }
     }
   });
@@ -108,19 +108,30 @@ export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, 
  * @returns {Object} Run config with defaultOnCancelled, defaultOnRejected, and onReolved handlers
  */
 export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, errors, done) => {
+  let finalized = false;
   // We have to do this here instead of using defaultRunConfig's version
   const reject = (errs, error) => {
     try {
       (onRejected || _onRejected)(R.concat(errs, [error]), error);
     } finally {
-      if (done) {
-        done();
-      }
+      finalized = true;
+      whenDone(done);
     }
   };
 
   return defaultRunConfig({
-      onResolved: result => result.map(value => onResolved(value)).mapError(
+      onResolved: result => result.map(value => {
+        try {
+          // Wrap in case anything goes wrong with the assertions
+          onResolved(value);
+        } catch (error) {
+          reject(R.concat(errors || [], [error]), error);
+        } finally {
+          if (!finalized) {
+            whenDone(done);
+          }
+        }
+      }).mapError(
         error => reject(R.concat(errors || [], [error]), error)
       ),
       onRejected: reject,

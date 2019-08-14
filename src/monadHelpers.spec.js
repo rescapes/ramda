@@ -768,6 +768,47 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapMDeepWithArraysInObjects', () => {
+    const waysOfNodeId = {
+      1: [{features: ['FEATURE me']}, {features: ['no, FEATURE me']}],
+      2: [{features: ['facial features']}, {features: ['new spring features'], suchas: ['heather and indigo features']}]
+    };
+    // Manipulate each array item of an object
+    expect(mapMDeep(
+      2,
+      way => R.over(R.lensPath(['features', 0]), R.replace(/feature/, 'FEATURE'), way),
+      waysOfNodeId)
+    ).toEqual(
+      {
+        1: [{features: ['FEATURE me']}, {features: ['no, FEATURE me']}],
+        2: [{features: ['facial FEATUREs']}, {features: ['new spring FEATUREs'], suchas: ['heather and indigo features']}]
+      }
+    );
+
+    // Manipulate each object item of each array item of an object
+    expect(mapMDeep(
+      3,
+      features => R.map(R.replace(/feature/, 'FEATURE'), features),
+      waysOfNodeId)
+    ).toEqual(
+      {
+        1: [{features: ['FEATURE me']}, {features: ['no, FEATURE me']}],
+        2: [{features: ['facial FEATUREs']}, {features: ['new spring FEATUREs'], suchas: ['heather and indigo FEATUREs']}]
+      }
+    );
+
+    // Manipulate each array item of each object item of each array item of an object
+    expect(mapMDeep(
+      4,
+      str => R.replace(/feature/, 'FEATURE', str),
+      waysOfNodeId)
+    ).toEqual(
+      {
+        1: [{features: ['FEATURE me']}, {features: ['no, FEATURE me']}],
+        2: [{features: ['facial FEATUREs']}, {features: ['new spring FEATUREs'], suchas: ['heather and indigo FEATUREs']}]
+      }
+    );
+  });
 
   test('chainMDeep', done => {
     // Level 1 chain on array behaves like map, so we don't actually need to wrap it in Array.of here
