@@ -1245,10 +1245,10 @@ describe('monadHelpers', () => {
       {},
       ({kid, ...rest}) => of(Result.Ok({kid: R.concat(kid, ' and his friends became a billy goat'), ...rest}))
     )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(
-      defaultRunConfig({
-        onResolved: result => result.map(stuff => {
+      defaultRunToResultConfig({
+        onResolved: stuff => {
           expect(stuff).toEqual({a: 1, b: 1, kid: 'Billy the kid and his friends became a billy goat'});
-        })
+        }
       }, errors, done)
     );
   });
