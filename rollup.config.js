@@ -15,7 +15,7 @@ const config = {
   ],
   plugins: []
 };
-const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/result'];
+const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/maybe', 'folktale/result'];
 
 const configs = R.map(c => {
   const x = R.merge(config, c);
@@ -38,6 +38,7 @@ const configs = R.map(c => {
     plugins: R.concat(config.plugins, [
       commonjs({
         'node_modules/folktale/result/index.js': ['Result', 'Error', 'Ok'],
+        'node_modules/folktale/maybe/index.js': ['Just', 'None'],
         'node_modules/folktale/concurrency/task/index.js': ['task', 'rejected', 'of']
       }),
       babel()

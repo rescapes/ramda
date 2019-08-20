@@ -107,6 +107,7 @@ export {
   mapWithArgToPath,
   mapToNamedPathAndInputs,
   mapResultMonadWithOtherInputs,
+  toNamedResponseAndInputs,
   mapResultTaskWithOtherInputs,
   taskToResultTask
 } from './monadHelpers';

@@ -14,6 +14,7 @@ import {rejected, of, fromPromised} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
+import {Just} from 'folktale/maybe';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -564,14 +565,27 @@ export const mapToResponseAndInputs = f => arg => R.map(value => R.merge(arg, {v
  * @param {Object} arg The object containing the incoming named arguments that f is called with
  * @return {Object} The value of the monad at the value key merged with the input args
  */
-export const mapToNamedResponseAndInputs = (name, f) => arg => R.map(
+export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => R.map(
   value => R.merge(
     arg,
     {[name]: value}
   ),
   // Must return a monad
   f(arg)
-);
+));
+
+/**
+ * Same as mapToNamedResponseAndInputs but works with a non-monad
+ * @param {String} name The key name for the output
+ * @param {Function} f Function expecting an object and returning an value that is directly merged with the other args
+ * @param {Object} arg The object containing the incoming named arguments that f is called with
+ * @return {Object} The output of f named named and merged with arg
+ */
+export const toNamedResponseAndInputs = R.curry((name, f, arg) => {
+  const monadF = _arg => Just(f(_arg));
+  const just = mapToNamedResponseAndInputs(name, monadF, arg);
+  return just.unsafeGet();
+});
 
 /**
  * Like mapToNamedResponseAndInputs but operates on one incoming Result.Ok|Error and outputs a monad with it's internal

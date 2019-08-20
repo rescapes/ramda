@@ -33,7 +33,7 @@ import {
   mapToNamedResponseAndInputs,
   defaultOnRejected,
   mapResultMonadWithOtherInputs,
-  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath, taskToResultTask
+  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath, taskToResultTask, toNamedResponseAndInputs
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -781,7 +781,10 @@ describe('monadHelpers', () => {
     ).toEqual(
       {
         1: [{features: ['FEATURE me']}, {features: ['no, FEATURE me']}],
-        2: [{features: ['facial FEATUREs']}, {features: ['new spring FEATUREs'], suchas: ['heather and indigo features']}]
+        2: [{features: ['facial FEATUREs']}, {
+          features: ['new spring FEATUREs'],
+          suchas: ['heather and indigo features']
+        }]
       }
     );
 
@@ -793,7 +796,10 @@ describe('monadHelpers', () => {
     ).toEqual(
       {
         1: [{features: ['FEATURE me']}, {features: ['no, FEATURE me']}],
-        2: [{features: ['facial FEATUREs']}, {features: ['new spring FEATUREs'], suchas: ['heather and indigo FEATUREs']}]
+        2: [{features: ['facial FEATUREs']}, {
+          features: ['new spring FEATUREs'],
+          suchas: ['heather and indigo FEATUREs']
+        }]
       }
     );
 
@@ -805,7 +811,10 @@ describe('monadHelpers', () => {
     ).toEqual(
       {
         1: [{features: ['FEATURE me']}, {features: ['no, FEATURE me']}],
-        2: [{features: ['facial FEATUREs']}, {features: ['new spring FEATUREs'], suchas: ['heather and indigo FEATUREs']}]
+        2: [{features: ['facial FEATUREs']}, {
+          features: ['new spring FEATUREs'],
+          suchas: ['heather and indigo FEATUREs']
+        }]
       }
     );
   });
@@ -1041,16 +1050,24 @@ describe('monadHelpers', () => {
   });
 
   test('mapToNamedResponseAndInputs', done => {
-    R.compose(
-      mapToNamedResponseAndInputs('foo', ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}))
-    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+    const errors = [];
+    const tsk = mapToNamedResponseAndInputs('foo', ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}));
+    tsk({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
-          done();
         }
-      })
+      }, errors, done)
     );
+  });
+
+  test('toNamedResponseAndInputs', () => {
+    const value = toNamedResponseAndInputs(
+      'foo',
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'}),
+      ({a: 1, b: 1, c: 'was a racehorse'})
+    );
+    expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
   });
 
   test('mapToPath', done => {
