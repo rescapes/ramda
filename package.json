@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.5.78",
+  "version": "1.5.79",
   "description": "Ramda utilities for the Rescape platform",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -29,8 +29,8 @@
     "docs:publish": "yarn run docs:clean && yarn run docs:build && cp CNAME _book && cd _book && git init && git commit --allow-empty -m 'update book' && git checkout -b gh-pages && touch .nojekyll && git add . && git commit -am 'update book' && git push git@github.com:calocan/rescape-ramda.git gh-pages --force",
     "build-publish-patch": "yarn run build && yarn run publish-patch",
     "build-publish-minor": "yarn run build && yarn run publish-minor",
-    "publish-patch": "yarn --new-version version patch && yarn publish",
-    "publish-minor": "yarn --new-version version minor && yarn publish"
+    "publish-patch": "yarn --new-version version patch && yarn publish -non-interactive ",
+    "publish-minor": "yarn --new-version version minor && yarn publish -non-interactive "
   },
   "dependencies": {
     "folktale": "^2.3.2",
