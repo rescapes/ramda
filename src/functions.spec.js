@@ -31,6 +31,7 @@ import {omitDeep} from './functions';
 import {mergeDeepWithRecurseArrayItems} from './functions';
 import {omitDeepPaths} from './functions';
 import {pickDeepPaths} from './functions';
+import {splitAtInclusive} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -784,5 +785,20 @@ describe('helperFunctions', () => {
 
   test('camelCase', () => {
     expect(f.camelCase('Tough_Mudder_Hubbard')).toEqual('toughMudderHubbard');
+  });
+
+  test('splitAtInclusive', () => {
+    expect(splitAtInclusive(1, [1, 2, 3, 4, 5])).toEqual(
+      [[1, 2], [2, 3, 4, 5]]
+    );
+    expect(splitAtInclusive(0, [1, 2, 3, 4, 5])).toEqual(
+      [[1], [1, 2, 3, 4, 5]]
+    );
+    expect(splitAtInclusive(-1, [1, 2, 3, 4, 5])).toEqual(
+      [[1, 2, 3, 4, 5], [5]]
+    );
+    expect(splitAtInclusive(1, 'murderforajarofredrum')).toEqual(
+      ['mu', 'urderforajarofredrum']
+    );
   });
 });

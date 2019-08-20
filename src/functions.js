@@ -1046,3 +1046,17 @@ export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
   ]
   )(obj)
 );
+
+/**
+ * splitAt that gives the split point item to both sides of the split
+ * @param {Number} index The index
+ * @param {String|[Object]} list A string or list
+ * @returns {[Object]} A pair of results
+ */
+export const splitAtInclusive = (index, list) => {
+  const pair = R.splitAt(index, list);
+  return [
+    R.concat(R.head(pair), R.slice(0, 1, R.last(pair))),
+    R.last(pair)
+  ];
+};

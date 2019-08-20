@@ -68,7 +68,8 @@ export {
   omitDeepPaths,
   pickDeepPaths,
   applyDeep,
-  applyDeepAndMapObjs
+  applyDeepAndMapObjs,
+  splitAtInclusive
 } from './functions';
 export {
   throwIfSingleResultError,
