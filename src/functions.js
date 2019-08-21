@@ -993,7 +993,7 @@ export const omitDeepPaths = R.curry((pathSet, obj) => R.cond([
 // be picked
 const _pickDeepPathsEliminateItemPredicate = paths => R.compose(R.equals(0), R.length)(paths);
 /**
- * Omit matching paths in a a structure. For instance omitDeepPaths(['a.b.c', 'a.0.1']) will omit keys
+ * Pick matching paths in a a structure. For instance pickDeepPaths(['a.b.c', 'a.0.1']) will pick only keys
  * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
  */
 export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
