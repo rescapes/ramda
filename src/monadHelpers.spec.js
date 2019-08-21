@@ -567,8 +567,22 @@ describe('monadHelpers', () => {
   });
 
   test('traverseReduceDeepResults', () => {
+    const level1ConstructorOk = Result.Ok;
+    const level1ConstructorError = Result.Error;
     const level2ConstructorOk = R.compose(Maybe.Just, Result.Ok);
     const level2ConstructorError = R.compose(Maybe.Just, Result.Error);
+
+    expect(
+      traverseReduceDeepResults(
+        1,
+        R.add,
+        R.add,
+        {Ok: 0, Error: 0},
+        [level1ConstructorOk(1), level1ConstructorError(2), level1ConstructorOk(3)]
+      )
+    ).toEqual(
+      {Ok: 4, Error: 2}
+    );
 
     expect(
       traverseReduceDeepResults(
