@@ -384,24 +384,34 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
  */
 export const traverseReduceDeepResults = R.curry((containerDepth, accumulator, accumulatorForErrors, initialValue, deepContainers) =>
   R.reduce(
-    (applicatorRes, applicator) => R.compose(
-      // This composes the number of R.lift2 calls we need. We need one per container level,
-      // but the penultimate level must determine which accumulator to call, so it handles the final level by calling
-      // accumulator or accumulatorForErrors
-      // This is containerDept - 1 because our accumulator below handles the last level
-      ...R.times(R.always(R.liftN(2)), containerDepth - 1)
-    )(
-      (accumulatedObj, result) => result.matchWith({
-        Ok: ({value}) => ({
-          Ok: accumulator(accumulatedObj.Ok, value),
-          Error: accumulatedObj.Error
-        }),
-        Error: ({value}) => ({
-          Error: accumulatorForErrors(accumulatedObj.Error, value),
-          Ok: accumulatedObj.Ok
+    (applicatorRes, applicator) => {
+      const f = R.ifElse(
+        d => R.gt(d, 1),
+        // Compose levels
+        () => R.compose,
+        // Just 1 level, no need to lift
+        () => () => R.identity
+      )(containerDepth);
+      const composed = f(
+        // This composes the number of R.lift2 calls we need. We need one per container level,
+        // but the penultimate level must determine which accumulator to call, so it handles the final level by calling
+        // accumulator or accumulatorForErrors
+        // This is containerDept - 1 because our accumulator below handles the last level
+        ...R.times(R.always(R.liftN(2)), containerDepth - 1)
+      );
+      return composed(
+        (accumulatedObj, result) => result.matchWith({
+          Ok: ({value}) => ({
+            Ok: accumulator(accumulatedObj.Ok, value),
+            Error: accumulatedObj.Error
+          }),
+          Error: ({value}) => ({
+            Error: accumulatorForErrors(accumulatedObj.Error, value),
+            Ok: accumulatedObj.Ok
+          })
         })
-      })
-    )(applicatorRes, applicator),
+      )(applicatorRes, applicator);
+    },
     initialValue,
     deepContainers
   )
