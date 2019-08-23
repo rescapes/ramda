@@ -127,11 +127,8 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
           onResolved(value);
         } catch (error) {
           reject(R.concat(errors || [], [error]), error);
-        } finally {
-          if (!finalized) {
-            whenDone(done);
-          }
         }
+        // don't finalize here, defaultRunConfig.onResolved does that
       }).mapError(
         error => reject(R.concat(errors || [], [error]), error)
       ),
