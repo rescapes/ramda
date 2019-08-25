@@ -110,6 +110,7 @@ export {
   mapResultMonadWithOtherInputs,
   toNamedResponseAndInputs,
   mapResultTaskWithOtherInputs,
-  taskToResultTask
+  taskToResultTask,
+  waitAllBucketed
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';
