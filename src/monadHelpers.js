@@ -815,6 +815,44 @@ export const waitAllBucketed = (tasks, buckets = 100) => {
   );
 };
 
+/**
+ * Versions of task.waitAll that divides tasks into 100 buckets to prevent stack overflow since waitAll
+ * chains all tasks together. waitAllSequentiallyBucketed runs tasks sequentially not concurrently
+ * @param {Task} tasks A list of tasks
+ * @param {Number} [buckets] Default to 100. If there are 1 million tasks we probably need 100,000 buckets to
+ * keep stacks to 100 lines
+ * @returns {*} The list of tasks to be processed without blowing the stack limit
+ */
+export const sequenceBucketed = (tasks, buckets = 100) => {
+  const taskSets = R.reduceBy(
+    (acc, [task, i]) => R.concat(acc, [task]),
+    [],
+    ([task, i]) => i.toString(),
+    R.addIndex(R.map)((task, i) => [task, i % buckets], tasks)
+  );
+
+  return R.map(
+    // Chain the resultSets together
+    // Task t:: t[[a]] -> t[a]
+    resultSets => R.chain(R.identity, resultSets),
+    // Task t:: [t[a]] -> t[[a]]
+    R.traverse(
+      of,
+      // Do a normal waitAll for each bucket of tasks
+      // to run them all in parallel
+      // Task t:: [t] -> t [a]
+      R.ifElse(
+        // If we have more than 100 buckets recurse on a tenth
+        ts => R.compose(R.lt(100), R.length)(ts),
+        ts => sequenceBucketed(ts, buckets / 10),
+        ts => R.sequence(of, ts)
+      ),
+      // Remove the bucket keys
+      // Task t:: <k, [t]> -> [[t]]
+      R.values(taskSets)
+    )
+  );
+};
 /*
 export function liftObjDeep(obj, keys = []) {
   if (R.anyPass([Array.isArray, R.complement(R.is)(Object)])(obj)) {
