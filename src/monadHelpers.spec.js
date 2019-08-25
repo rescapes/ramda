@@ -1314,7 +1314,7 @@ describe('monadHelpers', () => {
   });
 
   test('sequenceBucketed', done => {
-    expect.assertions(2);
+    expect.assertions(1);
     const errors = [];
     const tasks = num => R.times(() => of(1), num);
 
