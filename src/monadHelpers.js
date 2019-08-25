@@ -10,7 +10,7 @@
  */
 
 
-import {rejected, of, fromPromised} from 'folktale/concurrency/task';
+import {rejected, of, waitAll, fromPromised} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
@@ -775,6 +775,45 @@ export const mapWithArgToPath = R.curry(
     f(arg)
   )
 );
+
+/**
+ * Versions of task.waitAll that divides tasks into 100 buckets to prevent stack overflow since waitAll
+ * chains all tasks together
+ * @param {Task} tasks
+ * @param {Number} [buckets] Default to 100. If there are 1 million tasks we probably need 100,000 buckets to
+ * keep stacks to 100 lines
+ * @returns {*}
+ */
+export const waitAllBucketed = (tasks, buckets = 100) => {
+  const taskSets = R.reduceBy(
+    (acc, [task, i]) => R.concat(acc, [task]),
+    [],
+    ([task, i]) => i.toString(),
+    R.addIndex(R.map)((task, i) => [task, i % buckets], tasks)
+  );
+
+  return R.map(
+    // Chain the resultSets together
+    // Task t:: t[[a]] -> t[a]
+    resultSets => R.chain(R.identity, resultSets),
+    // Task t:: [t[a]] -> t[[a]]
+    R.traverse(
+      of,
+      // Do a normal waitAll for each bucket of tasks
+      // to run them all in parallel
+      // Task t:: [t] -> t [a]
+      taskSets => R.ifElse(
+        // If we have more than 100 buckets recurse on a tenth
+        taskSets => R.compose(R.lt(100), R.length)(taskSets),
+        taskSets => waitAllBucketed(taskSets, buckets /10),
+        taskSets => waitAll(taskSets)
+      )(taskSets),
+      // Remove the bucket keys
+      // Task t:: <k, [t]> -> [[t]]
+      R.values(taskSets)
+    )
+  );
+};
 
 /*
 export function liftObjDeep(obj, keys = []) {

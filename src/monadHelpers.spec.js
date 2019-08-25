@@ -33,7 +33,7 @@ import {
   mapToNamedResponseAndInputs,
   defaultOnRejected,
   mapResultMonadWithOtherInputs,
-  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath, taskToResultTask, toNamedResponseAndInputs
+  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath, taskToResultTask, toNamedResponseAndInputs, waitAllBucketed
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -1283,5 +1283,25 @@ describe('monadHelpers', () => {
       }, errors, done)
     );
   });
+
+  test('waitAllBucketed', done => {
+    expect.assertions(2)
+    const errors = [];
+    const tasks = num => R.times(() => of("I'm a big kid now"), num);
+
+    waitAllBucketed(tasks(100000)).run().listen(defaultRunConfig({
+      onResolved: stuff => {
+        expect(R.length(stuff)).toEqual(100000)
+      }
+    }, errors, done));
+
+    // For huge numbers of tasks increase the buckets size. This causes waitAllBucketed to recurse
+    // and get the bucket size down to 100 (i.e. Order 100 stack calls)
+    waitAllBucketed(tasks(1000000), 1000).run().listen(defaultRunConfig({
+      onResolved: stuff => {
+        expect(R.length(stuff)).toEqual(1000000)
+      }
+    }, errors, done));
+  })
 });
 
