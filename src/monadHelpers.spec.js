@@ -1285,13 +1285,13 @@ describe('monadHelpers', () => {
   });
 
   test('waitAllBucketed', done => {
-    expect.assertions(2)
+    expect.assertions(2);
     const errors = [];
-    const tasks = num => R.times(() => of("I'm a big kid now"), num);
+    const tasks = num => R.times(() => of('I\'m a big kid now'), num);
 
     waitAllBucketed(tasks(100000)).run().listen(defaultRunConfig({
       onResolved: stuff => {
-        expect(R.length(stuff)).toEqual(100000)
+        expect(R.length(stuff)).toEqual(100000);
       }
     }, errors, done));
 
@@ -1299,9 +1299,9 @@ describe('monadHelpers', () => {
     // and get the bucket size down to 100 (i.e. Order 100 stack calls)
     waitAllBucketed(tasks(1000000), 1000).run().listen(defaultRunConfig({
       onResolved: stuff => {
-        expect(R.length(stuff)).toEqual(1000000)
+        expect(R.length(stuff)).toEqual(1000000);
       }
     }, errors, done));
-  })
+  });
 });
 

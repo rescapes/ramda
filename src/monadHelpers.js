@@ -779,10 +779,10 @@ export const mapWithArgToPath = R.curry(
 /**
  * Versions of task.waitAll that divides tasks into 100 buckets to prevent stack overflow since waitAll
  * chains all tasks together
- * @param {Task} tasks
+ * @param {Task} tasks A list of tasks
  * @param {Number} [buckets] Default to 100. If there are 1 million tasks we probably need 100,000 buckets to
  * keep stacks to 100 lines
- * @returns {*}
+ * @returns {*} The list of tasks to be processed without blowing the stack limit
  */
 export const waitAllBucketed = (tasks, buckets = 100) => {
   const taskSets = R.reduceBy(
@@ -802,12 +802,12 @@ export const waitAllBucketed = (tasks, buckets = 100) => {
       // Do a normal waitAll for each bucket of tasks
       // to run them all in parallel
       // Task t:: [t] -> t [a]
-      taskSets => R.ifElse(
+      R.ifElse(
         // If we have more than 100 buckets recurse on a tenth
-        taskSets => R.compose(R.lt(100), R.length)(taskSets),
-        taskSets => waitAllBucketed(taskSets, buckets /10),
-        taskSets => waitAll(taskSets)
-      )(taskSets),
+        ts => R.compose(R.lt(100), R.length)(ts),
+        ts => waitAllBucketed(ts, buckets / 10),
+        ts => waitAll(ts)
+      ),
       // Remove the bucket keys
       // Task t:: <k, [t]> -> [[t]]
       R.values(taskSets)
