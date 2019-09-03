@@ -247,7 +247,20 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
     // Arrays
     [R.all(Array.isArray),
       // Recurse on each array item. We pass the key without the index
-      R.apply(R.zipWith((l, r) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, key, l, r)))
+      R.apply(
+        R.zipWith(
+          (l, r) => R.compose(
+            // For array items, take key and the result and call the applyObj func, but only if res is an Object
+            v => R.when(
+              // When it's an object and not an array call applyObj
+              // typeof x === 'object' check because sometimes values that are objects are not returning true
+              R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
+              res => applyObj(key, res)
+            )(v),
+            ([kk, ll, rr]) =>_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
+          )([key, l, r])
+        )
+      )
     ],
     // Primitives
     [R.complement(R.all)(R.is(Object)), lr => fn(...lr, key)],
@@ -903,8 +916,12 @@ export const omitDeep = R.curry(
   (omit_keys, obj) => R.compose(
     o => applyDeepAndMapObjs(
       // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
-      (l, r, kk) => R.ifElse(k => R.contains(k, omit_keys), R.always({}), R.always(l))(kk),
-      // Removes the keys at any level except the topmost level
+      (l, r, kk) => R.ifElse(
+        k => R.contains(k, omit_keys),
+        R.always({}),
+        R.always(l)
+      )(kk),
+      // Called as the result of each recursion. Removes the keys at any level except the topmost level
       (key, result) => R.omit(omit_keys, result),
       o
     ),

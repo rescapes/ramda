@@ -1291,7 +1291,7 @@ describe('monadHelpers', () => {
   });
 
   test('waitAllBucketed', done => {
-    expect.assertions(2);
+    expect.assertions(1);
     const errors = [];
     const tasks = num => R.times(() => of('I\'m a big kid now'), num);
 

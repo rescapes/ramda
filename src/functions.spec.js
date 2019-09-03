@@ -32,6 +32,7 @@ import {mergeDeepWithRecurseArrayItems} from './functions';
 import {omitDeepPaths} from './functions';
 import {pickDeepPaths} from './functions';
 import {splitAtInclusive} from './functions';
+import {reqStrPathThrowing} from './throwingFunctions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -120,7 +121,7 @@ describe('helperFunctions', () => {
       (key, obj) => R.merge({key: R.toUpper(key.toString())}, obj),
       {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
-    )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19}], buzz: 7}});
+    )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19, key: 'BIZZ'}], buzz: 7}});
   });
 
   test('Should merge deep all objects', () => {
@@ -769,6 +770,36 @@ describe('helperFunctions', () => {
         }
       }
     );
+  });
+
+  test('omitDeepBug', () => {
+    const buggy = {
+      geojson: {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            id: 'node/248124950',
+            geometry: {
+              type: 'Point',
+              coordinates: [
+                -115.0646702,
+                49.5161346
+              ]
+            },
+            properties: {
+              id: 248124950,
+              meta: {},
+              tags: {},
+              type: 'node',
+              relations: []
+            },
+            __typename: {}
+          }
+        ]
+      }
+    };
+    expect(R.propOr('great', '__typename', reqStrPathThrowing('geojson.features.0', omitDeep(['__typename'], buggy)))).toEqual('great');
   });
 
   test('pickDeepPaths', () => {
