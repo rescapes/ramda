@@ -66,6 +66,7 @@ export {
   keyStringToLensPath,
   omitDeep,
   omitDeepPaths,
+  omitDeepBy,
   pickDeepPaths,
   applyDeep,
   applyDeepAndMapObjs,
@@ -111,7 +112,7 @@ export {
   toNamedResponseAndInputs,
   mapResultTaskWithOtherInputs,
   taskToResultTask,
-  waitAllBucketed,
-  sequenceBucketed
+  waitAllBucketed
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';
+export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';

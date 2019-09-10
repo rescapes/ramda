@@ -130,9 +130,9 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
         }
         // don't finalize here, defaultRunConfig.onResolved does that
       }).mapError(
-        error => reject(R.concat(errors || [], [error]), error)
+        error => reject(errors || [], error)
       ),
-      onRejected: reject,
+      onRejected: error => reject([], error),
       onCancelled: onCancelled
     },
     errors,
@@ -689,6 +689,7 @@ export const mapResultMonadWithOtherInputs = R.curry(
 /**
  * Version of mapResultMonadWithOtherInputs for Tasks as the monad and expects
  * resultInputKey to end in the word 'Result' so inputKey can be the same key without that ending.
+ * If a task error occurs then a Result.Error is returned in a task with the error
  */
 export const mapResultTaskWithOtherInputs = R.curry(
   ({resultInputKey, resultOutputKey, wrapFunctionOutputInResult}, f, inputObj) => {
@@ -707,7 +708,7 @@ export const mapResultTaskWithOtherInputs = R.curry(
       {resultInputKey, inputKey, resultOutputKey, wrapFunctionOutputInResult, monad: of},
       f,
       inputObj
-    );
+    ).orElse(error => of(Result.Error(error)));
   }
 );
 

@@ -931,6 +931,40 @@ export const omitDeep = R.curry(
   )(obj)
 );
 
+/**
+ * Omit by the given function that is called with key and value. You can ignore the value if you only want to test the key
+ * Objects and arrays are recursed and omit_deep is called
+ * on each dictionary that hasn't been removed by omit_deep at a higher level
+ * @param {Function} f Binary function accepting each key and value. Return non-nil to omit and false or nil to keep
+ */
+export const omitDeepBy = R.curry(
+  (f, obj) => R.compose(
+    o => applyDeepAndMapObjs(
+      // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
+      // l and r are always the same value
+      (l, r, kk) => R.ifElse(
+        // Reject any function return value that isn't null or false
+        k => R.anyPass([R.isNil, R.equals(false)])(f(k, l)),
+        R.always(l),
+        R.always({})
+      )(kk),
+      // Called as the result of each recursion. Removes the keys at any level except the topmost level
+      (key, result) => filterWithKeys(
+        (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
+        result
+      ),
+      o
+    ),
+    // Omit at the top level. We have to do this because applyObj of applyDeepAndMapObjs only gets called starting
+    // on the object of each key
+    // Reject any function return value that isn't null or false
+    o => filterWithKeys(
+      (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
+      o
+    )
+  )(obj)
+);
+
 const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrIndex) => {
   // Keep paths that match keyOrIndex as the first item. Remove other paths
   // since they can't match item or its descendants
@@ -1076,4 +1110,8 @@ export const splitAtInclusive = (index, list) => {
     R.concat(R.head(pair), R.slice(0, 1, R.last(pair))),
     R.last(pair)
   ];
+};
+
+export const diffProps = (props, oldObj, newObj) => {
+
 };

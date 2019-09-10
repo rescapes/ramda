@@ -33,6 +33,7 @@ import {omitDeepPaths} from './functions';
 import {pickDeepPaths} from './functions';
 import {splitAtInclusive} from './functions';
 import {reqStrPathThrowing} from './throwingFunctions';
+import {omitDeepBy} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -618,6 +619,59 @@ describe('helperFunctions', () => {
     );
     expect(res.peanut.almond.cashew.brazilNut).toEqual({butter: 'BRAZILNUT Butter'});
     expect(res.peanut.almond.butter).toEqual('ALMOND Butter');
+  });
+
+  test('omitDeepBy', () => {
+    const res = omitDeepBy(
+      (k, v) => R.startsWith('_')(k),
+      {
+        peanut: {
+          almond: {
+            cashew: {
+              _brazilNut: {},
+              pecan: [
+                {are: {the: {_best: true}}}
+              ]
+            },
+            _filbert: [
+              {
+                walnut: {}
+              }
+            ]
+          }
+        }
+      }
+    );
+    expect(res).toEqual({
+      peanut: {
+        almond: {
+          cashew: {
+            pecan: [
+              {are: {the: {}}}
+            ]
+          }
+        }
+      }
+    });
+    const res2 = omitDeepBy(
+      (k, v) => R.startsWith('_')(k),
+      {
+        _peanut: {
+          almond: {
+            cashew: {
+              _brazilNut: {}
+            },
+            _filbert: [
+              {
+                walnut: {},
+                pecan: {}
+              }
+            ]
+          }
+        }
+      }
+    );
+    expect(res2).toEqual({});
   });
 
   test('keyStringToLensPath', () => {

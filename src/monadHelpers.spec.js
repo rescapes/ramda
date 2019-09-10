@@ -1246,7 +1246,7 @@ describe('monadHelpers', () => {
   });
 
   test('mapResultTaskWithOtherInputs', done => {
-    expect.assertions(3);
+    expect.assertions(4);
     const errors = [];
     mapResultTaskWithOtherInputs(
       {
@@ -1285,6 +1285,18 @@ describe('monadHelpers', () => {
       defaultRunToResultConfig({
         onResolved: stuff => {
           expect(stuff).toEqual({a: 1, b: 1, kid: 'Billy the kid and his friends became a billy goat'});
+        }
+      }, errors, done)
+    );
+
+    // When we don't map keys things still work
+    mapResultTaskWithOtherInputs(
+      {},
+      ({kid, ...rest}) => rejected('Catastrophe, and I\'m not even a result!')
+    )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errorz, error) => {
+          expect(error).toEqual('Catastrophe, and I\'m not even a result!');
         }
       }, errors, done)
     );
