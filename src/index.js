@@ -112,7 +112,8 @@ export {
   toNamedResponseAndInputs,
   mapResultTaskWithOtherInputs,
   taskToResultTask,
-  waitAllBucketed
+  waitAllBucketed,
+  sequenceBucketed
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';

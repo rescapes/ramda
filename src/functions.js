@@ -131,7 +131,13 @@ export const idOrIdFromObj = R.when(
 export const mergeDeep = R.mergeWith((l, r) => {
   // If either (hopefully both) items are arrays or not both objects
   // accept the right value
-  return ((l && l.concat && Array.isArray(l)) || (r && r.concat && Array.isArray(r))) || !(R.is(Object, l) && R.is(Object, r)) ?
+  return (
+    // If either is a function take the last
+    (R.is(Function, l) || R.is(Function, r)) ||
+    // If either is an array take the last
+    (l && l.concat && Array.isArray(l)) ||
+    (r && r.concat && Array.isArray(r))) ||
+  !(R.is(Object, l) && R.is(Object, r)) ?
     r :
     mergeDeep(l, r); // tail recursive
 });
@@ -257,7 +263,7 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
               R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
               res => applyObj(key, res)
             )(v),
-            ([kk, ll, rr]) =>_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
+            ([kk, ll, rr]) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
           )([key, l, r])
         )
       )
