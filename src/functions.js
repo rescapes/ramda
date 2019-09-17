@@ -1118,6 +1118,6 @@ export const splitAtInclusive = (index, list) => {
   ];
 };
 
-export const diffProps = (props, oldObj, newObj) => {
-
-};
+export const eqPropsAll = R.curry(
+  (props, obj1, obj2) => R.all(prop => R.eqProps(prop, obj1, obj2), props)
+);

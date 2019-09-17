@@ -34,6 +34,7 @@ import {pickDeepPaths} from './functions';
 import {splitAtInclusive} from './functions';
 import {reqStrPathThrowing} from './throwingFunctions';
 import {omitDeepBy} from './functions';
+import {eqPropsAll} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -885,5 +886,10 @@ describe('helperFunctions', () => {
     expect(splitAtInclusive(1, 'murderforajarofredrum')).toEqual(
       ['mu', 'urderforajarofredrum']
     );
+  });
+
+  test('eqPropsAll', () => {
+    expect(eqPropsAll(['a', 'b'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(true);
+    expect(eqPropsAll(['a', 'b', 'c'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(false);
   });
 });

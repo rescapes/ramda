@@ -70,7 +70,8 @@ export {
   pickDeepPaths,
   applyDeep,
   applyDeepAndMapObjs,
-  splitAtInclusive
+  splitAtInclusive,
+  eqPropsAll
 } from './functions';
 export {
   throwIfSingleResultError,
