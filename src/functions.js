@@ -1118,6 +1118,24 @@ export const splitAtInclusive = (index, list) => {
   ];
 };
 
-export const eqPropsAll = R.curry(
-  (props, obj1, obj2) => R.all(prop => R.eqProps(prop, obj1, obj2), props)
+/**
+ * Whether the objects are equal at the given propStr. Null objects are never equal
+ * @param {String} stringPath Path of props separated by dots
+ * @param {Object|Array} obj1 The object to compare to obj2 at the propStr
+ * @param {Object|Array} obj2 The object to compare to obj1 at the propStr
+ * @returns {Boolean} True or false
+ */
+export const eqStrPath = R.curry((stringPath, obj1, obj2) => {
+  return R.apply(R.equals, R.map(strPathOr(null, stringPath), [obj1, obj2]));
+});
+
+/**
+ * Whether the objects are equal at the given strPaths. Null objects are never equal
+ * @param [{String}] strPaths Paths of props separated by dots
+ * @param {Object|Array} obj1 The object to compare to obj2 at the propStr
+ * @param {Object|Array} obj2 The object to compare to obj1 at the propStr
+ * @returns {Boolean} True or false
+ */
+export const eqStrPathsAll = R.curry(
+  (strPaths, obj1, obj2) => R.all(prop => eqStrPath(prop, obj1, obj2), strPaths)
 );

@@ -35,6 +35,8 @@ import {splitAtInclusive} from './functions';
 import {reqStrPathThrowing} from './throwingFunctions';
 import {omitDeepBy} from './functions';
 import {eqPropsAll} from './functions';
+import {eqStrPath} from './functions';
+import {eqStrPathsAll} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -888,8 +890,21 @@ describe('helperFunctions', () => {
     );
   });
 
-  test('eqPropsAll', () => {
-    expect(eqPropsAll(['a', 'b'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(true);
-    expect(eqPropsAll(['a', 'b', 'c'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(false);
+  test('eqStrPath', () => {
+    expect(eqStrPath('bubble.gum.0.soup',
+      {bubble: {gum: [{soup: 'banana'}]}},
+      {bubble: {gum: [{soup: 'banana'}]}}
+    )).toEqual(true);
+    expect(eqStrPath('bubble.gum.soup',
+      {bubble: {gum: {soup: 'banana'}}},
+      {bubble: {gum: {soup: 'goat'}}}
+    )).toEqual(false);
+  });
+
+  test('eqStrPathsAll', () => {
+    expect(eqStrPathsAll(['a', 'b'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(true);
+    expect(eqStrPathsAll(['a', 'b', 'c'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(false);
+    expect(eqStrPathsAll(['a.goat', 'b'], {a: {goat: 1}, b: 2, c: 3}, {a: {goat: 1}, b: 2, c: 'hubabalu'})).toEqual(true);
+    expect(eqStrPathsAll(['a', 'b.pumpkin', 'c'], {a: 1, b: {pumpkin: null}, c: 3}, {a: 1, b: {pumpkin: null}, c: 'hubabalu'})).toEqual(false);
   });
 });

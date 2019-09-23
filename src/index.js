@@ -71,7 +71,8 @@ export {
   applyDeep,
   applyDeepAndMapObjs,
   splitAtInclusive,
-  eqPropsAll
+  eqStrPath,
+  eqStrPathsAll
 } from './functions';
 export {
   throwIfSingleResultError,

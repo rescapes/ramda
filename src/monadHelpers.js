@@ -24,7 +24,7 @@ import {Just} from 'folktale/maybe';
  * @returns {void} No return
  */
 export const defaultOnRejected = R.curry((errors, reject) => {
-  console.warn('Accumulated task errors:\n', errors); // eslint-disable-line no-console
+  console.warn('Accumulated task errors:\n', R.join('\n', R.map(error => JSON.stringify(error), errors))); // eslint-disable-line no-console
   throw(reject);
 });
 const _onRejected = defaultOnRejected;
