@@ -595,6 +595,52 @@ export const toNamedResponseAndInputs = R.curry((name, f, arg) => {
 });
 
 /**
+ * Internal method to place a Result instance at the key designated by resultOutputKey merged with an
+ * object remainingInputObj. This is used by mapResultMonadWithOtherInputs and for task error handling by
+ * mapResultTaskWithOtherInputs
+ * @param {String} [resultOutputKey] The key to use for the output Result instance. If not specified,
+ * The result is instead merged with the remainingInputObj
+ * @param {Object} remainingInputObj Input object that does not include the resultInputKey Result
+ * @param {Object} result The Result instance to output
+ * @returns {Object} remainingInputObject merged with {resultOutputKey: result} or result
+ * @private
+ */
+const _mapResultToOutputKey = (resultOutputKey, remainingInputObj, result) => R.ifElse(
+  R.always(resultOutputKey),
+  // Leave the remainingInputObj out
+  _result => R.merge(remainingInputObj, {[resultOutputKey]: _result}),
+  // If there is anything in the remainingInputObj, merge it with the result.value
+  _result => R.map(R.merge(remainingInputObj), _result)
+)(result);
+
+/**
+ * For mapResultMonadWithOtherInputs separates the resultInputKey value from the other input values in inputObj
+ * @param {String} [resultInputKey] Key indicating a Result instance in inputObj. If null then the entire inputObj
+ * is assumed to be a Result
+ * @param {Object} inputObj Input object containing a Result at inputObj
+ * @returns {{remainingInputObj: *, inputResult: *}|{remainingInputObj: {}, inputResult: *}}
+ * remainingInputObj is inputObject without resultInputKey, inputResult is the value of resultInputKey or simply
+ * inputObject if resultInputKey is not specified
+ * @private
+ */
+const _separateResultInputFromRemaining = (resultInputKey, inputObj) => {
+  if (resultInputKey) {
+    // Omit resultInputKey since we need to process it separately
+    return {
+      remainingInputObj: R.omit([resultInputKey], inputObj),
+      // inputObj[resultInputKey] must exist
+      inputResult: reqStrPathThrowing(resultInputKey, inputObj)
+    };
+  } else {
+    // No resultInputKey, so the the entire input is an inputObj
+    return {
+      remainingInputObj: {},
+      inputResult: inputObj
+    };
+  }
+};
+
+/**
  * Like mapToNamedResponseAndInputs but operates on one incoming Result.Ok|Error and outputs a monad with it's internal
  * value containing a Result along with the other unaltered input keys. If the incoming instance is a Result.Ok, it's
  * value is passed to f. Otherwise f is skipped.
@@ -633,37 +679,19 @@ export const mapResultMonadWithOtherInputs = R.curry(
   // Map Result inputObj[resultInputKey] to a merge of its value at key inputKey with inputObj (inputObj omits resultInputKey)
   // Monad M, Result R: R a -> R M b
   ({resultInputKey, inputKey, resultOutputKey, wrapFunctionOutputInResult, monad}, f, inputObj) => {
-    let remainingInputObj, inputResult;
-    if (resultInputKey) {
-      // Omit resultInputKey since we need to process it separately
-      remainingInputObj = R.omit([resultInputKey], inputObj);
-      // inputObj[resultInputKey] must exist
-      inputResult = reqStrPathThrowing(resultInputKey, inputObj);
-    } else {
-      // No resultInputKey, so the the entire input is an inputObj
-      remainingInputObj = {};
-      inputResult = inputObj;
-    }
 
-    // If we have a resultOutputKey, put the result under that key and
-    const mapResultToOutputkey = (_resultOutputKey, _remainingInputObj, result) => R.ifElse(
-      R.always(_resultOutputKey),
-      // Leave the remainingInputObj out
-      _result => R.merge(_remainingInputObj, {[_resultOutputKey]: _result}),
-      // If there is anything in the remainingInputObj, merge it with the result.value
-      _result => R.map(R.merge(_remainingInputObj), _result)
-    )(result);
+    const {remainingInputObj, inputResult} = _separateResultInputFromRemaining(resultInputKey, inputObj);
 
     // If our incoming Result is a Result.Error, just wrap it in the monad with the expected resultOutputKey
     // This is the same resulting structure if the f produces a Result.Error
     if (Result.Error.hasInstance(inputResult)) {
       return inputResult.orElse(
-        error => monad(mapResultToOutputkey(resultOutputKey, remainingInputObj, inputResult))
+        error => monad(_mapResultToOutputKey(resultOutputKey, remainingInputObj, inputResult))
       );
     }
     return R.chain(
       value => R.compose(
-        resultMonad => R.map(result => mapResultToOutputkey(resultOutputKey, remainingInputObj, result), resultMonad),
+        resultMonad => R.map(result => _mapResultToOutputKey(resultOutputKey, remainingInputObj, result), resultMonad),
         // Wrap the monad value from f in a Result if needed (if f didn't produce one)
         // Monad M: Result R: M b | M R b -> M R b
         outputMonad => R.when(
@@ -708,7 +736,16 @@ export const mapResultTaskWithOtherInputs = R.curry(
       {resultInputKey, inputKey, resultOutputKey, wrapFunctionOutputInResult, monad: of},
       f,
       inputObj
-    ).orElse(error => of(Result.Error(error)));
+    ).orElse(
+      // If the task itself fails, put the error in the resultOutputKey
+      error => {
+        // Separate the inputResult from the other input values
+        const {remainingInputObj, inputResult} = _separateResultInputFromRemaining(resultInputKey, inputObj);
+        // Create a Result.Error at resultOutputKey and wrap the object in a task. This matches the successful
+        // outcome but with a Result.Error
+        return of((_mapResultToOutputKey(resultOutputKey, remainingInputObj, Result.Error(error))))
+      }
+    );
   }
 );
 

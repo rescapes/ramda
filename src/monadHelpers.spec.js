@@ -1246,7 +1246,7 @@ describe('monadHelpers', () => {
   });
 
   test('mapResultTaskWithOtherInputs', done => {
-    expect.assertions(4);
+    expect.assertions(5);
     const errors = [];
     mapResultTaskWithOtherInputs(
       {
@@ -1273,6 +1273,21 @@ describe('monadHelpers', () => {
       defaultRunConfig({
         onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
           expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'Billy was never a kid'});
+        })
+      }, errors, done)
+    );
+
+    // Make sure that the monad defaults to Task with a Result.Error for rejected Task
+    mapResultTaskWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        resultOutputKey: 'billyGoatResult'
+      },
+      ({kid}) => rejected("It doesn't matter what Billy was")
+    )({a: 1, b: 1, kidResult: Result.Ok('Billy will never be')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'It doesn\'t matter what Billy was'});
         })
       }, errors, done)
     );
