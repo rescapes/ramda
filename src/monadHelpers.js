@@ -631,13 +631,12 @@ const _separateResultInputFromRemaining = (resultInputKey, inputObj) => {
       // inputObj[resultInputKey] must exist
       inputResult: reqStrPathThrowing(resultInputKey, inputObj)
     };
-  } else {
+  }
     // No resultInputKey, so the the entire input is an inputObj
     return {
       remainingInputObj: {},
       inputResult: inputObj
     };
-  }
 };
 
 /**
@@ -679,7 +678,6 @@ export const mapResultMonadWithOtherInputs = R.curry(
   // Map Result inputObj[resultInputKey] to a merge of its value at key inputKey with inputObj (inputObj omits resultInputKey)
   // Monad M, Result R: R a -> R M b
   ({resultInputKey, inputKey, resultOutputKey, wrapFunctionOutputInResult, monad}, f, inputObj) => {
-
     const {remainingInputObj, inputResult} = _separateResultInputFromRemaining(resultInputKey, inputObj);
 
     // If our incoming Result is a Result.Error, just wrap it in the monad with the expected resultOutputKey
@@ -743,7 +741,7 @@ export const mapResultTaskWithOtherInputs = R.curry(
         const {remainingInputObj, inputResult} = _separateResultInputFromRemaining(resultInputKey, inputObj);
         // Create a Result.Error at resultOutputKey and wrap the object in a task. This matches the successful
         // outcome but with a Result.Error
-        return of((_mapResultToOutputKey(resultOutputKey, remainingInputObj, Result.Error(error))))
+        return of((_mapResultToOutputKey(resultOutputKey, remainingInputObj, Result.Error(error))));
       }
     );
   }

@@ -7,7 +7,7 @@
   "license": "MIT",
   "main": "lib/index.js",
   "module": "esm/index.js",
-  "jsnext:main": "esm/index.js",
+  "jsnext:main": "src/index.js",
   "files": [
     "lib",
     "esm",

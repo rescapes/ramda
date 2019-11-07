@@ -1283,7 +1283,7 @@ describe('monadHelpers', () => {
         resultInputKey: 'kidResult',
         resultOutputKey: 'billyGoatResult'
       },
-      ({kid}) => rejected("It doesn't matter what Billy was")
+      ({kid}) => rejected('It doesn\'t matter what Billy was')
     )({a: 1, b: 1, kidResult: Result.Ok('Billy will never be')}).run().listen(
       defaultRunConfig({
         onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
