@@ -101,6 +101,8 @@ export {
   traverseReduce,
   traverseReduceDeep,
   traverseReduceWhile,
+  traverseReduceError,
+  traverseReduceResultError,
   mapMDeep,
   traverseReduceDeepResults,
   chainMDeep,

@@ -266,6 +266,40 @@ export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
 );
 
 /**
+ * Same as traverseReduce but uses mapError to handle Result.Error or anything else that implements mapError
+ * @param {function} join It's necessary to pass a join function to instruct how to extract the embedded value,
+ * since Result.Error and similar don't implement chain or join. For Result.Error, join would be:
+ * const join = error => error.matchWith({Error: ({value}) => value}) or simply error => error.value
+ * @param {function} accumulator Accumulates the values of the monads
+ * @param {object} initialValue The initial value should match an empty error monad
+ * @param {[object]} list The list of error monads
+ * @returns {Object} The reduced error monad
+ */
+export const traverseReduceError = (join, accumulator, initialValue, list) => R.reduce(
+  (containerResult, container) => join(containerResult.mapError(
+    res => container.mapError(v => accumulator(res, v))
+  )),
+  initialValue,
+  list
+);
+
+/**
+ * traverseReduceError specifically for Result.Error
+ * @param {function} accumulator Accumulates the values of the monads
+ * @param {object} initialValue The initial value should match an empty error monad
+ * @param {[object]} list The list of error monads
+ * @returns {Object} The reduced error monad
+ */
+export const traverseReduceResultError = (accumulator, initialValue, list) => {
+  return traverseReduceError(
+    error => error.matchWith({Error: ({value}) => value}),
+    accumulator,
+    initialValue,
+    list
+  );
+};
+
+/**
  * A version of traverse that also reduces. I'm sure there's something in Ramda for this, but I can't find it.
  * The first argument specify the depth of the container (monad). So a container of R.compose(Task.of Result.Ok(1)) needs
  * a depth or 2. A container of R.compose(Task.of, Result.Ok)([1,2,3]) needs a depth of 3, where the array is the 3rd container
@@ -632,11 +666,11 @@ const _separateResultInputFromRemaining = (resultInputKey, inputObj) => {
       inputResult: reqStrPathThrowing(resultInputKey, inputObj)
     };
   }
-    // No resultInputKey, so the the entire input is an inputObj
-    return {
-      remainingInputObj: {},
-      inputResult: inputObj
-    };
+  // No resultInputKey, so the the entire input is an inputObj
+  return {
+    remainingInputObj: {},
+    inputResult: inputObj
+  };
 };
 
 /**

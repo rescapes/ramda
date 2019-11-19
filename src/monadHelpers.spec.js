@@ -39,7 +39,7 @@ import {
   taskToResultTask,
   toNamedResponseAndInputs,
   waitAllBucketed,
-  sequenceBucketed
+  sequenceBucketed, traverseReduceError, traverseReduceResultError
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -1362,6 +1362,29 @@ describe('monadHelpers', () => {
       }
     }, errors, done));
      */
+  });
+
+  test('traverseReduceError', () => {
+    expect(
+      traverseReduceError(
+        error => error.matchWith({Error: ({value}) => value}),
+        // Concat the strings
+        R.concat,
+        Result.Error(''),
+        [Result.Error('Cowardly'), Result.Error('Scarecrow')]
+      )
+    ).toEqual(Result.Error('CowardlyScarecrow'));
+  });
+  
+  test('traverseReduceResultError', () => {
+    expect(
+      traverseReduceResultError(
+        // Concat the strings
+        R.concat,
+        Result.Error(''),
+        [Result.Error('Cowardly'), Result.Error('Scarecrow')]
+      )
+    ).toEqual(Result.Error('CowardlyScarecrow'));
   });
 });
 
