@@ -39,7 +39,11 @@ import {
   taskToResultTask,
   toNamedResponseAndInputs,
   waitAllBucketed,
-  sequenceBucketed, traverseReduceError, traverseReduceResultError
+  sequenceBucketed,
+  traverseReduceError,
+  traverseReduceResultError,
+  mapToMergedResponseAndInputs,
+  toMergedResponseAndInputs
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -1069,6 +1073,19 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapToMergedResponseAndInputs', done => {
+    R.compose(
+      mapToMergedResponseAndInputs(({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
+          done();
+        }
+      })
+    );
+  });
+
   test('mapToNamedResponseAndInputs', done => {
     const errors = [];
     const tsk = mapToNamedResponseAndInputs('foo', ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}));
@@ -1088,6 +1105,14 @@ describe('monadHelpers', () => {
       ({a: 1, b: 1, c: 'was a racehorse'})
     );
     expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+  });
+
+  test('toMergedResponseAndInputs', () => {
+    const value = toMergedResponseAndInputs(
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'}),
+      ({a: 1, b: 1, c: 'was a racehorse'})
+    );
+    expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
   });
 
   test('mapToPath', done => {

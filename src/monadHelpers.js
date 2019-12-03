@@ -225,8 +225,8 @@ export const resultToTaskWithResult = R.curry((f, result) => result.matchWith({
 export const taskToResultTask = task => {
   return task.map(v => {
     return R.cond([
-      // Chain Result.Ok to Result.Error
-      [Result.Ok.hasInstance, R.chain(e => Result.Error(e))],
+      // Leave Result.Ok alone
+      [Result.Ok.hasInstance, R.identity],
       // Leave Result.Error alone
       [Result.Error.hasInstance, R.identity],
       // If the rejected function didn't produce a Result then wrap it in a Result.Ok
@@ -595,7 +595,23 @@ export const doMDeep = R.curry((monadDepth, func, f, monad) => R.compose(
  * @param {Function} f Function expecting an object and returning a monad that can be mapped
  * @return {Object} The value of the monad at the value key merged with the input args
  */
-export const mapToResponseAndInputs = f => arg => R.map(value => R.merge(arg, {value}), f(arg));
+export const mapToResponseAndInputs = R.curry(
+  (f, arg) => R.map(value => R.merge(arg, {value}), f(arg))
+);
+
+/**
+ * Given a monad whose return value can be mapped and a single input object,
+ * map the monad return value to return an obj merged with input object in its original form
+ * of the function. Example: mapToResponseAndInputs(({a, b, c}) => task.of({d: true, e: true}))({a, b, c}) -> task.of({a, b, c, d, e})
+ * @param {Function} f Function expecting an object and returning a monad that can be mapped to an object
+ * @return {Object} The value of the monad merged with the input args
+ */
+export const mapToMergedResponseAndInputs = R.curry(
+  (f, arg) => R.map(
+    obj => R.merge(arg, obj),
+    f(arg)
+  )
+);
 
 /**
  * Given a monad whose return value can be mapped and a single input object,
@@ -625,6 +641,20 @@ export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => R.map(
 export const toNamedResponseAndInputs = R.curry((name, f, arg) => {
   const monadF = _arg => Just(f(_arg));
   const just = mapToNamedResponseAndInputs(name, monadF, arg);
+  return just.unsafeGet();
+});
+
+
+/**
+ * Same as toMergedResponseAndInputs but works with a non-monad
+ * @param {String} name The key name for the output
+ * @param {Function} f Function expecting an object and returning an value that is directly merged with the other args
+ * @param {Object} arg The object containing the incoming named arguments that f is called with
+ * @return {Object} The output of f named named and merged with arg
+ */
+export const toMergedResponseAndInputs = R.curry((f, arg) => {
+  const monadF = _arg => Just(f(_arg));
+  const just = mapToMergedResponseAndInputs(monadF, arg);
   return just.unsafeGet();
 });
 
