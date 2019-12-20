@@ -46,7 +46,7 @@ const whenDone = done => {
 /**
  * Defaults the defaultOnRejected and defaultOnCancelled to throw or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result. Example:
- * task.listen().run(defaultRunConfig({
+ * task.run().listen(defaultRunConfig({
  *  onResolved: value => ... do something with value ...
  * }))
  * @param {Object} obj Object of callbacks
@@ -94,7 +94,7 @@ export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, 
  * get called directly. Rather a Result.Error should be resolved and then this function calls defaultOnRejected. cancellation
  * should probably ignores the value
  * Example:
- * task.listen().run(defaultRunConfig({
+ * task.run().listen(defaultRunConfig({
  *  onResolved: value => ... do something with value ...
  * }))
  * @param {Object} obj Object of callbacks
@@ -102,10 +102,9 @@ export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, 
  * @param {Function} [obj.onRejected] Optional expects a list of accumulated errors and the final error. This function
  *  will be called for normal task rejection and also if the result of the task is a result.Error, in which
  *  case errors will be R.concat(errors || [], [result.Error]) and error will be result.Error
- * @param {Function} obj.onResolved Unary function expecting the resolved value of Result.Ok
- * @param {Function} obj.onCancelled Optional cancelled function
- * @param {[Object]} errors Optional accumulated errors
- * @param {Function} done Optional done function for jest
+ * @param {Function} [obj.onCancelled] Optional cancelled function
+ * @param {[Object]} errors Empty array to collect errors
+ * @param {Function} done Done function from test definition
  * @returns {Object} Run config with defaultOnCancelled, defaultOnRejected, and onReolved handlers
  */
 export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, errors, done) => {
@@ -121,17 +120,19 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
   };
 
   return defaultRunConfig({
-      onResolved: result => result.map(value => {
-        try {
-          // Wrap in case anything goes wrong with the assertions
-          onResolved(value);
-        } catch (error) {
-          reject(R.concat(errors || [], [error]), error);
-        }
-        // don't finalize here, defaultRunConfig.onResolved does that
-      }).mapError(
-        error => reject(errors || [], error)
-      ),
+      onResolved: result => {
+        return result.map(value => {
+          try {
+            // Wrap in case anything goes wrong with the assertions
+            onResolved(value);
+          } catch (error) {
+            reject(R.concat(onCancelled || [], [error]), error);
+          }
+          // don't finalize here, defaultRunConfig.onResolved does that
+        }).mapError(
+          error => reject(onCancelled || [], error)
+        );
+      },
       onRejected: error => reject([], error),
       onCancelled: onCancelled
     },
@@ -327,7 +328,6 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
   )
 );
 
-
 /**
  * A version of traverseReduce that also reduces until a boolean condition is met.
  * Same arguments as reduceWhile, but the initialValue must be an applicative, like task.of({}) or Result.of({})
@@ -342,6 +342,11 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
  * sense for things like Result where there is no consequence of evaluating them. But we have to run a Task to
  * evaluate it so we might want to quit after the previous task but also add that task result to the accumulation.
  * In that case set this true
+ * @param {Function} [predicateOrObj.mappingFunction] Defaults to R.map. The function used to each monad result from list.
+ * If the accumulator does not create a new monad then R.map is sufficient. However if the accumulator does create
+ * a new monad this should be set to R.chain so that the resulting monad isn't put inside the monad result
+ * @param {Function} [predicateOrObj.monadConstructor] Default to R.identity. Function to create a monad if mappingFunction uses R.chain. This
+ * would be an task of function for task monads, an Result,Ok monad for Results, etc.
  * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
  * false it "short-circuits" the iteration and returns teh current value of the accumulator
  * @param {Object} initialValue An applicative to be the intial reduced value of accumulator
@@ -350,34 +355,47 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
  */
 export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, list) => {
   // Determine if predicateOrObj is just a function or also an object
-  const {predicate, accumulateAfterPredicateFail} =
-    R.ifElse(
-      R.is(Function),
-      () => ({predicate: predicateOrObj, accumulateAfterPredicateFail: false}),
-      R.identity)(predicateOrObj);
+  const {predicate, accumulateAfterPredicateFail} = R.ifElse(
+    R.is(Function),
+    () => ({predicate: predicateOrObj, accumulateAfterPredicateFail: false}),
+    R.identity
+  )(predicateOrObj);
+
+  // Map the applicator below with R.map unless an override like R.chain is specified
+  const mappingFunction = R.propOr(R.map, 'mappingFunction', predicateOrObj);
+  const monadConstructor = R.propOr(R.identity, 'monadConstructor', predicateOrObj);
 
   return R.reduce(
     (applicatorRes, applicator) => {
-      return applicatorRes.chain(
+      return R.chain(
         result => {
           return R.ifElse(
             R.prop('@@transducer/reduced'),
             // Done, wrap it in the type. This will get called for every container of the reduction,
             // since the containers are chained together. But we'll never map our applicator again
             res => initialValue.map(R.always(res)),
-            () => applicator.map(value => {
-              // If the applicator's value passes the predicate, accumulate it and process the next item
-              // Otherwise we stop reducing by returning R.reduced()
-              return R.ifElse(
-                v => predicate(result, v),
-                v => accumulator(result, v),
-                // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
-                // IF the user wants to add v to the accumulation after predicate failure, do it.
-                v => R.reduced(accumulateAfterPredicateFail ? accumulator(result, v) : result)
-              )(value);
-            })
+            () => mappingFunction(
+              value => {
+                // If the applicator's value passes the predicate, accumulate it and process the next item
+                // Otherwise we stop reducing by returning R.reduced()
+                return R.ifElse(
+                  v => predicate(result, v),
+                  v => accumulator(result, v),
+                  // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
+                  // IF the user wants to add v to the accumulation after predicate failure, do it.
+                  v => {
+                    // Use monadConstructor if is false so we return the right monad type if specified
+                    return (accumulateAfterPredicateFail ? R.identity : monadConstructor)(
+                      R.reduced(accumulateAfterPredicateFail ? accumulator(result, v) : result)
+                    );
+                  }
+                )(value);
+              },
+              applicator
+            )
           )(result);
-        }
+        },
+        applicatorRes
       );
     },
     initialValue,
@@ -391,7 +409,6 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
     )(value));
   });
 };
-
 
 /**
  * Like traverseReduceDeep but also accepts an accumulate to deal with Result.Error objects.
@@ -567,6 +584,18 @@ export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, valu
 export const mapMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.map, f, monad));
 
 /**
+ * composeWith using mapMDeep Each function of compose will receive the object monadDepth levels deep.
+ * The function should transform the value without wrapping in monads
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {*} list  List of functions that expects the unwrapped value and returns an unwrapped value
+ * @returns {Object} A function expecting the input value(s), which is/are passed to the last function of list
+ * The value returned by the first function of list wrapped in the monadDepth levels of monads
+ */
+export const composeWithMapMDeep = (monadDepth, list) => {
+  return R.composeWith(mapMDeep(monadDepth))(list);
+};
+
+/**
  * Chain based on the depth of the monad
  * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
  * @param {Function} Mapping function that operates at the given depth.
@@ -574,6 +603,18 @@ export const mapMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.
  * @returns {Object} The mapped monad value
  */
 export const chainMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.chain, f, monad));
+
+/**
+ * composeWith using mapMDeep Each function of compose will receive the object monadDepth levels deep.
+ * The function should transform the value without wrapping in monads
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {*} list  List of functions that expects the unwrapped value and returns an unwrapped value
+ * @returns {Object} A function expecting the input value(s), which is/are passed to the last function of list
+ * The value returned by the first function of list wrapped in the monadDepth levels of monads
+ */
+export const composeWithChainMDeep = (monadDepth, list) => {
+  return R.composeWith(chainMDeep(monadDepth))(list);
+};
 
 /**
  * Map/Chain/Filter etc based on the depth of the monad and the iterFunction

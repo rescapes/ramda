@@ -43,7 +43,7 @@ import {
   traverseReduceError,
   traverseReduceResultError,
   mapToMergedResponseAndInputs,
-  toMergedResponseAndInputs
+  toMergedResponseAndInputs, composeWithChainMDeep, composeWithMapMDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -697,6 +697,39 @@ describe('monadHelpers', () => {
     });
   });
 
+  test('traverseReduceWhileWithMaxCalls', done => {
+    const partialBlocks = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    const t = traverseReduceWhile(
+      {
+        predicate: ({value: {partialBlocks: pbs}}, x) => R.length(pbs),
+        accumulateAfterPredicateFail: false,
+        mappingFunction: R.chain,
+        monadConstructor: of
+      },
+      ({value: {partialBlocks: pbs, blocks}}, x) => {
+        // Consume two at a time
+        return of(Result.Ok(
+          {
+            partialBlocks: R.slice(2, Infinity, pbs),
+            blocks: R.concat(blocks, R.slice(0, 2, pbs))
+          }
+        ));
+      },
+      of(Result.Ok({partialBlocks, blocks: []})),
+      // Just need to call a maximum of partialBlocks to process them all
+      R.times(of, R.length(partialBlocks))
+    );
+    t.run().listen(defaultRunToResultConfig({
+      onResolved: obj => {
+        expect(obj).toEqual({
+          partialBlocks: [],
+          blocks: ['a', 'b', 'c', 'd']
+        });
+      }
+    }, errors, done));
+  });
+
 
   test('lift1stOf2ForMDeepMonad', () => {
     // a -> Result a
@@ -870,6 +903,49 @@ describe('monadHelpers', () => {
           )
       })
     );
+  });
+
+
+  test('Using composeWith with mapMDeep', () => {
+    const maybe = composeWithMapMDeep(2, [
+      // Ditto
+      v => R.when(R.contains('T'), x => R.concat(x, '!'))(v),
+      // Single word gets processed thanks to mapMDeep(2)
+      v => `(${v})`,
+      // Creates a Just with an array. This 2-level monad can be processed on array item at a time
+      v => Maybe.Just(R.split(' ', v))
+    ])('Maybe Tonight');
+    // Result is Maybe.Just([])
+    expect(maybe.value).toEqual(['(Maybe)', '(Tonight)!']);
+  });
+
+  test('composeWithChainMDeep', () => {
+    const maybes = composeWithChainMDeep(2, [
+      // Extract word from each Maybe Just
+      v => Maybe.Just(R.when(R.contains('T'), x => R.concat(x, '!'))(v)),
+      // Chain, so we return a Maybe.Just for each word
+      v => Maybe.Just(`(${v})`),
+      // Creates a Just with an array. This 2-level monad can be processed on array item at a time
+      v => Maybe.Just(R.split(' ', v))
+    ])('Maybe Tonight');
+    // We get a list of Maybes back, so we must sequence to convert to a single Maybe
+    expect(R.sequence(Maybe.Just, maybes).value).toEqual(['(Maybe)', '(Tonight)!']);
+  });
+
+  test('composeWithChainMDeep and result tasks', done => {
+    const errors = [];
+    const tsk = composeWithChainMDeep(2, [
+      start => of(Result.Ok(R.concat(start, ' in'))),
+      start => of(Result.Ok(R.concat(start, ' foot'))),
+      start => of(Result.Ok(R.concat(start, ' right'))),
+      start => of(Result.Ok(R.concat(start, ' your'))),
+      start => of(Result.Ok(R.concat(start, ' put')))
+    ])('You');
+    tsk.run().listen(defaultRunToResultConfig({
+      onResolved: lyrics => {
+        expect(lyrics).toEqual('You put your right foot in');
+      }
+    }, errors, done));
   });
 
   test('objOfMLevelDeepMonadsToListWithPairs', () => {
@@ -1052,6 +1128,26 @@ describe('monadHelpers', () => {
     expect(resultOfMaybeOfListOfPairs).toEqual(resultMaybeConstructor([['a', 1], ['b', 2]]));
   });
 
+  test('ComposeK with arrays', () => {
+    const lyrics = R.composeK(
+      lyric => R.when(R.equals('me'), R.flip(R.concat)('!'))(lyric),
+      lyric => R.when(R.equals('a'), R.toUpper)(lyric),
+      lyric => R.when(R.equals('angry'), R.toUpper)(lyric),
+      lyric => R.split(' ', lyric)
+    )('a is for angry, which is what you are at me');
+    expect(R.join(' ', lyrics)).toEqual('A is for angry, which is what you are at me!');
+  });
+
+  test('Using composeWith(chain) instead of composeK', () => {
+    const maybe = R.composeWith(
+      // Equivalent to R.chain (just showing the arguments passed)
+      (func, x) => R.chain(func, x)
+    )([
+      v => Maybe.Just(R.concat(v, ' want to know')),
+      v => Maybe.Just(R.concat(v, ' I don\'t really'))
+    ])('Maybe,');
+    expect(maybe.value).toEqual('Maybe, I don\'t really want to know');
+  });
 
   /*
   test('liftObjDeep', () => {
@@ -1400,7 +1496,7 @@ describe('monadHelpers', () => {
       )
     ).toEqual(Result.Error('CowardlyScarecrow'));
   });
-  
+
   test('traverseReduceResultError', () => {
     expect(
       traverseReduceResultError(

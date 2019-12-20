@@ -535,7 +535,8 @@ export const transformKeys = R.curry((func, obj) =>
 
 /**
  * Renames the key of the object specified by the lens
- * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself
+ * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself.
+ * Use R.lensPath([]) to operate directly on obj
  * @param {String} from Key to rename
  * @param {String} to New name for the key
  * @param {Object} obj Object to traverse with the lens
@@ -548,11 +549,11 @@ export const renameKey = R.curry((lens, from, to, obj) => R.over(
   obj));
 
 /**
- * Duplicates the key of the object specified by the lens and key, to the given list of keys.
+ * Duplicates the key of the object specified by the lens and key, to the given list of keys or single key.
  * A duplicate of the value at key will be added at each of the toKeys using R.clone
  * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself
  * @param {String} key Key to duplicate the value of
- * @param [{String}] toKeys Array of new keys to make. New keys overwrite existing keys
+ * @param {String|[String]} toKeys Array of new keys to make. New keys overwrite existing keys
  * @param {Object} obj Object to traverse with the lens
  */
 export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
@@ -563,13 +564,22 @@ export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
     R.fromPairs(
       R.map(
         toKey => [toKey, R.clone(target[key])],
-        toKeys
+        toArrayIfNot(toKeys)
       )
     )
   ),
   // take the lens of this obj
   obj)
 );
+
+/**
+ * Converts a scalar value (!Array.isArray) to array an array
+ * @param {*|[*]} arrayOrScalar An array or scalar
+ * @returns {[*]} The scalar as an array or the untouched array
+ */
+export const toArrayIfNot = arrayOrScalar => {
+  return R.unless(Array.isArray, Array.of)(arrayOrScalar);
+};
 
 /**
  * Like duplicateKey but removes the original key

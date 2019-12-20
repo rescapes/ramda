@@ -37,6 +37,7 @@ import {omitDeepBy} from './functions';
 import {eqPropsAll} from './functions';
 import {eqStrPath} from './functions';
 import {eqStrPathsAll} from './functions';
+import {toArrayIfNot} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -289,6 +290,18 @@ describe('helperFunctions', () => {
             'and per se': {cactus: 'blossoms'},
             'a per se': {cactus: 'blossoms'},
             'o per se': {cactus: 'blossoms'}
+          }
+        }
+      }
+    );
+    expect(
+      f.duplicateKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
+    ).toEqual(
+      {
+        x: {
+          y: {
+            z: {cactus: 'blossoms'},
+            'and per se': {cactus: 'blossoms'}
           }
         }
       }
@@ -904,7 +917,21 @@ describe('helperFunctions', () => {
   test('eqStrPathsAll', () => {
     expect(eqStrPathsAll(['a', 'b'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(true);
     expect(eqStrPathsAll(['a', 'b', 'c'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(false);
-    expect(eqStrPathsAll(['a.goat', 'b'], {a: {goat: 1}, b: 2, c: 3}, {a: {goat: 1}, b: 2, c: 'hubabalu'})).toEqual(true);
-    expect(eqStrPathsAll(['a', 'b.pumpkin', 'c'], {a: 1, b: {pumpkin: null}, c: 3}, {a: 1, b: {pumpkin: null}, c: 'hubabalu'})).toEqual(false);
+    expect(eqStrPathsAll(['a.goat', 'b'], {a: {goat: 1}, b: 2, c: 3}, {
+      a: {goat: 1},
+      b: 2,
+      c: 'hubabalu'
+    })).toEqual(true);
+    expect(eqStrPathsAll(['a', 'b.pumpkin', 'c'], {a: 1, b: {pumpkin: null}, c: 3}, {
+      a: 1,
+      b: {pumpkin: null},
+      c: 'hubabalu'
+    })).toEqual(false);
+  });
+
+  test('toArrayIfNot', () => {
+    const eh = ['eh'];
+    expect(toArrayIfNot(eh)).toBe(eh);
+    expect(toArrayIfNot('eh')).toEqual(eh);
   });
 });
