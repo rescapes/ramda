@@ -43,7 +43,7 @@ import {
   traverseReduceError,
   traverseReduceResultError,
   mapToMergedResponseAndInputs,
-  toMergedResponseAndInputs, composeWithChainMDeep, composeWithMapMDeep
+  toMergedResponseAndInputs, composeWithChainMDeep, composeWithMapMDeep, composeWithMapExceptChainDeepestMDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -906,7 +906,7 @@ describe('monadHelpers', () => {
   });
 
 
-  test('Using composeWith with mapMDeep', () => {
+  test('composeWithMapMDeep', () => {
     const maybe = composeWithMapMDeep(2, [
       // Ditto
       v => R.when(R.contains('T'), x => R.concat(x, '!'))(v),
@@ -944,6 +944,52 @@ describe('monadHelpers', () => {
     tsk.run().listen(defaultRunToResultConfig({
       onResolved: lyrics => {
         expect(lyrics).toEqual('You put your right foot in');
+      }
+    }, errors, done));
+  });
+
+  test('composeWithMapChainLastMDeep', done => {
+    const errors = [];
+    const tsk = composeWithMapExceptChainDeepestMDeep(3, [
+      start => Maybe.Just(R.concat(start, ' in')),
+      start => Maybe.Just(R.concat(start, ' foot')),
+      start => Maybe.Just(R.concat(start, ' right')),
+      // Subsequent ones return just the deepest monad
+      start => Maybe.Just(R.concat(start, ' your')),
+      // The first function must return the m-deep wrapped monad
+      // The function used by composeWith will first map the task and then chain the Result
+      start => of(Result.Ok(Maybe.Just(R.concat(start, ' put'))))
+    ])('You');
+    tsk.run().listen(defaultRunToResultConfig({
+      onResolved: justLyrics => {
+        expect(justLyrics).toEqual(Maybe.Just('You put your right foot in'));
+      }
+    }, errors, done));
+  });
+
+  test('composeWithMapChainLastMDeepLogic', done => {
+    const errors = [];
+    expect.assertions(2);
+    const tsk = composeWithMapExceptChainDeepestMDeep(2, [
+      // Subsequent function will only process Result.Ok
+      deliciousFruitOnly => Result.Ok(R.concat('still ', deliciousFruitOnly)),
+      // Subsequent function returns the deepest monad
+      testFruit => R.ifElse(
+        R.contains('apple'),
+        ff => Result.Ok(R.concat('delicious ', ff)),
+        ff => Result.Error(R.concat('disgusting ', ff))
+      )(testFruit),
+      // Initial function returns 2-levels deep
+      fruit => of(Result.Ok(R.concat('test ', fruit)))
+    ]);
+    tsk('apple').run().listen(defaultRunToResultConfig({
+      onResolved: fruit => {
+        expect(fruit).toEqual('still delicious test apple');
+      }
+    }, errors, () => {}));
+    tsk('kumquat').run().listen(defaultRunToResultConfig({
+      onRejected: (errs, fruit) => {
+        expect(fruit).toEqual('disgusting test kumquat');
       }
     }, errors, done));
   });

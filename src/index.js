@@ -109,6 +109,7 @@ export {
   mapMDeep,
   traverseReduceDeepResults,
   chainMDeep,
+  mapExceptChainDeepestMDeep,
   doMDeep,
   mapToResponseAndInputs,
   mapToMergedResponseAndInputs,

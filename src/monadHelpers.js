@@ -592,6 +592,8 @@ export const mapMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.
  * The value returned by the first function of list wrapped in the monadDepth levels of monads
  */
 export const composeWithMapMDeep = (monadDepth, list) => {
+  // Each function, last to first, in list receives an unwrapped object and returns an unwrapped object.
+  // mapMDeep is called with each of these functions. The result of each mapMDeep is given to the next function
   return R.composeWith(mapMDeep(monadDepth))(list);
 };
 
@@ -605,6 +607,17 @@ export const composeWithMapMDeep = (monadDepth, list) => {
 export const chainMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.chain, f, monad));
 
 /**
+ * Map based on the depth of the monad-1 and chain the deepest level monad
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {Function} Chaining function that operates at the given depth.
+ * @param {Object} Monad of a least the given depth
+ * @returns {Object} The mapped then chained monad value
+ */
+export const mapExceptChainDeepestMDeep = R.curry((monadDepth, f, monad) => {
+  return doMDeepExceptDeepest(monadDepth, [R.map, R.chain], f, monad);
+});
+
+/**
  * composeWith using mapMDeep Each function of compose will receive the object monadDepth levels deep.
  * The function should transform the value without wrapping in monads
  * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
@@ -613,7 +626,34 @@ export const chainMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, 
  * The value returned by the first function of list wrapped in the monadDepth levels of monads
  */
 export const composeWithChainMDeep = (monadDepth, list) => {
+  // Each function, last to first, in list receives an unwrapped object and returns the monadDepth level deep monad
+  // chainMDeep is called with each of these functions. The result of each chainMDeep is given to the next function
   return R.composeWith(chainMDeep(monadDepth))(list);
+};
+
+/**
+ * composeWith using mapMDeep but chain the lowest level so that each function of list must return the deepest monad.
+ * Each function of compose will receive the object monadDepth levels deep.
+ * The last function (first called) must returned the monadDepth deep wrapped monad but subsequent ones must only
+ * return a type of the deepest monad.
+ * For example:
+ * const test = composeWithMapExceptChainDeepestMDeep(2, [
+ * // Subsequent function will only process Result.Ok
+ * deliciousFruitOnly => Result.Ok(R.concat('still ', deliciousFruitOnly)),
+ * // Subsequent function returns the deepest monad
+ * testFruit => R.ifElse(R.contains('apple'), f => Result.Ok(R.concat('delicious ', f)), f => Result.Error(R.concat('disgusting ', f)))(testFruit),
+ * // Initial function returns 2-levels deep
+ * fruit => task.of(Result.Ok(R.concat('test ', fruit)))
+ *])
+ * test('apple') => task.of(Result.Ok('still delicious test apple'))
+ * test('kumquat') => task.of(Result.Error('disgusting test kumquat'))
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {*} list  List of functions that expects the unwrapped value and returns an unwrapped value
+ * @returns {Object} A function expecting the input value(s), which is/are passed to the last function of list
+ * The value returned by the first function of list wrapped in the monadDepth levels of monads
+ */
+export const composeWithMapExceptChainDeepestMDeep = (monadDepth, list) => {
+  return R.composeWith(mapExceptChainDeepestMDeep(monadDepth))(list);
 };
 
 /**
@@ -628,6 +668,37 @@ export const doMDeep = R.curry((monadDepth, func, f, monad) => R.compose(
   // This composes the number of R.liftN(N) calls we need. We need one per monad level
   ...R.times(R.always(func), monadDepth)
 )(f)(monad));
+
+
+/**
+ * Map/Chain/Filter etc based on the depth of the monad and the funcPair. The deepest monad is processed
+ * with funcPair[1] and all higher level monads are processed with funcPair[0]. This allows for a combination
+ * such as [R.map, R.chain] to chain the deepest value but map the higher values so that the caller can
+ * change the deepest monad type without having to wrap the unchanging outer monad types. For instance
+ * the caller might have a monad task.of(Result.Ok) and want to convert it conditionally to task.of(Result.Error):
+ * const test = doMDeepExceptDeepest(2, [R.map, R.chain], R.ifElse(R.equals('pear'), Result.Error, Result.Ok)(of(result)))
+ * test(of(Result.Ok('apple'))) => of(Result.Ok('apple'))
+ * test(of(Result.Ok('pear'))) => of(Result.Error('pear'))
+ * Note that in this example task.of doesn't have to be used again to wrap the result
+ * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
+ * @param {[Function]} funcPair Two functions R.map, R.chain, R.filter or similar.
+ * The first function is composed monadDepth-1 times and the last function is composed once after the others
+ * @param {Function} f Mapping function that operates at the given depth.
+ * @param {Object} Monad of a least the given depth
+ * @returns {Object} The mapped monad value
+ */
+export const doMDeepExceptDeepest = R.curry((monadDepth, funcPair, f, monad) => {
+  return R.compose(
+    // This composes the number of R.liftN(N) calls we need. We need one per monad level
+    ...R.times(
+      R.always(
+        func => value => funcPair[0](func, value)
+      ),
+      monadDepth - 1
+    ),
+    func => value => funcPair[1](func, value)
+  )(f)(monad);
+});
 
 /**
  * Given a monad whose return value can be mapped and a single input object,
