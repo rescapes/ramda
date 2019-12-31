@@ -111,6 +111,7 @@ export {
   chainMDeep,
   mapExceptChainDeepestMDeep,
   doMDeep,
+  doMDeepExceptDeepest,
   mapToResponseAndInputs,
   mapToMergedResponseAndInputs,
   mapToNamedResponseAndInputs,
@@ -123,7 +124,10 @@ export {
   mapResultTaskWithOtherInputs,
   taskToResultTask,
   waitAllBucketed,
-  sequenceBucketed
+  sequenceBucketed,
+  composeWithChainMDeep,
+  composeWithMapExceptChainDeepestMDeep,
+  composeWithMapMDeep
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';

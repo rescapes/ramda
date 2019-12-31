@@ -145,6 +145,7 @@ describe('monadHelpers', () => {
   });
 
   test('defaultRunConfig Throws', () => {
+    const errors = [];
     expect(
       () => task(resolver => {
         throw new Error('Oh noo!!!');
@@ -153,9 +154,25 @@ describe('monadHelpers', () => {
           onResolved: resolve => {
             throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
           }
+        }, errors, () => {
         })
       )
     ).toThrow();
+  });
+
+  test('defaultRunConfig Throws on Assertion', done => {
+    const errors = [];
+    expect.assertions(1);
+    expect(
+      () => {
+        return of({cool: true}).run().listen(
+          defaultRunConfig({
+            onResolved: resolve => {
+              throw ('Crazy assertion failure');
+            }
+          }, errors, done)
+        );
+      }).toThrow();
   });
 
   test('defaultRunToResultConfig Resolved', done => {
@@ -986,7 +1003,8 @@ describe('monadHelpers', () => {
       onResolved: fruit => {
         expect(fruit).toEqual('still delicious test apple');
       }
-    }, errors, () => {}));
+    }, errors, () => {
+    }));
     tsk('kumquat').run().listen(defaultRunToResultConfig({
       onRejected: (errs, fruit) => {
         expect(fruit).toEqual('disgusting test kumquat');

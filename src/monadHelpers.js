@@ -77,6 +77,9 @@ export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, 
       try {
         // Wrap in case anything goes wrong with the assertions
         onResolved(value);
+      } catch (e) {
+        const error = new Error('Assertion threw error');
+        (onRejected || _onRejected)([e, error], error);
       } finally {
         whenDone(done);
       }
