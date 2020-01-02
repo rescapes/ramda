@@ -43,7 +43,11 @@ import {
   traverseReduceError,
   traverseReduceResultError,
   mapToMergedResponseAndInputs,
-  toMergedResponseAndInputs, composeWithChainMDeep, composeWithMapMDeep, composeWithMapExceptChainDeepestMDeep
+  toMergedResponseAndInputs,
+  composeWithChainMDeep,
+  composeWithMapMDeep,
+  composeWithMapExceptChainDeepestMDeep,
+  mapToResponseAndInputsMDeep, mapToMergedResponseAndInputsMDeep, mapToNamedResponseAndInputsMDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -168,7 +172,22 @@ describe('monadHelpers', () => {
         return of({cool: true}).run().listen(
           defaultRunConfig({
             onResolved: resolve => {
-              throw ('Crazy assertion failure');
+              throw ('Crazy assertion failure'); // eslint-disable-line no-throw-literal
+            }
+          }, errors, done)
+        );
+      }).toThrow();
+  });
+
+  test('defaultRunConfig assertion failure', done => {
+    const errors = [];
+    expect.assertions(2);
+    expect(
+      () => {
+        return of({cool: true}).run().listen(
+          defaultRunConfig({
+            onResolved: resolve => {
+              expect(true).toEqual(false);
             }
           }, errors, done)
         );
@@ -893,6 +912,21 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapMDeepWithError', () => {
+    const tsk = mapMDeep(
+      2,
+      no => of(Result.Ok('no')),
+      of(Result.Error('hmm'))
+    );
+    tsk.run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errors, reject) => {
+          expect(reject).toEqual('hmm');
+        }
+      })
+    );
+  });
+
   test('chainMDeep', done => {
     // Level 1 chain on array behaves like map, so we don't actually need to wrap it in Array.of here
     // I'm not sure why R.chain(R.identity, [2]) => [2] instead of 2,
@@ -922,6 +956,21 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('chainDeepError', done => {
+    const errors = [];
+    // Same here, but we couldn't unwrap a task
+    chainMDeep(2,
+      a => {
+        // Does not run
+        return of(Result.Ok('b'));
+      },
+      of(Result.Error('a'))
+    ).run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errs, value) => expect(value).toEqual('a')
+      }, errors, done)
+    );
+  });
 
   test('composeWithMapMDeep', () => {
     const maybe = composeWithMapMDeep(2, [
@@ -964,6 +1013,24 @@ describe('monadHelpers', () => {
       }
     }, errors, done));
   });
+
+  test('mapToNamedResponseAndInputsMDeepError', done => {
+    const errors = [];
+
+    const tsk = composeWithChainMDeep(2, [
+      steamy => of(Result.Error(steamy)),
+      ({a, b, c}) => of(Result.Error('steamy'))
+    ]);
+    tsk({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errs, error) => {
+          // The mapping didn't occur because of a Result.Error
+          expect(error).toEqual(error);
+        }
+      }, errors, done)
+    );
+  });
+
 
   test('composeWithMapChainLastMDeep', done => {
     const errors = [];
@@ -1042,15 +1109,17 @@ describe('monadHelpers', () => {
   test('objOfMLevelDeepListOfMonadsToListWithPairs', () => {
     const level1Constructor = R.compose(Maybe.Just);
     // Map each array item to the constructor
-    const objOfLevel1Monads = R.map(R.map(level1Constructor), {b: [1, 2], c: [3, 4], d: [4, 5]});
+    const objOfLevel1Monads = mapMDeep(2, level1Constructor, {b: [1, 2], c: [3, 4], d: [4, 5]});
 
+    // The objs are converted to pairs within the single-level monad
     expect(objOfMLevelDeepListOfMonadsToListWithPairs(1, level1Constructor, objOfLevel1Monads)).toEqual(
       R.map(level1Constructor, [['b', [1, 2]], ['c', [3, 4]], ['d', [4, 5]]])
     );
 
     const level2Constructor = R.compose(Result.Ok, Maybe.Just);
-    const objOfLevel2Monads = R.map(R.map(level2Constructor), {b: [1, 2], c: [3, 4], d: [4, 5]});
+    const objOfLevel2Monads = mapMDeep(2, level2Constructor, {b: [1, 2], c: [3, 4], d: [4, 5]});
 
+    // The objs are converted to pairs within the two-level monad
     expect(objOfMLevelDeepListOfMonadsToListWithPairs(2, level2Constructor, objOfLevel2Monads)).toEqual(
       R.map(level2Constructor, [['b', [1, 2]], ['c', [3, 4]], ['d', [4, 5]]])
     );
@@ -1221,6 +1290,20 @@ describe('monadHelpers', () => {
   */
 
   test('mapToResponseAndInputs', done => {
+    // Uses a and b for the task, returning an obj that is mapped to value, c is left alone
+    mapToResponseAndInputs(
+      ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', value: {d: 2, f: 2, g: 'was 1 2'}});
+          done();
+        }
+      })
+    );
+  });
+
+  test('mapToResponseAndInputsMDeep', done => {
     R.compose(
       mapToResponseAndInputs(({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}))
     )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
@@ -1234,12 +1317,43 @@ describe('monadHelpers', () => {
   });
 
   test('mapToMergedResponseAndInputs', done => {
-    R.compose(
-      mapToMergedResponseAndInputs(({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    mapToMergedResponseAndInputs(
+      ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'})
     )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
+          done();
+        }
+      })
+    );
+  });
+
+  test('mapToMergedResponseAndInputsMDeep', done => {
+    mapToMergedResponseAndInputsMDeep(2,
+      ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
+          done();
+        }
+      })
+    );
+  });
+  test('mapToMergedResponseAndInputsMDeepWithChainMDeep', done => {
+    composeWithChainMDeep(2, [
+        // Produces another of(Result.Ok({})
+        mapToMergedResponseAndInputsMDeep(2, ({}) => {
+          return of(Result.Ok({h: 'what?'}));
+        }),
+        // Produces an of(Result.Ok({})
+        mapToMergedResponseAndInputsMDeep(2, ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'})))
+      ]
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2', h: 'what?'});
           done();
         }
       })
@@ -1257,6 +1371,21 @@ describe('monadHelpers', () => {
       }, errors, done)
     );
   });
+
+  test('mapToNamedResponseAndInputsMDeep', done => {
+    const errors = [];
+    const tsk = mapToNamedResponseAndInputsMDeep(2, 'foo',
+      ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    );
+    tsk({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+        }
+      }, errors, done)
+    );
+  });
+
 
   test('toNamedResponseAndInputs', () => {
     const value = toNamedResponseAndInputs(

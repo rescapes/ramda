@@ -753,13 +753,13 @@ export const fromPairsDeep = deepPairs => R.cond(
         ([first]) => R.allPass(
           [
             Array.isArray,
-            R.compose(R.equals(2), R.length),
-            R.compose(R.is(String), R.head)
+            x => R.compose(R.equals(2), R.length)(x),
+            x => R.compose(R.is(String), R.head)(x)
           ])(first),
         // Yes, return an object whose keys are the first element and values are the result of recursing on the second
-        R.compose(R.fromPairs, R.map(([k, v]) => [k, fromPairsDeep(v)])),
+        l => R.compose(R.fromPairs, R.map(([k, v]) => [k, fromPairsDeep(v)]))(l),
         // No, recurse on each array item
-        R.map(v => fromPairsDeep(v))
+        l => R.map(v => fromPairsDeep(v), l)
       )(list)
     ],
     // End case, return the given value unadulterated
@@ -843,15 +843,32 @@ export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
  * @returns {Object} The 1-D version of the object
  */
 export const flattenObj = obj => {
-  return R.fromPairs(_flattenObj(obj));
+  return R.fromPairs(_flattenObj({}, obj));
 };
 
-const _flattenObj = (obj, keys = []) => {
+/**
+ * Flatten objs until the predicate returns false. This is called recursively on each object and array
+ * @param {Function} predicate Expects object, returns true when we should stop flatting on the current object
+ * @param {Object} obj The object to flatten
+ * @return {Object} The flattened object
+ */
+export const flattenObjUntil = (predicate, obj) => {
+  return R.fromPairs(_flattenObj({predicate}, obj));
+};
+
+const _flattenObj = (config, obj, keys = []) => {
+  const predicate = R.propOr(null, 'predicate', config);
   return R.ifElse(
     // If we have an object
-    R.is(Object),
+    o => R.both(
+      R.is(Object),
+      oo => R.when(
+        () => predicate,
+        ooo => R.complement(predicate)(ooo)
+      )(oo)
+    )(o),
     // Then recurse on each object or array value
-    o => chainObjToValues((oo, k) => _flattenObj(oo, R.concat(keys, [k])), o),
+    o => chainObjToValues((oo, k) => _flattenObj(config, oo, R.concat(keys, [k])), o),
     // If not an object return flat pair
     o => [[R.join('.', keys), o]]
   )(obj);
@@ -868,15 +885,37 @@ export const keyStringToLensPath = keyString => R.map(
 );
 
 /**
+ * Undoes the work of flattenObj. Does not allow number keys to become array indices
+ * @param {Object} obj 1-D object in the form returned by flattenObj
+ * @returns {Object} The original
+ */
+export const unflattenObjNoArrays = obj => {
+  return _unflattenObj({allowArrays: false}, obj);
+};
+
+/**
  * Undoes the work of flattenObj
  * @param {Object} obj 1-D object in the form returned by flattenObj
  * @returns {Object} The original
  */
 export const unflattenObj = obj => {
+  return _unflattenObj({allowArrays: true}, obj);
+};
+
+export const _unflattenObj = (config, obj) => {
   return R.compose(
     R.reduce(
       (accum, [keyString, value]) => {
-        const itemKeyPath = keyStringToLensPath(keyString);
+        // Don't allow indices if allowArrays is false
+        const itemKeyPath = R.map(
+          key => {
+            return R.when(
+              () => R.not(R.prop('allowArrays', config)),
+              k => k.toString()
+            )(key);
+          },
+          keyStringToLensPath(keyString)
+        );
         // Current item lens
         const itemLensPath = R.lensPath(itemKeyPath);
         // All but the last segment gives us the item container len
@@ -888,7 +927,7 @@ export const unflattenObj = obj => {
           // depending on if our item key is a number or not
           x => R.defaultTo(
             R.ifElse(
-              R.is(Number),
+              v => R.both(() => R.prop('allowArrays', config), R.is(Number))(v),
               R.always([]),
               R.always({})
             )(R.head(itemKeyPath))

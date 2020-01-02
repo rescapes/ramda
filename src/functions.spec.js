@@ -38,6 +38,8 @@ import {eqPropsAll} from './functions';
 import {eqStrPath} from './functions';
 import {eqStrPathsAll} from './functions';
 import {toArrayIfNot} from './functions';
+import {unflattenObjNoArrays} from './functions';
+import {flattenObjUntil} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -522,6 +524,21 @@ describe('helperFunctions', () => {
         }
       ]
     );
+    /*
+    TODO does not work
+    expect(fromPairsDeep([[
+      "Kenya__Nairobi",
+      [
+        "2231585",
+        {
+          x: { o: 1 },
+          "location": {
+            "id": 2231585
+          }
+        }
+      ]
+    ])).toEqual(1)
+     */
   });
 
   test('replaceValuesAtDepth', () => {
@@ -597,6 +614,20 @@ describe('helperFunctions', () => {
     expect(flattenObj([1, 2, 3])).toEqual({0: 1, 1: 2, 2: 3});
   });
 
+  test('flattenObjUntil', () => {
+    expect(flattenObjUntil(R.propOr(false, 'cow'),
+      {a: 1, b: {johnny: 'b good', c: {cow: {pie: true}}, sam: [1, 2, 3]}}
+    )).toEqual(
+      {a: 1, 'b.johnny': 'b good', 'b.c': {cow: {pie: true}}, 'b.sam.0': 1, 'b.sam.1': 2, 'b.sam.2': 3}
+    );
+
+    expect(flattenObjUntil(Array.isArray,
+      {a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}}
+    )).toEqual(
+      {a: 1, 'b.johnny': 'b good', 'b.sam': [1, 2, 3]}
+    );
+  });
+
   test('unflattenObj', () => {
     const pancake = R.compose(unflattenObj, flattenObj);
     const x = [
@@ -613,6 +644,24 @@ describe('helperFunctions', () => {
       {a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}}
     );
   });
+
+  test('unflattenObjNoArrays', () => {
+    const pancake = R.compose(unflattenObjNoArrays, flattenObj);
+    const x = [
+      {
+        id: '2226274',
+        country: 'Norway'
+      }
+    ];
+    expect(pancake(x)).toEqual({0: x[0]});
+
+    expect(pancake({a: 1})).toEqual({a: 1});
+    expect(pancake({a: 1, b: {johnny: 'b good'}})).toEqual({a: 1, b: {johnny: 'b good'}});
+    expect(pancake({a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}})).toEqual(
+      {a: 1, b: {johnny: 'b good', sam: {0: 1, 1: 2, 2: 3}}}
+    );
+  });
+
 
   test('overDeep', () => {
     const res = overDeep(

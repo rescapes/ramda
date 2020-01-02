@@ -78,6 +78,10 @@ export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, 
         // Wrap in case anything goes wrong with the assertions
         onResolved(value);
       } catch (e) {
+        // I can't import this but we don't want to process assertion errors
+        if (e.constructor.name === 'JestAssertionError') {
+          throw e;
+        }
         const error = new Error('Assertion threw error');
         (onRejected || _onRejected)([e, error], error);
       } finally {
@@ -584,7 +588,14 @@ export const lift1stOf2ForMDeepMonad = R.curry((monadDepth, constructor, f, valu
  * @param {Object} Monad of a least the given depth
  * @returns {Object} The mapped monad value
  */
-export const mapMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.map, f, monad));
+export const mapMDeep = R.curry((monadDepth, f, monad) => {
+  return doMDeep(
+    monadDepth,
+    // Wrapping for debugging visibility
+    R.curry((fn, functor) => R.map(fn, functor)),
+    f,
+    monad);
+});
 
 /**
  * composeWith using mapMDeep Each function of compose will receive the object monadDepth levels deep.
@@ -607,7 +618,27 @@ export const composeWithMapMDeep = (monadDepth, list) => {
  * @param {Object} Monad of a least the given depth
  * @returns {Object} The mapped monad value
  */
-export const chainMDeep = R.curry((monadDepth, f, monad) => doMDeep(monadDepth, R.chain, f, monad));
+export const chainMDeep = R.curry((monadDepth, f, monad) => {
+  // This prevents common error types from continuing to chain to prevent a partially chained result
+  // Add more as needed
+  const errorPredicate = mm => R.anyPass([
+    Result.Error.hasInstance
+  ])(mm);
+  return doMDeep(
+    monadDepth,
+    // Wrapping for debugging visibility
+    R.curry((fn, m) => {
+      // If the error predicate returns true revert to the monad for the remaining
+      return R.ifElse(
+        errorPredicate,
+        () => monad,
+        mm => R.chain(fn, mm)
+      )(m);
+    }),
+    f,
+    monad
+  );
+});
 
 /**
  * Map based on the depth of the monad-1 and chain the deepest level monad
@@ -631,7 +662,11 @@ export const mapExceptChainDeepestMDeep = R.curry((monadDepth, f, monad) => {
 export const composeWithChainMDeep = (monadDepth, list) => {
   // Each function, last to first, in list receives an unwrapped object and returns the monadDepth level deep monad
   // chainMDeep is called with each of these functions. The result of each chainMDeep is given to the next function
-  return R.composeWith(chainMDeep(monadDepth))(list);
+  return R.composeWith(
+    (f, res) => {
+      return chainMDeep(monadDepth, f, res.map(barf => barf));
+    }
+  )(list);
 };
 
 /**
@@ -699,6 +734,7 @@ export const doMDeepExceptDeepest = R.curry((monadDepth, funcPair, f, monad) => 
       ),
       monadDepth - 1
     ),
+    // funcPair[1] gets called with the deepest level of monad
     func => value => funcPair[1](func, value)
   )(f)(monad);
 });
@@ -714,6 +750,13 @@ export const mapToResponseAndInputs = R.curry(
   (f, arg) => R.map(value => R.merge(arg, {value}), f(arg))
 );
 
+export const mapToMergedResponseAndInputsMDeep = R.curry(
+  (level, f, arg) => mapMDeep(level,
+    obj => R.merge(arg, obj),
+    f(arg)
+  )
+);
+
 /**
  * Given a monad whose return value can be mapped and a single input object,
  * map the monad return value to return an obj merged with input object in its original form
@@ -721,12 +764,8 @@ export const mapToResponseAndInputs = R.curry(
  * @param {Function} f Function expecting an object and returning a monad that can be mapped to an object
  * @return {Object} The value of the monad merged with the input args
  */
-export const mapToMergedResponseAndInputs = R.curry(
-  (f, arg) => R.map(
-    obj => R.merge(arg, obj),
-    f(arg)
-  )
-);
+export const mapToMergedResponseAndInputs = mapToMergedResponseAndInputsMDeep(1);
+
 
 /**
  * Given a monad whose return value can be mapped and a single input object,
@@ -745,6 +784,26 @@ export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => R.map(
   // Must return a monad
   f(arg)
 ));
+
+/**
+ * Given a monad the specified levels deep whose return value can be mapped and a single input object,
+ * map the monad return value to return an obj with the value at 'value', merged with input object in its original form
+ * of the function. Example: mapToNamedResponseAndInputs(2, 'foo', ({a, b, c}) => task.of(Result.Ok(someValue)))({a, b, c}) -> task.of(Result.Ok({a, b, c, foo: someValue}))
+ * @param {String} name The key name for the output
+ * @param {Function} f Function expecting an object and returning a monad that can be mapped
+ * @param {Object} arg The object containing the incoming named arguments that f is called with
+ * @return {Object} The value of the monad at the value key merged with the input args
+ */
+export const mapToNamedResponseAndInputsMDeep = R.curry((level, name, f, arg) => {
+  return mapMDeep(level,
+    value => R.merge(
+      arg,
+      {[name]: value}
+    ),
+    // Must return a monad
+    f(arg)
+  );
+});
 
 /**
  * Same as mapToNamedResponseAndInputs but works with a non-monad
