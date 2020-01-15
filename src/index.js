@@ -110,6 +110,8 @@ export {
   traverseReduceResultError,
   mapMDeep,
   traverseReduceDeepResults,
+  resultTasksToResultObjTask,
+  resultsToResultObj,
   chainMDeep,
   mapExceptChainDeepestMDeep,
   doMDeep,

@@ -10,7 +10,7 @@
  */
 
 
-import {rejected, of, waitAll, fromPromised} from 'folktale/concurrency/task';
+import {fromPromised, of, rejected, waitAll} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
@@ -300,7 +300,14 @@ export const traverseReduceError = (join, accumulator, initialValue, list) => R.
  */
 export const traverseReduceResultError = (accumulator, initialValue, list) => {
   return traverseReduceError(
-    error => error.matchWith({Error: ({value}) => value}),
+    error => {
+      return error.matchWith(
+        {
+          Error: ({value}) => value,
+          Ok: ({value}) => value
+        }
+      );
+    },
     accumulator,
     initialValue,
     list
@@ -796,10 +803,12 @@ export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => R.map(
  */
 export const mapToNamedResponseAndInputsMDeep = R.curry((level, name, f, arg) => {
   return mapMDeep(level,
-    value => R.merge(
-      arg,
-      {[name]: value}
-    ),
+    value => {
+      return R.merge(
+        arg,
+        {[name]: value}
+      );
+    },
     // Must return a monad
     f(arg)
   );
@@ -1098,11 +1107,12 @@ export const waitAllBucketed = (tasks, buckets = 100) => {
  * @returns {*} The list of tasks to be processed without blowing the stack limit
  */
 export const sequenceBucketed = (tasks, buckets = 100) => {
+  // Bucket the tasks so each task set has up to bucket tasks
   const taskSets = R.reduceBy(
     (acc, [task, i]) => R.concat(acc, [task]),
     [],
     ([task, i]) => i.toString(),
-    R.addIndex(R.map)((task, i) => [task, i % buckets], tasks)
+    R.addIndex(R.map)((task, taskIndex) => [task, Math.floor(taskIndex / buckets)], tasks)
   );
 
   return R.map(
@@ -1116,7 +1126,7 @@ export const sequenceBucketed = (tasks, buckets = 100) => {
       // to run them all in parallel
       // Task t:: [t] -> t [a]
       R.ifElse(
-        // If we have more than 100 buckets recurse on a tenth
+        // If we have more than 100 tasks recurse, limiting the bucket size to 1 / 10 the current bucket count
         ts => R.compose(R.lt(100), R.length)(ts),
         ts => sequenceBucketed(ts, buckets / 10),
         ts => R.sequence(of, ts)
@@ -1161,3 +1171,47 @@ export function liftObjDeep(obj, keys = []) {
   )(obj);
 };
 */
+
+/**
+ * Converts a list of result tasks to a single task containing {Ok: objects, Error: objects}
+ * @param {[Task<Result<Object>>]} resultTasks List of Tasks resolving to a Result.Ok or Result.Error
+ * @return {Task<Object>} The Task that resolves to {Ok: objects, Error: objects}
+ */
+export const resultTasksToResultObjTask = resultTasks => {
+  return traverseReduceDeepResults(2,
+    // The accumulator
+    (res, location) => R.concat(
+      res,
+      [location]
+    ),
+    // The accumulator of errors
+    (res, errorObj) => R.concat(
+      res,
+      [errorObj]
+    ),
+    of({Ok: [], Error: []}),
+    resultTasks
+  );
+};
+
+/**
+ * Converts a list of result tasks to a single task containing {Ok: objects, Error: objects}
+ * @param {[Result<Object>]} results List of Tasks resolving to a Result.Ok or Result.Error
+ * @return {Object} The Task that resolves to {Ok: objects, Error: objects}
+ */
+export const resultsToResultObj = results => {
+  return traverseReduceDeepResults(1,
+    // The accumulator
+    (res, location) => R.concat(
+      res,
+      [location]
+    ),
+    // The accumulator of errors
+    (res, errorObj) => R.concat(
+      res,
+      [errorObj]
+    ),
+    {Ok: [], Error: []},
+    results
+  );
+};

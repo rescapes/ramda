@@ -47,7 +47,7 @@ import {
   composeWithChainMDeep,
   composeWithMapMDeep,
   composeWithMapExceptChainDeepestMDeep,
-  mapToResponseAndInputsMDeep, mapToMergedResponseAndInputsMDeep, mapToNamedResponseAndInputsMDeep
+  mapToMergedResponseAndInputsMDeep, mapToNamedResponseAndInputsMDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -972,19 +972,6 @@ describe('monadHelpers', () => {
     );
   });
 
-  test('composeWithMapMDeep', () => {
-    const maybe = composeWithMapMDeep(2, [
-      // Ditto
-      v => R.when(R.contains('T'), x => R.concat(x, '!'))(v),
-      // Single word gets processed thanks to mapMDeep(2)
-      v => `(${v})`,
-      // Creates a Just with an array. This 2-level monad can be processed on array item at a time
-      v => Maybe.Just(R.split(' ', v))
-    ])('Maybe Tonight');
-    // Result is Maybe.Just([])
-    expect(maybe.value).toEqual(['(Maybe)', '(Tonight)!']);
-  });
-
   test('composeWithChainMDeep', () => {
     const maybes = composeWithChainMDeep(2, [
       // Extract word from each Maybe Just
@@ -1386,6 +1373,38 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapToNamedResponseAndInputsMDeepWithCompose', done => {
+    const errors = [];
+    const tsk = composeWithMapMDeep(2, [
+      // Now we can use the level 2 monad directly and return another one. The return value will be boo
+      // and merged into the others. coposeWithMapMDeep handles the mapping, so we just use toNamedResponseAndInputs
+      // to merge boo with the other keys
+      toNamedResponseAndInputs('boo',
+        ({a, foo}) => `who ${foo.g}`
+      ),
+      // Create a level 2 deep monad at key foo. The other keys are merged into the level 2 monad
+      mapToNamedResponseAndInputsMDeep(2, 'foo',
+        ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'}))
+      )
+    ]);
+
+    tsk({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual(
+            {
+              a: 1,
+              b: 1,
+              c: 'was a racehorse',
+              foo: {d: 2, f: 2, g: 'was 1 2'},
+              boo: 'who was 1 2'
+            }
+          );
+        }
+      }, errors, done)
+    );
+  });
+
 
   test('toNamedResponseAndInputs', () => {
     const value = toNamedResponseAndInputs(
@@ -1655,13 +1674,31 @@ describe('monadHelpers', () => {
   });
 
   test('sequenceBucketed', done => {
-    expect.assertions(1);
+    expect.assertions(2);
     const errors = [];
-    const tasks = num => R.times(() => of(1), num);
+    let counter = 0;
+    const tasks = num => R.times(index => {
+      return composeWithMapMDeep(1, [
+        i => {
+          if (i === 0) {
+            // This should run before the counter increases again
+            expect(counter).toEqual(1);
+          }
+          return i;
+        },
+        i => {
+          // We should only run this once before we get to the assertion above
+          counter++;
+          return i;
+        },
+        // This executes immediately for all num
+        i => of(i)
+      ])(index);
+    }, num);
 
     sequenceBucketed(tasks(100000)).run().listen(defaultRunConfig({
       onResolved: stuff => {
-        expect(R.length(stuff)).toEqual(100000);
+        expect(stuff[99999]).toEqual(99999);
       }
     }, errors, done));
 
