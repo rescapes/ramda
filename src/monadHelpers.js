@@ -648,6 +648,17 @@ export const chainMDeep = R.curry((monadDepth, f, monad) => {
 });
 
 /**
+ * chains at each level excepts maps the deepest level
+ * @param monadDepth
+ * @param f
+ * @param monad
+ * @return {*}
+ */
+export const chainExceptMapDeepestMDeep = R.curry((monadDepth, f, monad) => {
+  return doMDeepExceptDeepest(monadDepth, [R.chain, R.map], f, monad);
+});
+
+/**
  * Map based on the depth of the monad-1 and chain the deepest level monad
  * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
  * @param {Function} Chaining function that operates at the given depth.
@@ -1195,7 +1206,7 @@ export const resultTasksToResultObjTask = resultTasks => {
 };
 
 /**
- * Converts a list of result tasks to a single task containing {Ok: objects, Error: objects}
+ * Converts a list of results to a single result containing {Ok: objects, Error: objects}
  * @param {[Result<Object>]} results List of Tasks resolving to a Result.Ok or Result.Error
  * @return {Object} The Task that resolves to {Ok: objects, Error: objects}
  */

@@ -84,7 +84,6 @@
       "src/**/*.{js,jsx,mjs}"
     ],
     "setupFiles": [
-      "<rootDir>/config/polyfills.js"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/config/jestsetup.js"

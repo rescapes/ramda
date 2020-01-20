@@ -47,7 +47,10 @@ import {
   composeWithChainMDeep,
   composeWithMapMDeep,
   composeWithMapExceptChainDeepestMDeep,
-  mapToMergedResponseAndInputsMDeep, mapToNamedResponseAndInputsMDeep
+  mapToMergedResponseAndInputsMDeep,
+  mapToNamedResponseAndInputsMDeep,
+  chainMDeepExceptDeepest,
+  mapExceptChainDeepestMDeep, chainExceptMapDeepestMDeep
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -1736,6 +1739,36 @@ describe('monadHelpers', () => {
         [Result.Error('Cowardly'), Result.Error('Scarecrow')]
       )
     ).toEqual(Result.Error('CowardlyScarecrow'));
+  });
+
+  test('mapExceptChainDeepestMDeep', () => {
+    expect(mapExceptChainDeepestMDeep(3,
+      // Return a 1-level deep monad since we are chaining at the deepest level only
+      v => {
+        return Result.Error(R.add(1, v));
+      },
+      [[Result.Ok(1), Result.Ok(2)], [Result.Ok(3), Result.Ok(4)]]
+      )
+    ).toEqual(
+      // Since we mapped the two shallow levels we maintain the array structure, but each deepest monad is converted
+      [[Result.Error(2), Result.Error(3)], [Result.Error(4), Result.Error(5)]]
+    );
+  });
+
+  test('chainExceptMapDeepestMDeep', () => {
+    expect(chainExceptMapDeepestMDeep(3,
+      v => {
+        // Return a an object since we map at the deepest level, this will become a Maybe.Just
+        return R.add(1, v);
+      },
+      [[Maybe.Just(1), Maybe.Just(2)],
+        [Maybe.Just(3), Maybe.Just(4)]
+      ]
+      )
+    ).toEqual(
+      // Two-level array is chained, but the deepest level is mapped
+      [Maybe.Just(2), Maybe.Just(3), Maybe.Just(4), Maybe.Just(5)]
+    );
   });
 });
 
