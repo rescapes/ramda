@@ -206,21 +206,23 @@ export const resultToTaskNeedingResult = R.curry((f, result) => result.matchWith
  * @returns {Object} Task with Result.Ok or Result.Error inside.
  * @sig resultToTaskNeedingResult:: Result r, Task t => (r -> t r) -> r -> t r
  */
-export const resultToTaskWithResult = R.curry((f, result) => result.matchWith({
-  Ok: ({value}) => f(value).mapRejected(
-    r => {
-      return R.cond([
-        // Chain Result.Ok to Result.Error
-        [Result.Ok.hasInstance, R.chain(v => Result.Error(v))],
-        // Leave Result.Error alone
-        [Result.Error.hasInstance, R.identity],
-        // If the rejected function didn't produce a Result then wrap it in a Result.Error
-        [R.T, Result.Error]
-      ])(r);
-    }
-  ),
-  Error: of
-}));
+export const resultToTaskWithResult = R.curry((f, result) => {
+  return result.matchWith({
+    Ok: ({value}) => f(value).mapRejected(
+      r => {
+        return R.cond([
+          // Chain Result.Ok to Result.Error
+          [Result.Ok.hasInstance, R.chain(v => Result.Error(v))],
+          // Leave Result.Error alone
+          [Result.Error.hasInstance, R.identity],
+          // If the rejected function didn't produce a Result then wrap it in a Result.Error
+          [R.T, Result.Error]
+        ])(r);
+      }
+    ),
+    Error: of
+  });
+});
 
 /**
  * Wraps the value of a successful task in a Result.Ok if it isn't already a Result
