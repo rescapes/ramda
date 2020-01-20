@@ -114,6 +114,7 @@ export {
   resultsToResultObj,
   chainMDeep,
   mapExceptChainDeepestMDeep,
+  chainExceptMapDeepestMDeep,
   doMDeep,
   doMDeepExceptDeepest,
   mapToResponseAndInputs,
