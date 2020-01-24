@@ -9,48 +9,48 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {of, rejected, fromPromised, task, waitAll} from 'folktale/concurrency/task';
+import {fromPromised, of, rejected, task, waitAll} from 'folktale/concurrency/task';
 import {
+  chainExceptMapDeepestMDeep,
+  chainMDeep,
+  composeWithChainMDeep,
+  composeWithMapExceptChainDeepestMDeep,
+  composeWithMapMDeep,
+  defaultOnRejected,
   defaultRunConfig,
+  defaultRunToResultConfig,
   lift1stOf2ForMDeepMonad,
+  mapExceptChainDeepestMDeep,
+  mapMDeep,
+  mapResultMonadWithOtherInputs,
+  mapResultTaskWithOtherInputs,
+  mapToMergedResponseAndInputs,
+  mapToMergedResponseAndInputsMDeep,
+  mapToNamedPathAndInputs,
+  mapToNamedResponseAndInputs,
+  mapToNamedResponseAndInputsMDeep,
+  mapToPath,
+  mapToResponseAndInputs,
+  mapWithArgToPath,
   objOfMLevelDeepListOfMonadsToListWithPairs,
   objOfMLevelDeepMonadsToListWithPairs,
   pairsOfMLevelDeepListOfMonadsToListWithPairs,
   promiseToTask,
   resultToTask,
-  taskToPromise,
-  defaultRunToResultConfig,
-  traverseReduce,
-  traverseReduceWhile,
-  traverseReduceDeep,
   resultToTaskNeedingResult,
-  mapMDeep,
   resultToTaskWithResult,
-  traverseReduceDeepResults,
-  chainMDeep,
-  mapToResponseAndInputs,
-  mapToNamedPathAndInputs,
-  mapToNamedResponseAndInputs,
-  defaultOnRejected,
-  mapResultMonadWithOtherInputs,
-  mapResultTaskWithOtherInputs,
-  mapWithArgToPath,
-  mapToPath,
-  taskToResultTask,
-  toNamedResponseAndInputs,
-  waitAllBucketed,
   sequenceBucketed,
+  taskToPromise,
+  taskToResultTask,
+  toMergedResponseAndInputs,
+  toNamedResponseAndInputs,
+  traverseReduce,
+  traverseReduceDeep,
+  traverseReduceDeepResults,
   traverseReduceError,
   traverseReduceResultError,
-  mapToMergedResponseAndInputs,
-  toMergedResponseAndInputs,
-  composeWithChainMDeep,
-  composeWithMapMDeep,
-  composeWithMapExceptChainDeepestMDeep,
-  mapToMergedResponseAndInputsMDeep,
-  mapToNamedResponseAndInputsMDeep,
-  chainMDeepExceptDeepest,
-  mapExceptChainDeepestMDeep, chainExceptMapDeepestMDeep
+  traverseReduceWhile, traverseReduceWhileBucketed,
+  waitAllBucketed
 } from './monadHelpers';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
@@ -737,38 +737,91 @@ describe('monadHelpers', () => {
   });
 
   test('traverseReduceWhileWithMaxCalls', done => {
-    const partialBlocks = ['a', 'b', 'c', 'd'];
+    const letters = ['a', 'b', 'c', 'd'];
     const errors = [];
     const t = traverseReduceWhile(
       {
-        predicate: ({value: {partialBlocks: pbs}}, x) => R.length(pbs),
+        predicate: ({value: {letters}}, x) => R.length(letters),
         accumulateAfterPredicateFail: false,
         mappingFunction: R.chain,
         monadConstructor: of
       },
-      ({value: {partialBlocks: pbs, blocks}}, x) => {
+      ({value: {letters, allLetters}}, x) => {
         // Consume two at a time
         return of(Result.Ok(
           {
-            partialBlocks: R.slice(2, Infinity, pbs),
-            blocks: R.concat(blocks, R.slice(0, 2, pbs))
+            letters: R.slice(2, Infinity, letters),
+            allLetters: R.concat(allLetters, R.slice(0, 2, letters))
           }
         ));
       },
-      of(Result.Ok({partialBlocks, blocks: []})),
-      // Just need to call a maximum of partialBlocks to process them all
-      R.times(of, R.length(partialBlocks))
+      of(Result.Ok({letters, allLetters: []})),
+      // Just need to call a maximum of letters to process them all
+      R.times(of, R.length(letters))
     );
     t.run().listen(defaultRunToResultConfig({
       onResolved: obj => {
         expect(obj).toEqual({
-          partialBlocks: [],
-          blocks: ['a', 'b', 'c', 'd']
+          letters: [],
+          allLetters: ['a', 'b', 'c', 'd']
         });
       }
     }, errors, done));
   });
 
+  test('traverseReduceWhileAvoidStackOverloadJust', () => {
+    expect.assertions(1);
+    const count = 11111;
+    const justs = traverseReduceWhileBucketed(
+      // Make sure we accumulate up to b but don't run c
+      {
+        // Never quit early
+        predicate: () => true
+      },
+      (acc, value) => {
+        console.debug(value)
+        return R.concat(acc, [value.toString()]);
+      },
+      Maybe.Just([]),
+      R.times(t => Maybe.Just(t), count)
+    );
+    expect(justs).toEqual(
+      traverseReduce(
+        (acc, v) => R.concat(acc, [v]),
+        Maybe.Just([]),
+        R.times(t => Maybe.Just(t.toString()), count)
+      )
+    );
+  });
+
+  test('traverseReduceWhileAvoidStackOverloadTask', done => {
+    expect.assertions(1);
+    const count = 11111;
+    const task = traverseReduceWhileBucketed(
+      // Make sure we accumulate up to b but don't run c
+      {
+        // Never quit early
+        predicate: () => true
+      },
+      (acc, value) => {
+        return R.concat(acc, [value.toString()]);
+      },
+      of([]),
+      R.times(t => of(t), count)
+    );
+    const errors = [];
+    task.run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual(
+            R.times(t => t.toString(), count)
+          );
+        }
+      }, errors, done)
+    );
+
+    done();
+  });
 
   test('lift1stOf2ForMDeepMonad', () => {
     // a -> Result a
@@ -1699,7 +1752,7 @@ describe('monadHelpers', () => {
       ])(index);
     }, num);
 
-    sequenceBucketed(tasks(100000)).run().listen(defaultRunConfig({
+    sequenceBucketed({monadType: of}, tasks(100000)).run().listen(defaultRunConfig({
       onResolved: stuff => {
         expect(stuff[99999]).toEqual(99999);
       }

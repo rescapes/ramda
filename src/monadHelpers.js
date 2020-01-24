@@ -268,9 +268,19 @@ export const taskToResultTask = task => {
  * @sig traverseReduce:: Container C v => (v -> v -> v) -> C v -> [C v] -> C v
  */
 export const traverseReduce = (accumulator, initialValue, list) => R.reduce(
-  (containerResult, container) => containerResult.chain(
-    res => container.map(v => accumulator(res, v))
-  ),
+  (containerResult, container) => {
+    return R.chain(
+      res => {
+        return R.map(
+          v => {
+            return accumulator(res, v);
+          },
+          container
+        );
+      },
+      containerResult
+    );
+  },
   initialValue,
   list
 );
@@ -345,6 +355,97 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
 );
 
 /**
+ * Export chains a monad to a reducedMonad with the given function
+ * @param {Function} f Expects the reducedMonad and the monad, returns a new reducedMonad
+ * @param reducedMonad
+ * @param monad
+ * @return {*}
+ */
+const chainTogetherWith = (f, reducedMonad, monad) => {
+  return f(reducedMonad, monad);
+};
+
+const chainTogetherWithBucketed = (f, reducedMonad, monad) => {
+  return f(reducedMonad, monad);
+};
+
+/**
+ * Reduces a list of monads in
+ * @param {Object} config
+ * @param {Object} [config.buckets] Defaults to Math.max(100, R.length(monads) / 100). Divides the chained reductions into
+ * @param {function} f Reduce function, expects the reducedMonad and the monad and chains them togther
+ * buckets to prevent stack overflow.
+ * @param {Object} initialValue The monad with the empty value, e.g. Maybe.Just([]) or Task.of(Result.Ok({}))
+ * @param {[Object]} monads The list of monads
+ */
+export const reduceMonadsChainedBucketed = R.curry((
+  {buckets},
+  f,
+  initialValue,
+  monads
+) => {
+  // Bucket the tasks so each task set has up to bucketSize monads If these are still too big we'll recursively
+  // break them up later. Minimum 100 per bucket
+  const bucketSize = buckets || Math.max(100, Math.floor(R.length(monads) / 100));
+  const monadSets = bucketedMonadSets(bucketSize, monads);
+
+  // Process each bucket of monads with traverseReduceWhileBucketed (end case) or
+  // recurse with reduceMonadsChainedBucketed with smaller bucket size
+  // The first item of each set expects the accumulation of the previous set.
+  // This means we can't actually evaluate the sets yet, rather return functions
+  // Monad m:: [m[a]] -> m[b]
+  const reducedMonadSetFuncs = R.map(
+    mSet => previousSetAccumulation => {
+      return R.ifElse(
+        // If we have more than 100 monads recurse, limiting the bucket size to 1 / 10 the current bucket size
+        mSet => R.compose(R.lt(100), R.length)(mSet),
+        // Take the bucketSize number of monads and recurse, this will divide into more buckets
+        mSet => {
+          return reduceMonadsChainedBucketed({buckets}, f, previousSetAccumulation, mSet);
+        },
+        // Small enough, do a normal R.reduce for each bucket of tasks
+        // Monad m:: [[m a]] -> [b -> m [c]]
+        mSet => {
+          return R.reduce(f, previousSetAccumulation, mSet);
+        }
+      )(mSet);
+    },
+    monadSets
+  );
+
+  // Reduce the buckets. We pass the previous bucket result to the next monadSetFunc to kick off the processing
+  // of each monadSet
+  return R.reduce(
+    // Chain the resultSets together
+    // Monad m:: m[[a]] -> m[a]
+    (accumulatedMonadSets, monadSetFunc) => {
+      return monadSetFunc(accumulatedMonadSets);
+    },
+    // Initial value
+    initialValue,
+    reducedMonadSetFuncs
+  );
+});
+
+/**
+ * A version of traverseReduceWhile that prevents maximum call stack exceeded by breaking chains into buckets
+ * Normally long lists of chained tasks keep calling a new function. We need to break this up after some number
+ * of calls to prevent the maximum call stack
+ * @param {Object} config See traverseReduceWhile predicateOrObject
+ * @param accumulator
+ * @param initialValue
+ * @param list
+ */
+export const traverseReduceWhileBucketed = (config, accumulator, initialValue, list) => {
+  return traverseReduceWhile(
+    R.merge(config, {reducer: reduceMonadsChainedBucketed({})}),
+    accumulator,
+    initialValue,
+    list
+  );
+};
+
+/**
  * A version of traverseReduce that also reduces until a boolean condition is met.
  * Same arguments as reduceWhile, but the initialValue must be an applicative, like task.of({}) or Result.of({})
  * f is called with the underlying value of accumulated applicative and the underlying value of each list item,
@@ -363,6 +464,8 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
  * a new monad this should be set to R.chain so that the resulting monad isn't put inside the monad result
  * @param {Function} [predicateOrObj.monadConstructor] Default to R.identity. Function to create a monad if mappingFunction uses R.chain. This
  * would be an task of function for task monads, an Result,Ok monad for Results, etc.
+ * @param {Function} [predicateOrObj.reducer] Default R.Reduce. An alternative reducer function to use, for
+ * instnace for stack handling by traverseReduceWhileBucketed
  * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
  * false it "short-circuits" the iteration and returns teh current value of the accumulator
  * @param {Object} initialValue An applicative to be the intial reduced value of accumulator
@@ -370,6 +473,60 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
  * @returns {Object} The value resulting from traversing and reducing
  */
 export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, list) => {
+  // Configure the reduce function. It returns a reduce function expecting the two monads, the accumulated monad
+  // and each in list
+  const _reduceMonadsWithWhilst = _reduceMonadsWithWhile({predicateOrObj, accumulator, initialValue});
+  // Use R.reduce for processing each monad unless an alternative is specified.
+  const reduceFunction = R.ifElse(R.both(R.is(Object), R.prop('reducer')), R.prop('reducer'), () => R.reduce)(predicateOrObj);
+
+  // Call the reducer. After it finishes strip out @@transducer/reduced if we aborted with it at some point
+  return composeWithChainMDeep(1, [
+    value => {
+      // Using the initial value to get the right monad type, strip reduced if if was returned on the last iteration
+      return R.map(
+        () => {
+          return R.ifElse(
+            R.prop('@@transducer/reduced'),
+            res => R.prop('@@transducer/value', res),
+            R.identity
+          )(value);
+        },
+        initialValue
+      );
+    },
+    // Reduce each monad
+    () => {
+      return reduceFunction(
+        (accumulatedMonad, applicator) => {
+          return chainTogetherWith(
+            (accMonad, app) => {
+              return _reduceMonadsWithWhilst(accMonad, app);
+            },
+            accumulatedMonad,
+            applicator
+          );
+        },
+        // The monad with the empty value, e.g. Maybe.Just([]) or Task.of(Result.Ok({}))
+        initialValue,
+        // The list of monads
+        list
+      );
+    }
+  ])();
+};
+
+/**
+ * Used by traverseReduceWhile to chain the accumulated monad with each subsequent monad.
+ * If the value of the accumulated monad is @@transducer/reduced. The chaining is short-circuited so that
+ * all subsequent values are ignored
+ * @param {Object} config
+ * @param {Function|Object} config.predicateOrObj See traverseReduceWhile
+ * @param {Function} config.accumulator
+ * @param {Object} config.initialValue Monad used for short-circuiting the process. The final accumulatedValue after the
+ * @@transducer/reduced is detected is mapped from this monad, so the actual value is ignored
+ * @return {Object} The reduced monad
+ */
+const _reduceMonadsWithWhile = ({predicateOrObj, accumulator, initialValue}) => {
   // Determine if predicateOrObj is just a function or also an object
   const {predicate, accumulateAfterPredicateFail} = R.ifElse(
     R.is(Function),
@@ -381,51 +538,44 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
   const mappingFunction = R.propOr(R.map, 'mappingFunction', predicateOrObj);
   const monadConstructor = R.propOr(R.identity, 'monadConstructor', predicateOrObj);
 
-  return R.reduce(
-    (applicatorRes, applicator) => {
-      return R.chain(
-        result => {
-          return R.ifElse(
-            R.prop('@@transducer/reduced'),
-            // Done, wrap it in the type. This will get called for every container of the reduction,
-            // since the containers are chained together. But we'll never map our applicator again
-            res => initialValue.map(R.always(res)),
-            () => mappingFunction(
-              value => {
-                // If the applicator's value passes the predicate, accumulate it and process the next item
-                // Otherwise we stop reducing by returning R.reduced()
-                return R.ifElse(
-                  v => predicate(result, v),
-                  v => accumulator(result, v),
-                  // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
-                  // IF the user wants to add v to the accumulation after predicate failure, do it.
-                  v => {
-                    // Use monadConstructor if is false so we return the right monad type if specified
-                    return (accumulateAfterPredicateFail ? R.identity : monadConstructor)(
-                      R.reduced(accumulateAfterPredicateFail ? accumulator(result, v) : result)
-                    );
-                  }
-                )(value);
-              },
-              applicator
-            )
-          )(result);
-        },
-        applicatorRes
-      );
-    },
-    initialValue,
-    list
-  ).chain(value => {
-    // Strip reduced if if was returned on the last iteration
-    return initialValue.map(() => R.ifElse(
-      R.prop('@@transducer/reduced'),
-      res => R.prop('@@transducer/value', res),
-      R.identity
-    )(value));
-  });
+  return (accumulatedMonad, applicator) => {
+    return R.chain(
+      accumulatedValue => {
+        return R.ifElse(
+          R.prop('@@transducer/reduced'),
+          // Done, wrap it in the type. This will get called for every container of the reduction,
+          // since the containers are chained together. But we'll never map our applicator again
+          res => R.map(
+            () => res,
+            initialValue
+          ),
+          () => mappingFunction(
+            value => {
+              // If the applicator's value passes the predicate, accumulate it and process the next item
+              // Otherwise we stop reducing by returning R.reduced()
+              return R.ifElse(
+                v => predicate(accumulatedValue, v),
+                v => accumulator(accumulatedValue, v),
+                // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
+                // IF the user wants to add v to the accumulation after predicate failure, do it.
+                v => {
+                  // Use monadConstructor if is false so we return the right monad type if specified
+                  return (accumulateAfterPredicateFail ? R.identity : monadConstructor)(
+                    R.reduced(accumulateAfterPredicateFail ? accumulator(accumulatedValue, v) : accumulatedValue)
+                  );
+                }
+              )(value);
+            },
+            // map or chain this
+            applicator
+          )
+        )(accumulatedValue);
+      },
+      // Chain this
+      accumulatedMonad
+    );
+  };
 };
-
 /**
  * Like traverseReduceDeep but also accepts an accumulate to deal with Result.Error objects.
  * Like traverseReduceDeep accumulator is called on Result.Ok values, but Result.Error values are passed to
@@ -684,7 +834,7 @@ export const composeWithChainMDeep = (monadDepth, list) => {
   // chainMDeep is called with each of these functions. The result of each chainMDeep is given to the next function
   return R.composeWith(
     (f, res) => {
-      return chainMDeep(monadDepth, f, res.map(barf => barf));
+      return chainMDeep(monadDepth, f, res);
     }
   )(list);
 };
@@ -1112,44 +1262,93 @@ export const waitAllBucketed = (tasks, buckets = 100) => {
 };
 
 /**
- * Versions of task.waitAll that divides tasks into 100 buckets to prevent stack overflow since waitAll
- * chains all tasks together. waitAllSequentiallyBucketed runs tasks sequentially not concurrently
- * @param {Task} tasks A list of tasks
- * @param {Number} [buckets] Default to 100. If there are 1 million tasks we probably need 100,000 buckets to
- * keep stacks to 100 lines
- * @returns {*} The list of tasks to be processed without blowing the stack limit
+ *
+ * Buckets the given monads into bucketCount number buckets
+ * @param {Number} bucketSize The number of moands in each bucket
+ * @param {[Object]} monads The monads to bucket
+ * @return {[[Object]]} Lists of monads
  */
-export const sequenceBucketed = (tasks, buckets = 100) => {
-  // Bucket the tasks so each task set has up to bucket tasks
-  const taskSets = R.reduceBy(
-    (acc, [task, i]) => R.concat(acc, [task]),
-    [],
-    ([task, i]) => i.toString(),
-    R.addIndex(R.map)((task, taskIndex) => [task, Math.floor(taskIndex / buckets)], tasks)
-  );
+const bucketedMonadSets = (bucketSize, monads) => {
+  return R.compose(
+    // Remove the keys
+    R.values,
+    ms => {
+      return R.reduceBy(
+        (acc, [monads, i]) => R.concat(acc, [monads]),
+        [],
+        ([_, i]) => i.toString(),
+        // Create pairs where the second value is the index / bucketCount
+        // This lets us dived the first bucketCount monads into once bucket, the next bucketCounts into the next
+        // bucket, etc
+        R.addIndex(R.map)((monad, monadIndex) => {
+          return [monad, Math.floor(monadIndex / bucketSize)];
+        }, monads)
+      );
+    }
+  )(monads);
+};
+/**
+ * Versions of R.sequence that divides tasks into 100 buckets to prevent stack overflow since waitAll
+ * chains all tasks together. waitAllSequentiallyBucketed runs tasks sequentially not concurrently
+ * @param {Object} config
+ * @param {Number} [config.buckets] Default to R.length(monads) / 100 The number of buckets to divide monads into
+ * @param {Number} [config.monadType] The monad type to pass to R.traverse. E.g. Task.of, Result.Ok, Maybe.Just
+ * @param {[Object]} monads A list of monads
+ * @returns {*} The list of monads to be processed without blowing the stack limit
+ */
+export const sequenceBucketed = ({buckets, monadType}, monads) => {
+
+  const bucketSize = buckets || Math.floor(R.length(monads) / 100);
+  const monadSets = bucketedMonadSets(bucketSize, monads);
 
   return R.map(
     // Chain the resultSets together
-    // Task t:: t[[a]] -> t[a]
+    // Monad m:: m[[a]] -> m[a]
     resultSets => R.chain(R.identity, resultSets),
-    // Task t:: [t[a]] -> t[[a]]
+    // Process each set of monads with R.sequence (end case) or recurse with sequenceBucket with smaller bucket size
+    // Monad m:: [m[a]] -> m[[a]]
     R.traverse(
-      of,
-      // Do a normal waitAll for each bucket of tasks
-      // to run them all in parallel
-      // Task t:: [t] -> t [a]
+      monadType,
+      // Monad m:: [m] -> m [a]
       R.ifElse(
-        // If we have more than 100 tasks recurse, limiting the bucket size to 1 / 10 the current bucket count
-        ts => R.compose(R.lt(100), R.length)(ts),
-        ts => sequenceBucketed(ts, buckets / 10),
-        ts => R.sequence(of, ts)
+        // If we have more than 100 monads recurse, limiting the bucket size to 1 / 10 the current bucket size
+        m => R.compose(R.lt(100), R.length)(m),
+        m => sequenceBucketed({monadType: of, buckets: bucketSize / 10}, m),
+        // Do a normal R.sequence for each bucket of monads
+        // to run them all in sequence
+        m => R.sequence(of, m)
       ),
-      // Remove the bucket keys
-      // Task t:: <k, [t]> -> [[t]]
-      R.values(taskSets)
+      monadSets
     )
   );
 };
+
+// given an array of something and a transform function that takes an item from
+// the array and turns it into a task, run all the tasks in sequence.
+// inSequence :: (a -> Task) -> Array<a> -> Task
+/*export const chainInSequence = R.curry((chainedTasks, task) => {
+  let log = [];
+
+  R.chain(
+    reducedValue => task
+  chainedTasks;
+)
+
+  return items.reduce((pipe, item, i) => {
+    // build up a chain of tasks
+    return (
+      pipe
+        // transform this item to a task
+        .chain(() => transform(item))
+        // after it's done, push the result to and return the log
+        .map(result => {
+          log.push(result);
+          return log;
+        })
+    );
+  }, Task.of("start"));
+})*/
+;
 /*
 export function liftObjDeep(obj, keys = []) {
   if (R.anyPass([Array.isArray, R.complement(R.is)(Object)])(obj)) {
