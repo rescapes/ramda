@@ -106,6 +106,8 @@ export {
   traverseReduce,
   traverseReduceDeep,
   traverseReduceWhile,
+  traverseReduceWhileBucketed,
+  traverseReduceWhileBucketedTasks,
   traverseReduceError,
   traverseReduceResultError,
   mapMDeep,

@@ -9,6 +9,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import stackTrace from 'stack-trace';
 import {fromPromised, of, rejected, task, waitAll} from 'folktale/concurrency/task';
 import {
   chainExceptMapDeepestMDeep,
@@ -41,7 +42,7 @@ import {
   resultToTaskWithResult,
   sequenceBucketed,
   taskToPromise,
-  taskToResultTask,
+  taskToResultTask, timeoutTask,
   toMergedResponseAndInputs,
   toNamedResponseAndInputs,
   traverseReduce,
@@ -49,7 +50,7 @@ import {
   traverseReduceDeepResults,
   traverseReduceError,
   traverseReduceResultError,
-  traverseReduceWhile, traverseReduceWhileBucketed,
+  traverseReduceWhile, traverseReduceWhileBucketed, traverseReduceWhileBucketedTasks,
   waitAllBucketed
 } from './monadHelpers';
 import * as R from 'ramda';
@@ -741,17 +742,17 @@ describe('monadHelpers', () => {
     const errors = [];
     const t = traverseReduceWhile(
       {
-        predicate: ({value: {letters}}, x) => R.length(letters),
+        predicate: ({value: {letters: lettas}}, x) => R.length(lettas),
         accumulateAfterPredicateFail: false,
         mappingFunction: R.chain,
         monadConstructor: of
       },
-      ({value: {letters, allLetters}}, x) => {
+      ({value: {letters: lettas, allLetters}}, x) => {
         // Consume two at a time
         return of(Result.Ok(
           {
-            letters: R.slice(2, Infinity, letters),
-            allLetters: R.concat(allLetters, R.slice(0, 2, letters))
+            letters: R.slice(2, Infinity, lettas),
+            allLetters: R.concat(allLetters, R.slice(0, 2, lettas))
           }
         ));
       },
@@ -771,7 +772,7 @@ describe('monadHelpers', () => {
 
   test('traverseReduceWhileAvoidStackOverloadJust', () => {
     expect.assertions(1);
-    const count = 11111;
+    const count = 1111;
     const justs = traverseReduceWhileBucketed(
       // Make sure we accumulate up to b but don't run c
       {
@@ -779,7 +780,6 @@ describe('monadHelpers', () => {
         predicate: () => true
       },
       (acc, value) => {
-        console.debug(value)
         return R.concat(acc, [value.toString()]);
       },
       Maybe.Just([]),
@@ -796,21 +796,25 @@ describe('monadHelpers', () => {
 
   test('traverseReduceWhileAvoidStackOverloadTask', done => {
     expect.assertions(1);
-    const count = 11111;
-    const task = traverseReduceWhileBucketed(
+    const count = 10000
+
+    const tsk = traverseReduceWhileBucketedTasks(
       // Make sure we accumulate up to b but don't run c
       {
         // Never quit early
-        predicate: () => true
+        predicate: (values, value) => true,
+        // Gives the code a blank monad to start from if the predicate returns false
+        monadConstructor:  of
       },
       (acc, value) => {
+        console.debug(`${value} (trace length: ${stackTrace.get().length})`);
         return R.concat(acc, [value.toString()]);
       },
       of([]),
       R.times(t => of(t), count)
     );
     const errors = [];
-    task.run().listen(
+    tsk.run().listen(
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual(
@@ -819,9 +823,7 @@ describe('monadHelpers', () => {
         }
       }, errors, done)
     );
-
-    done();
-  });
+  }, 111111);
 
   test('lift1stOf2ForMDeepMonad', () => {
     // a -> Result a

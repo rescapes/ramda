@@ -9,8 +9,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-import {fromPromised, of, rejected, waitAll} from 'folktale/concurrency/task';
+import {fromPromised, of, rejected, task, waitAll} from 'folktale/concurrency/task';
 import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
@@ -150,14 +149,14 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
 
 /**
  * Wraps a Task in a Promise.
- * @param {Task} task The Task
+ * @param {Task} tsk The Task
  * @returns {Promise} The Task as a Promise
  */
-export const taskToPromise = (task) => {
-  if (!task.run) {
-    throw new TypeError(`Expected a Task, got ${typeof task}`);
+export const taskToPromise = (tsk) => {
+  if (!tsk.run) {
+    throw new TypeError(`Expected a Task, got ${typeof tsk}`);
   }
-  return task.run().promise();
+  return tsk.run().promise();
 };
 
 
@@ -229,11 +228,11 @@ export const resultToTaskWithResult = R.curry((f, result) => {
  * Converts a rejected task to a resolved task and
  * wraps the value of a rejected task in a Result.Error if it isn't already a Result.Error or converts
  * Result.Ok to Result.Error.
- * @param {Task} task The task to map
+ * @param {Task} tsk The task to map
  * @returns {Task} The task whose resolved or rejected value is wrapped in a Result and is always resolved
  */
-export const taskToResultTask = task => {
-  return task.map(v => {
+export const taskToResultTask = tsk => {
+  return tsk.map(v => {
     return R.cond([
       // Leave Result.Ok alone
       [Result.Ok.hasInstance, R.identity],
@@ -357,16 +356,40 @@ export const traverseReduceDeep = R.curry((containerDepth, accumulator, initialV
 /**
  * Export chains a monad to a reducedMonad with the given function
  * @param {Function} f Expects the reducedMonad and the monad, returns a new reducedMonad
- * @param reducedMonad
- * @param monad
- * @return {*}
+ * @param {Object} reducedMonad THe monad that is already reduced
+ * @param {Object} monad The monad to reduce
+ * @return {Object} The monad result of calling f
  */
-const chainTogetherWith = (f, reducedMonad, monad) => {
-  return f(reducedMonad, monad);
+const _chainTogetherWith = (f, reducedMonad, monad) => {
+   return f(reducedMonad, monad);
 };
 
-const chainTogetherWithBucketed = (f, reducedMonad, monad) => {
-  return f(reducedMonad, monad);
+/**
+ * Version of _chainTogetherWith for task that composes a timeout into the chain to prevent stack overflow
+ * @param {Function} f Expects the reducedMonad and the monad, returns a new reducedMonad
+ * @param {Object} reducedMonad THe monad that is already reduced
+ * @param {Object} monad The monad to reduce
+ * @return {Object} The monad result of calling f
+ * @private
+ */
+const _chainTogetherWithTaskDelay = (f, reducedMonad, monad) => {
+  return composeWithChainMDeep(1, [
+    () => f(reducedMonad, monad),
+    timeoutTask
+  ])();
+};
+
+export const timeoutTask = (...args) => {
+  return task(
+    (resolver) => {
+      const timerId = setTimeout(() => {
+        return resolver.resolve(...args);
+      }, 0);
+      resolver.cleanup(() => {
+        clearTimeout(timerId);
+      });
+    }
+  );
 };
 
 /**
@@ -378,7 +401,7 @@ const chainTogetherWithBucketed = (f, reducedMonad, monad) => {
  * @param {Object} initialValue The monad with the empty value, e.g. Maybe.Just([]) or Task.of(Result.Ok({}))
  * @param {[Object]} monads The list of monads
  */
-export const reduceMonadsChainedBucketed = R.curry((
+const _reduceMonadsChainedBucketed = R.curry((
   {buckets},
   f,
   initialValue,
@@ -390,26 +413,27 @@ export const reduceMonadsChainedBucketed = R.curry((
   const monadSets = bucketedMonadSets(bucketSize, monads);
 
   // Process each bucket of monads with traverseReduceWhileBucketed (end case) or
-  // recurse with reduceMonadsChainedBucketed with smaller bucket size
+  // recurse with _reduceMonadsChainedBucketed with smaller bucket size
   // The first item of each set expects the accumulation of the previous set.
   // This means we can't actually evaluate the sets yet, rather return functions
   // Monad m:: [m[a]] -> m[b]
   const reducedMonadSetFuncs = R.map(
-    mSet => previousSetAccumulation => {
-      return R.ifElse(
-        // If we have more than 100 monads recurse, limiting the bucket size to 1 / 10 the current bucket size
-        mSet => R.compose(R.lt(100), R.length)(mSet),
-        // Take the bucketSize number of monads and recurse, this will divide into more buckets
-        mSet => {
-          return reduceMonadsChainedBucketed({buckets}, f, previousSetAccumulation, mSet);
-        },
-        // Small enough, do a normal R.reduce for each bucket of tasks
-        // Monad m:: [[m a]] -> [b -> m [c]]
-        mSet => {
-          return R.reduce(f, previousSetAccumulation, mSet);
-        }
-      )(mSet);
-    },
+    mSet =>
+      (previousSetAccumulationMonad) => {
+        return R.ifElse(
+          // If we have more than 100 monads recurse, limiting the bucket size to 1 / 10 the current bucket size
+          mmSet => R.compose(R.lt(100), R.length)(mmSet),
+          // Take the bucketSize number of monads and recurse, this will divide into more buckets
+          mmSet => {
+            return _reduceMonadsChainedBucketed({buckets}, f, previousSetAccumulationMonad, mmSet);
+          },
+          // Small enough, do a normal R.reduce for each bucket of tasks
+          // Monad m:: [[m a]] -> [b -> m [c]]
+          mmSet => {
+            return R.reduce(f, previousSetAccumulationMonad, mmSet);
+          }
+        )(mSet);
+      },
     monadSets
   );
 
@@ -427,23 +451,6 @@ export const reduceMonadsChainedBucketed = R.curry((
   );
 });
 
-/**
- * A version of traverseReduceWhile that prevents maximum call stack exceeded by breaking chains into buckets
- * Normally long lists of chained tasks keep calling a new function. We need to break this up after some number
- * of calls to prevent the maximum call stack
- * @param {Object} config See traverseReduceWhile predicateOrObject
- * @param accumulator
- * @param initialValue
- * @param list
- */
-export const traverseReduceWhileBucketed = (config, accumulator, initialValue, list) => {
-  return traverseReduceWhile(
-    R.merge(config, {reducer: reduceMonadsChainedBucketed({})}),
-    accumulator,
-    initialValue,
-    list
-  );
-};
 
 /**
  * A version of traverseReduce that also reduces until a boolean condition is met.
@@ -462,8 +469,10 @@ export const traverseReduceWhileBucketed = (config, accumulator, initialValue, l
  * @param {Function} [predicateOrObj.mappingFunction] Defaults to R.map. The function used to each monad result from list.
  * If the accumulator does not create a new monad then R.map is sufficient. However if the accumulator does create
  * a new monad this should be set to R.chain so that the resulting monad isn't put inside the monad result
+ * @param {Function} [predicateOrObj.chainTogetherWith] Defaults to _chainTogetherWith. Only needs to be overridden
+ * for high stack count chaining that needs to be broken up to avoid max stack trace
  * @param {Function} [predicateOrObj.monadConstructor] Default to R.identity. Function to create a monad if mappingFunction uses R.chain. This
- * would be an task of function for task monads, an Result,Ok monad for Results, etc.
+ * would be a task of function for task monads, an Result,Ok monad for Results, etc.
  * @param {Function} [predicateOrObj.reducer] Default R.Reduce. An alternative reducer function to use, for
  * instnace for stack handling by traverseReduceWhileBucketed
  * @param {Function} accumulator Accepts a reduced applicative and each result of sequencer, then returns the new reduced applicative
@@ -478,6 +487,7 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
   const _reduceMonadsWithWhilst = _reduceMonadsWithWhile({predicateOrObj, accumulator, initialValue});
   // Use R.reduce for processing each monad unless an alternative is specified.
   const reduceFunction = R.ifElse(R.both(R.is(Object), R.prop('reducer')), R.prop('reducer'), () => R.reduce)(predicateOrObj);
+  const chainWith = R.propOr(_chainTogetherWith, 'chainTogetherWith', predicateOrObj);
 
   // Call the reducer. After it finishes strip out @@transducer/reduced if we aborted with it at some point
   return composeWithChainMDeep(1, [
@@ -498,7 +508,7 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
     () => {
       return reduceFunction(
         (accumulatedMonad, applicator) => {
-          return chainTogetherWith(
+          return chainWith(
             (accMonad, app) => {
               return _reduceMonadsWithWhilst(accMonad, app);
             },
@@ -515,6 +525,88 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
   ])();
 };
 
+
+/**
+ * A version of traverseReduceWhile that prevents maximum call stack exceeded by breaking chains into buckets
+ * Normally long lists of chained tasks keep calling a new function. We need to break this up after some number
+ * of calls to prevent the maximum call stack
+ * @param {Object} config The config
+ * @param {Object} config.predicateOrObj Like ramda's reduceWhile predicate. Accepts the accumulated value and next value.
+ * These are the values of the container. If false is returned the accumulated value is returned without processing
+ * more values. Be aware that for Tasks the task must run to predicate on the result, so plan to check the previous
+ * task to prevent a certain task from running
+ * @param {Boolean} [config.accumulateAfterPredicateFail] Default false. Because of Tasks, we have a boolean here to allow accumulation after
+ * the predicate fails. The default behavior is to not accumulate the value of a failed predicate. This makes
+ * sense for things like Result where there is no consequence of evaluating them. But we have to run a Task to
+ * evaluate it so we might want to quit after the previous task but also add that task result to the accumulation.
+ * In that case set this true
+ * @param {Function} [config.mappingFunction] Defaults to R.map. The function used to each monad result from list.
+ * If the accumulator does not create a new monad then R.map is sufficient. However if the accumulator does create
+ * a new monad this should be set to R.chain so that the resulting monad isn't put inside the monad result
+ * @param {Function} [config.chainTogetherWith] Defaults to _chainTogetherWith. Only needs to be overridden
+ * for high stack count chaining that needs to be broken up to avoid max stack trace
+ * @param {Function} accumulator The accumulator function expecting the reduced monad and nonad
+ * @param {Object} initialValue The initial value monad
+ * @param {[Object]} list The list of monads
+ * @return {Object} The reduced monad
+ */
+export const traverseReduceWhileBucketed = (config, accumulator, initialValue, list) => {
+  return traverseReduceWhile(
+    R.merge(config, {reducer: _reduceMonadsChainedBucketed({})}),
+    accumulator,
+    initialValue,
+    list
+  );
+};
+
+/**
+ * Version of traverseReduceWhileBucketed that breaks tasks chaining with timeouts to prevent max stack trace errors
+ * @param {Object} config The config
+ * @param {Boolean} [config.accumulateAfterPredicateFail] Default false. Because of Tasks, we have a boolean here to allow accumulation after
+ * the predicate fails. The default behavior is to not accumulate the value of a failed predicate. This makes
+ * sense for things like Result where there is no consequence of evaluating them. But we have to run a Task to
+ * evaluate it so we might want to quit after the previous task but also add that task result to the accumulation.
+ * In that case set this true
+ * @param {Function} [config.mappingFunction] Defaults to R.map. The function used to each monad result from list.
+ * If the accumulator does not create a new monad then R.map is sufficient. However if the accumulator does create
+ * a new monad this should be set to R.chain so that the resulting monad isn't put inside the monad result
+ * @param {Function} [config.chainTogetherWith] Defaults to _chainTogetherWith. Only needs to be overridden
+ * @param {Function} accumulator The accumulator function expecting the reduced task and task
+ * @param {Object} initialValue The initial value task
+ * @param {[Object]} list The list of tasks
+ * @return {Object} The reduced task
+ * @return {*}
+ */
+export const traverseReduceWhileBucketedTasks = (config, accumulator, initialValue, list) => {
+  // If config.mappingFunction is already R.chain, we can compose with chain since the accumulator is returning
+  // a monad. If not the use composeWithMapMDeep so that the given accumulator can returns its value but our
+  // composed accumulator returns a task
+  const accumulatorComposeChainOrMap = R.ifElse(
+    R.equals(R.chain),
+    () => composeWithChainMDeep,
+    () => composeWithMapMDeep
+  )(R.propOr(null, 'mappingFunction', config));
+  return traverseReduceWhileBucketed(
+    R.merge(
+      config,
+      {
+        // This has to be chain so we can return a task in our accumulator
+        mappingFunction: R.chain,
+        // This adds a timeout in the chaining process to avoid max stack trace problems
+        chainTogetherWith: _chainTogetherWithTaskDelay
+      }
+    ),
+    // Call the timeout task to break the stacktrace chain. Then call the accumulator with the normal inputs.
+    // Always returns a task no matter if the accumulator does or not
+    accumulatorComposeChainOrMap(1, [
+      args => accumulator(...args),
+      (...args) => timeoutTask(args)
+    ]),
+    initialValue,
+    list
+  );
+};
+
 /**
  * Used by traverseReduceWhile to chain the accumulated monad with each subsequent monad.
  * If the value of the accumulated monad is @@transducer/reduced. The chaining is short-circuited so that
@@ -524,7 +616,7 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValue, l
  * @param {Function} config.accumulator
  * @param {Object} config.initialValue Monad used for short-circuiting the process. The final accumulatedValue after the
  * @@transducer/reduced is detected is mapped from this monad, so the actual value is ignored
- * @return {Object} The reduced monad
+ * @returns {Object} The reduced monad
  */
 const _reduceMonadsWithWhile = ({predicateOrObj, accumulator, initialValue}) => {
   // Determine if predicateOrObj is just a function or also an object
@@ -537,6 +629,7 @@ const _reduceMonadsWithWhile = ({predicateOrObj, accumulator, initialValue}) => 
   // Map the applicator below with R.map unless an override like R.chain is specified
   const mappingFunction = R.propOr(R.map, 'mappingFunction', predicateOrObj);
   const monadConstructor = R.propOr(R.identity, 'monadConstructor', predicateOrObj);
+  const chainWith = R.propOr(_chainTogetherWith, 'chainTogetherWith', predicateOrObj);
 
   return (accumulatedMonad, applicator) => {
     return R.chain(
@@ -1232,10 +1325,10 @@ export const mapWithArgToPath = R.curry(
  */
 export const waitAllBucketed = (tasks, buckets = 100) => {
   const taskSets = R.reduceBy(
-    (acc, [task, i]) => R.concat(acc, [task]),
+    (acc, [tsk, i]) => R.concat(acc, [tsk]),
     [],
-    ([task, i]) => i.toString(),
-    R.addIndex(R.map)((task, i) => [task, i % buckets], tasks)
+    ([_, i]) => i.toString(),
+    R.addIndex(R.map)((tsk, i) => [tsk, i % buckets], tasks)
   );
 
   return R.map(
@@ -1274,7 +1367,7 @@ const bucketedMonadSets = (bucketSize, monads) => {
     R.values,
     ms => {
       return R.reduceBy(
-        (acc, [monads, i]) => R.concat(acc, [monads]),
+        (acc, [mms, i]) => R.concat(acc, [mms]),
         [],
         ([_, i]) => i.toString(),
         // Create pairs where the second value is the index / bucketCount
@@ -1282,7 +1375,7 @@ const bucketedMonadSets = (bucketSize, monads) => {
         // bucket, etc
         R.addIndex(R.map)((monad, monadIndex) => {
           return [monad, Math.floor(monadIndex / bucketSize)];
-        }, monads)
+        }, ms)
       );
     }
   )(monads);
@@ -1290,14 +1383,13 @@ const bucketedMonadSets = (bucketSize, monads) => {
 /**
  * Versions of R.sequence that divides tasks into 100 buckets to prevent stack overflow since waitAll
  * chains all tasks together. waitAllSequentiallyBucketed runs tasks sequentially not concurrently
- * @param {Object} config
+ * @param {Object} config The configuration
  * @param {Number} [config.buckets] Default to R.length(monads) / 100 The number of buckets to divide monads into
  * @param {Number} [config.monadType] The monad type to pass to R.traverse. E.g. Task.of, Result.Ok, Maybe.Just
  * @param {[Object]} monads A list of monads
  * @returns {*} The list of monads to be processed without blowing the stack limit
  */
 export const sequenceBucketed = ({buckets, monadType}, monads) => {
-
   const bucketSize = buckets || Math.floor(R.length(monads) / 100);
   const monadSets = bucketedMonadSets(bucketSize, monads);
 
@@ -1326,7 +1418,7 @@ export const sequenceBucketed = ({buckets, monadType}, monads) => {
 // given an array of something and a transform function that takes an item from
 // the array and turns it into a task, run all the tasks in sequence.
 // inSequence :: (a -> Task) -> Array<a> -> Task
-/*export const chainInSequence = R.curry((chainedTasks, task) => {
+/* export const chainInSequence = R.curry((chainedTasks, task) => {
   let log = [];
 
   R.chain(
@@ -1348,7 +1440,7 @@ export const sequenceBucketed = ({buckets, monadType}, monads) => {
     );
   }, Task.of("start"));
 })*/
-;
+
 /*
 export function liftObjDeep(obj, keys = []) {
   if (R.anyPass([Array.isArray, R.complement(R.is)(Object)])(obj)) {
