@@ -9,7 +9,6 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import stackTrace from 'stack-trace';
 import {fromPromised, of, rejected, task, waitAll} from 'folktale/concurrency/task';
 import {
   chainExceptMapDeepestMDeep,
@@ -36,13 +35,13 @@ import {
   objOfMLevelDeepListOfMonadsToListWithPairs,
   objOfMLevelDeepMonadsToListWithPairs,
   pairsOfMLevelDeepListOfMonadsToListWithPairs,
-  promiseToTask,
+  promiseToTask, resultTasksToResultObjTask,
   resultToTask,
   resultToTaskNeedingResult,
   resultToTaskWithResult,
   sequenceBucketed,
   taskToPromise,
-  taskToResultTask, timeoutTask,
+  taskToResultTask,
   toMergedResponseAndInputs,
   toNamedResponseAndInputs,
   traverseReduce,
@@ -50,7 +49,9 @@ import {
   traverseReduceDeepResults,
   traverseReduceError,
   traverseReduceResultError,
-  traverseReduceWhile, traverseReduceWhileBucketed, traverseReduceWhileBucketedTasks,
+  traverseReduceWhile,
+  traverseReduceWhileBucketed,
+  traverseReduceWhileBucketedTasks,
   waitAllBucketed
 } from './monadHelpers';
 import * as R from 'ramda';
@@ -692,8 +693,12 @@ describe('monadHelpers', () => {
   test('traverseReduceResultWhile', done => {
     const initialResult = initialValue(Result.of);
     traverseReduceWhile(
-      // Predicate should be false when we have a b accumulated
-      (accumulated, applicative) => R.not(R.prop('b', accumulated)),
+      {
+        // Predicate should be false when we have a b accumulated
+        predicate: (accumulated, applicative) => {
+          return R.not(R.prop('b', accumulated));
+        }
+      },
       merge,
       initialResult,
       objOfApplicativesToApplicative(Result.of, {
@@ -796,18 +801,20 @@ describe('monadHelpers', () => {
 
   test('traverseReduceWhileAvoidStackOverloadTask', done => {
     expect.assertions(1);
-    const count = 10000
+    const count = 5000;
 
     const tsk = traverseReduceWhileBucketedTasks(
       // Make sure we accumulate up to b but don't run c
       {
-        // Never quit early
-        predicate: (values, value) => true,
+        // Quit early
+        predicate: (values, value) => {
+          return value !== Math.floor(count / 2);
+        },
         // Gives the code a blank monad to start from if the predicate returns false
-        monadConstructor:  of
+        monadConstructor: of
       },
       (acc, value) => {
-        console.debug(`${value} (trace length: ${stackTrace.get().length})`);
+        // console.debug(`${value} (trace length: ${stackTrace.get().length})`);
         return R.concat(acc, [value.toString()]);
       },
       of([]),
@@ -818,7 +825,7 @@ describe('monadHelpers', () => {
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual(
-            R.times(t => t.toString(), count)
+            R.times(t => t.toString(), Math.floor(count / 2))
           );
         }
       }, errors, done)
@@ -1825,5 +1832,66 @@ describe('monadHelpers', () => {
       [Maybe.Just(2), Maybe.Just(3), Maybe.Just(4), Maybe.Just(5)]
     );
   });
+
+  test('task cancelling', done => {
+    expect.assertions(1);
+    const taskA = task((resolver) => {
+      resolver.onCancelled(() => {
+      });
+      setTimeout(() => {
+        if (!resolver.isCancelled) {
+          resolver.resolve('taskA');
+        }
+      }, 100);
+    });
+
+    const taskB = task((resolver) => {
+      resolver.onCancelled(() => {
+      });
+      setTimeout(() => {
+        if (!resolver.isCancelled) {
+          resolver.resolve('taskB');
+        }
+      }, 200);
+    });
+
+    const taskC = task((resolver) => {
+      resolver.onCancelled(() => {
+      });
+      setTimeout(() => {
+      }, 300);
+    });
+
+    const exec = taskA.chain(() => taskB).chain(() => taskC).run();
+
+
+    setTimeout(() => {
+      exec.cancel();
+    }, 150);
+
+    const errors = [];
+    exec.listen(defaultRunConfig({
+      onCancelled: () => {
+        expect(true).toBeTruthy();
+      },
+      onResolved: () => {
+        throw new Error('Never');
+      }
+    }, errors, done));
+  });
+
+  test('resultTasksToResultObjTask', done => {
+    const errors = [];
+    const count = 100;
+    const resultsTasks = R.times(i => {
+      return of(R.ifElse(i => R.modulo(i, 2), Result.Ok, Result.Error)(i));
+    }, count);
+    resultTasksToResultObjTask(resultsTasks).run().listen(defaultRunConfig({
+      onResolved: ({Ok: oks, Error: errors}) => {
+        expect(R.length(oks)).toEqual(count / 2);
+        expect(R.length(errors)).toEqual(count / 2);
+      }
+    }, errors, done));
+  }, 1000);
 });
 
