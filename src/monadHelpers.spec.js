@@ -1881,17 +1881,17 @@ describe('monadHelpers', () => {
   });
 
   test('resultTasksToResultObjTask', done => {
-    const errors = [];
+    const err = [];
     const count = 100;
     const resultsTasks = R.times(i => {
-      return of(R.ifElse(i => R.modulo(i, 2), Result.Ok, Result.Error)(i));
+      return of(R.ifElse(index => R.modulo(index, 2), Result.Ok, Result.Error)(i));
     }, count);
     resultTasksToResultObjTask(resultsTasks).run().listen(defaultRunConfig({
       onResolved: ({Ok: oks, Error: errors}) => {
         expect(R.length(oks)).toEqual(count / 2);
         expect(R.length(errors)).toEqual(count / 2);
       }
-    }, errors, done));
+    }, err, done));
   }, 1000);
 });
 
