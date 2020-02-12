@@ -51,15 +51,16 @@ export const throwIfSingleResultError = R.curry((message, result) =>
  * an array it maps each value. If not it maps the single value
  * @returns {Result.Ok} Throws the mapped values or returns Result.Ok. Error values are '; ' separated
  */
-export const mappedThrowIfResultError = R.curry((func, result) =>
-  result.mapError(
-    // Throw if Result.Error
-    leftValue => {
-      throw new Error(R.join('; ', R.map(func, leftValue)));
-    }).map(
-    // Return the Result.Ok value
-    R.identity
-  )
+export const mappedThrowIfResultError = R.curry((func, result) => {
+    return result.mapError(
+      // Throw if Result.Error
+      error => {
+        throw new Error(R.join('; ', R.map(func, error)));
+      }).map(
+      // Return the Result.Ok value
+      R.identity
+    );
+  }
 );
 
 /**

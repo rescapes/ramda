@@ -24,7 +24,7 @@ import {Just} from 'folktale/maybe';
  */
 export const defaultOnRejected = R.curry((errors, reject) => {
   // Combine reject and errors
-  const allErrors = R.uniq(R.concat(errors, reject));
+  const allErrors = R.uniq(R.concat(errors, [reject]));
   console.warn('Accumulated task errors:\n', // eslint-disable-line no-console
     R.join('\n', R.map(error => JSON.stringify(error), allErrors))
   );
