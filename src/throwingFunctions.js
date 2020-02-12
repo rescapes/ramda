@@ -55,7 +55,14 @@ export const mappedThrowIfResultError = R.curry((func, result) => {
     return result.mapError(
       // Throw if Result.Error
       error => {
-        throw new Error(R.join('; ', R.map(func, error)));
+        throw new Error(
+          R.join('; ', R.map(
+            e => {
+              return func(e);
+            },
+            error)
+          )
+        );
       }).map(
       // Return the Result.Ok value
       R.identity
