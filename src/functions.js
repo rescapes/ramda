@@ -248,48 +248,64 @@ export const applyDeepAndMapObjs = R.curry((fn, applyObj, obj) =>
   mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
 );
 
-const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => R.cond(
-  [
-    // Arrays
-    [R.all(Array.isArray),
-      // Recurse on each array item. We pass the key without the index
-      R.apply(
-        R.zipWith(
-          (l, r) => R.compose(
-            // For array items, take key and the result and call the applyObj func, but only if res is an Object
-            v => R.when(
-              // When it's an object and not an array call applyObj
-              // typeof x === 'object' check because sometimes values that are objects are not returning true
-              R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
-              res => applyObj(key, res)
-            )(v),
-            ([kk, ll, rr]) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
-          )([key, l, r])
-        )
-      )
-    ],
-    // Primitives
-    [R.complement(R.all)(R.is(Object)), lr => fn(...lr, key)],
-    // Objects
-    [R.T,
-      R.apply(
-        R.mergeWithKey(
-          (k, l, r) => R.compose(
-            // Take key and the result and call the applyObj func, but only if res is an Object
-            v => R.when(
-              // When it's an object and not an array call applyObj
-              // typeof x === 'object' check because sometimes values that are objects are not returning true
-              R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
-              res => applyObj(k, res)
-            )(v),
-            // First recurse on l and r
-            ([kk, ll, rr]) => R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj), [kk, ll, rr])
-          )([k, l, r])
-        )
-      )
-    ]
-  ]
-  )([left, right])
+const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => {
+    return R.cond(
+      [
+        // Arrays
+        [R.all(Array.isArray),
+          // Recurse on each array item. We pass the key without the index
+          lr => {
+            return R.apply(
+              R.zipWith(
+                (l, r) => R.compose(
+                  // For array items, take key and the result and call the applyObj func, but only if res is an Object
+                  v => R.when(
+                    // When it's an object and not an array call applyObj
+                    // typeof x === 'object' check because sometimes values that are objects are not returning true
+                    R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
+                    res => applyObj(key, res)
+                  )(v),
+                  ([kk, ll, rr]) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
+                )([key, l, r])
+              )
+            )(lr);
+          }
+        ],
+        // Primitives: call the function with left and right as the first two args and key as the last
+        [R.complement(R.all)(R.is(Object)), lr => {
+          return fn(...lr, key);
+        }],
+        // Always leave functions alone.
+        [lr => R.all(R.is(Function), lr), ([l, _]) => {
+          return l;
+        }],
+        // Objects
+        [R.T,
+          lr => {
+            return R.apply(
+              R.mergeWithKey(
+                (k, l, r) => R.compose(
+                  // Take key and the result and call the applyObj func, but only if res is an Object
+                  v => R.when(
+                    // When it's an object and not an array call applyObj
+                    // typeof x === 'object' check because sometimes values that are objects are not returning true
+                    R.both(
+                      x => typeof x === 'object',
+                      R.complement(R.is)(Array)
+                    ),
+                    res => applyObj(k, res)
+                  )(v),
+                  // First recurse on l and r
+                  ([kk, ll, rr]) => R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj), [kk, ll, rr])
+                )([k, l, r])
+              ),
+              lr
+            );
+          }
+        ]
+      ]
+    )([left, right]);
+  }
 );
 
 

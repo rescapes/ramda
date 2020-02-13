@@ -687,6 +687,9 @@ describe('helperFunctions', () => {
   });
 
   test('omitDeepBy', () => {
+    const whatTheFunc = () => {
+      return "what the func"
+    }
     const res = omitDeepBy(
       (k, v) => R.startsWith('_')(k),
       {
@@ -704,6 +707,10 @@ describe('helperFunctions', () => {
               }
             ]
           }
+        },
+        funkyNut: {
+          wingnut: 'yes',
+          cornnut: whatTheFunc
         }
       }
     );
@@ -716,6 +723,10 @@ describe('helperFunctions', () => {
             ]
           }
         }
+      },
+      funkyNut: {
+        wingnut: 'yes',
+        cornnut: whatTheFunc
       }
     });
     const res2 = omitDeepBy(
