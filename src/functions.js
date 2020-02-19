@@ -262,7 +262,10 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
                   v => R.when(
                     // When it's an object and not an array call applyObj
                     // typeof x === 'object' check because sometimes values that are objects are not returning true
-                    R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
+                    R.both(
+                      vv => typeof vv === 'object',
+                      R.complement(R.is)(Array)
+                    ),
                     res => applyObj(key, res)
                   )(v),
                   ([kk, ll, rr]) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)

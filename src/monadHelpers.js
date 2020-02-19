@@ -653,7 +653,7 @@ const _reduceMonadsWithWhile = ({predicateOrObj, accumulator, initialValueMonad}
           // Done, we can't quit reducing since we're chaining monads. Instead we keep chaining the initialValueMonad
           // and always return the same accumulatedMonad, meaning the @@transducer/reduced valued monad
           // We use chainWith to allow breaks in chains for tasks that would otherwise cause a stack overflow
-          (accValue) => {
+          accValue => {
             // Always returns the same thing, but break the chain occasionally to prevent stack overflow
             return chainTogetherWith(
               () => {
@@ -664,23 +664,23 @@ const _reduceMonadsWithWhile = ({predicateOrObj, accumulator, initialValueMonad}
               index
             );
           },
-          () => mappingFunction(
+          accValue => mappingFunction(
             value => {
               // If the applicator's value passes the predicate, accumulate it and process the next item
               // Otherwise we stop reducing by returning R.reduced()
               return R.ifElse(
                 v => {
-                  return predicate(accumulatedValue, v);
+                  return predicate(accValue, v);
                 },
                 v => {
-                  return accumulator(accumulatedValue, v);
+                  return accumulator(accValue, v);
                 },
                 // We have to detect this above ourselves. R.reduce can't see it for deferred types like Task
                 // IF the user wants to add v to the accumulation after predicate failure, do it.
                 v => {
                   // Use monadConstructor if is false so we return the right monad type if specified
                   return (accumulateAfterPredicateFail ? R.identity : monadConstructor)(
-                    R.reduced(accumulateAfterPredicateFail ? accumulator(accumulatedValue, v) : accumulatedValue)
+                    R.reduced(accumulateAfterPredicateFail ? accumulator(accValue, v) : accValue)
                   );
                 }
               )(value);
