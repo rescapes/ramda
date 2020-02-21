@@ -14,6 +14,7 @@ import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
 import {Just} from 'folktale/maybe';
+import {stringifyError} from './errorHelpers';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -25,8 +26,8 @@ import {Just} from 'folktale/maybe';
 export const defaultOnRejected = R.curry((errors, reject) => {
   // Combine reject and errors
   const allErrors = R.uniq(R.concat(errors, [reject]));
-  console.warn('Accumulated task errors:\n', // eslint-disable-line no-console
-    R.join('\n', R.map(error => JSON.stringify(error), allErrors))
+  console.error('Accumulated task errors:\n', // eslint-disable-line no-console
+    R.join('\n', R.map(error => stringifyError(error), allErrors))
   );
   throw(reject);
 });

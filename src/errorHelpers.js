@@ -22,7 +22,7 @@ export const stringifyError = err => {
     Object.getOwnPropertyNames(err)
   ));
   // Use replace to convert escaped in stack \\n to \n
-  return R.replace(/\\n/g, "\n", JSON.stringify(
+  return R.replace(/\\n/g, '\n', JSON.stringify(
     // Put message and stack first
     R.merge(R.pick(['message', 'stack'], obj), R.omit(['message', 'stack'])),
     null,
