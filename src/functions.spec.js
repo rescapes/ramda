@@ -688,7 +688,7 @@ describe('helperFunctions', () => {
 
   test('omitDeepBy', () => {
     const whatTheFunc = () => {
-      return "what the func";
+      return 'what the func';
     };
     const res = omitDeepBy(
       (k, v) => R.startsWith('_')(k),

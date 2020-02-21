@@ -832,6 +832,62 @@ describe('monadHelpers', () => {
     );
   }, 111111);
 
+  test('traverseReduceWhileBucketedTaskRamdaVersionProblem', done => {
+    const theThings = R.times(i => ({i}), 60);
+    const tsk = traverseReduceWhileBucketedTasks(
+      {
+        accumulateAfterPredicateFail: false,
+        predicate: (result, x) => {
+          const {value: {things}} = result;
+          return R.length(things);
+        },
+        // Chain to chain the results of each task. R.map would embed them within each other
+        mappingFunction: R.chain,
+        monadConstructor: of
+      },
+      // Ignore x, which just indicates the index of the reduction. We reduce until we run out of partialBlocks
+      ({value: {things, goods, bads}}, x) => {
+        return R.map(
+          // partialBlocks are those remaining to be processed
+          // block is the completed block that was created with one or more partial blocks
+          // Result.Ok -> Result.Ok, Result.Error -> Result.Ok
+          result => result.matchWith({
+            Ok: ({value: {things: th, good}}) => {
+              return Result.Ok({
+                things: th,
+                goods: R.concat(goods, [good]),
+                bads
+              });
+            },
+            Error: ({value: {bad}}) => {
+              // Something went wrong processing a partial block
+              // error is {nodes, ways}, so we can eliminate the partialBlock matching it
+              // TODO error should contain information about the error
+              return Result.Ok({
+                things: R.difference(things, [bad]),
+                goods,
+                bads: R.concat(bads, [bad])
+              });
+            }
+          }),
+          of(Result.Ok({things: R.tail(things), good: R.head(things), bad: null}))
+        );
+      },
+      of(Result.Ok({things: theThings, goods: [], bads: []})),
+      R.times(of, R.length(theThings))
+    );
+    const errors = [];
+    tsk.run().listen(
+      defaultRunToResultConfig({
+        onResolved: ({goods, bads}) => {
+          expect(goods).toEqual(
+            theThings
+          );
+        }
+      }, errors, done)
+    );
+  }, 111111);
+
   test('lift1stOf2ForMDeepMonad', () => {
     // a -> Result a
     const resultConstructor = Result.Ok;

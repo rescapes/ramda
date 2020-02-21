@@ -138,5 +138,8 @@
         ]
       }
     }
+  },
+  "peerDependencies": {
+    "ramda": "^0.27.0"
   }
 }
