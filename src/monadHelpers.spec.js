@@ -12,7 +12,7 @@
 import {fromPromised, of, rejected, task, waitAll} from 'folktale/concurrency/task';
 import {
   chainExceptMapDeepestMDeep,
-  chainMDeep,
+  chainMDeep, composeWithChain,
   composeWithChainMDeep,
   composeWithMapExceptChainDeepestMDeep,
   composeWithMapMDeep,
@@ -38,7 +38,7 @@ import {
   promiseToTask, resultTasksToResultObjTask,
   resultToTask,
   resultToTaskNeedingResult,
-  resultToTaskWithResult,
+  resultToTaskWithResult, retryTask,
   sequenceBucketed,
   taskToPromise,
   taskToResultTask,
@@ -1122,6 +1122,22 @@ describe('monadHelpers', () => {
     }, errors, done));
   });
 
+  test('composeWithChain', done => {
+    const errors = [];
+    const tsk = composeWithChain([
+      start => of(R.concat(start, ' in')),
+      start => of(R.concat(start, ' foot')),
+      start => of(R.concat(start, ' right')),
+      start => of(R.concat(start, ' your')),
+      start => of(R.concat(start, ' put'))
+    ])('You');
+    tsk.run().listen(defaultRunConfig({
+      onResolved: lyrics => {
+        expect(lyrics).toEqual('You put your right foot in');
+      }
+    }, errors, done));
+  });
+
   test('mapToNamedResponseAndInputsMDeepError', done => {
     const errors = [];
 
@@ -1949,5 +1965,31 @@ describe('monadHelpers', () => {
       }
     }, err, done));
   }, 1000);
+
+  test('retry', done => {
+    expect.assertions(2);
+    const errors = [];
+    let runs = 0;
+    const tsk = retryTask(
+      task(
+        r => {
+          runs = runs + 1;
+          if (R.equals(3, runs)) {
+            r.resolve('success');
+          } else {
+            r.reject('fail');
+          }
+        }
+      ),
+      5,
+      errors
+    );
+    tsk.run().listen(defaultRunConfig({
+      onResolved: success => {
+        expect(errors).toEqual(['fail', 'fail']);
+        expect(success).toBe('success');
+      }
+    }, errors, done));
+  });
 });
 

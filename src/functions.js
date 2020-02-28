@@ -17,7 +17,7 @@
 * such as improper function arguments or an invalid path within object.
 * I/O Errors should be handled using Maybe or Result and calling functions should expect them.
 * An I/O Error should always result in a valid state of an application, even if that valid
-* state is to show an error message, retry I/O, etc.
+* state is to show an error message, retryTask I/O, etc.
 */
 
 import * as R from 'ramda';
@@ -524,18 +524,22 @@ export const mapKeysAndValues = R.curry((f, container) => R.fromPairs(mapObjToVa
 
 /**
  * https://github.com/ramda/ramda/wiki/Cookbook
- * Filter objects with values and keys
+ * Filter objects with values and keys. Null objs return as null
  * @param {Function} pred (value, key) => True|False
  * @param {Object} obj The object to filter
  * @returns {Object} The filtered object
  * @sig filterWithKeys:: (v -> k -> True|False) -> <k,v> -> <k,v>
  */
-export const filterWithKeys = R.curry((pred, obj) => R.pipe(
-  R.toPairs,
-  R.filter(pair => R.apply(pred, R.reverse(pair))),
-  R.fromPairs
-  )(obj)
-);
+export const filterWithKeys = R.curry((pred, obj) => {
+  if (!obj) {
+    return obj;
+  }
+  return R.compose(
+    R.fromPairs,
+    R.filter(pair => R.apply(pred, R.reverse(pair))),
+    R.toPairs
+  )(obj);
+});
 
 /**
  * Transforms the keys of the given object with the given func

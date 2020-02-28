@@ -134,10 +134,12 @@ export {
   taskToResultTask,
   waitAllBucketed,
   sequenceBucketed,
+  composeWithChain,
   composeWithChainMDeep,
   composeWithMapExceptChainDeepestMDeep,
-  composeWithMapMDeep
+  composeWithMapMDeep,
+  retryTask
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';
-export {stringifyError} from './errorHelpers'
+export {stringifyError} from './errorHelpers';

@@ -942,7 +942,7 @@ export const mapExceptChainDeepestMDeep = R.curry((monadDepth, f, monad) => {
 });
 
 /**
- * composeWith using mapMDeep Each function of compose will receive the object monadDepth levels deep.
+ * composeWith using chainMDeep Each function of compose will receive the object monadDepth levels deep.
  * The function should transform the value without wrapping in monads
  * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
  * @param {*} list  List of functions that expects the unwrapped value and returns an unwrapped value
@@ -957,6 +957,17 @@ export const composeWithChainMDeep = (monadDepth, list) => {
       return chainMDeep(monadDepth, f, res);
     }
   )(list);
+};
+
+/**
+ * Composes with chain
+ * The function should transform the value without wrapping in monads
+ * @param {*} list  List of functions that expects the unwrapped value and returns an unwrapped value
+ * @returns {Object} A function expecting the input value(s), which is/are passed to the last function of list
+ * The value returned by the first function of list wrapped in a monad
+ */
+export const composeWithChain = list => {
+  return composeWithChainMDeep(1, list);
 };
 
 /**
@@ -1034,16 +1045,18 @@ export const doMDeepExceptDeepest = R.curry((monadDepth, funcPair, f, monad) => 
  * map the monad return value to return an obj with the value at 'value', merged with input object in its original form
  * of the function. Example: mapToResponseAndInputs(({a, b, c}) => task.of(someValue))({a, b, c}) -> task.of({a, b, c, value: someValue})
  * @param {Function} f Function expecting an object and returning a monad that can be mapped
+ * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The value of the monad at the value key merged with the input args
  */
-export const mapToResponseAndInputs = R.curry(
-  (f, arg) => R.map(value => R.merge(arg, {value}), f(arg))
+export const mapToResponseAndInputs = R.curry((f, arg) => {
+    return R.map(value => R.merge(arg, {value}), f(arg));
+  }
 );
 
 export const mapToMergedResponseAndInputsMDeep = R.curry(
   (level, f, arg) => mapMDeep(level,
     obj => R.merge(arg, obj),
-    f(arg)
+    f(R.when(R.isNil, () => ({}))(arg))
   )
 );
 
@@ -1052,10 +1065,10 @@ export const mapToMergedResponseAndInputsMDeep = R.curry(
  * map the monad return value to return an obj merged with input object in its original form
  * of the function. Example: mapToResponseAndInputs(({a, b, c}) => task.of({d: true, e: true}))({a, b, c}) -> task.of({a, b, c, d, e})
  * @param {Function} f Function expecting an object and returning a monad that can be mapped to an object
+ * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The value of the monad merged with the input args
  */
 export const mapToMergedResponseAndInputs = mapToMergedResponseAndInputsMDeep(1);
-
 
 /**
  * Given a monad whose return value can be mapped and a single input object,
@@ -1063,17 +1076,19 @@ export const mapToMergedResponseAndInputs = mapToMergedResponseAndInputsMDeep(1)
  * of the function. Example: mapToNamedResponseAndInputs('foo', ({a, b, c}) => task.of(someValue))({a, b, c}) -> task.of({a, b, c, foo: someValue})
  * @param {String} name The key name for the output
  * @param {Function} f Function expecting an object and returning a monad that can be mapped
- * @param {Object} arg The object containing the incoming named arguments that f is called with
+ * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The value of the monad at the value key merged with the input args
  */
-export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => R.map(
-  value => R.merge(
-    arg,
-    {[name]: value}
-  ),
-  // Must return a monad
-  f(arg)
-));
+export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => {
+  return R.map(
+    value => R.merge(
+      arg,
+      {[name]: value}
+    ),
+    // Must return a monad
+    f(R.when(R.isNil, () => ({}))(arg))
+  );
+});
 
 /**
  * Given a monad the specified levels deep whose return value can be mapped and a single input object,
@@ -1081,7 +1096,7 @@ export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => R.map(
  * of the function. Example: mapToNamedResponseAndInputs(2, 'foo', ({a, b, c}) => task.of(Result.Ok(someValue)))({a, b, c}) -> task.of(Result.Ok({a, b, c, foo: someValue}))
  * @param {String} name The key name for the output
  * @param {Function} f Function expecting an object and returning a monad that can be mapped
- * @param {Object} arg The object containing the incoming named arguments that f is called with
+ * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The value of the monad at the value key merged with the input args
  */
 export const mapToNamedResponseAndInputsMDeep = R.curry((level, name, f, arg) => {
@@ -1093,7 +1108,7 @@ export const mapToNamedResponseAndInputsMDeep = R.curry((level, name, f, arg) =>
       );
     },
     // Must return a monad
-    f(arg)
+    f(R.when(R.isNil, () => ({}))(arg))
   );
 });
 
@@ -1101,12 +1116,12 @@ export const mapToNamedResponseAndInputsMDeep = R.curry((level, name, f, arg) =>
  * Same as mapToNamedResponseAndInputs but works with a non-monad
  * @param {String} name The key name for the output
  * @param {Function} f Function expecting an object and returning an value that is directly merged with the other args
- * @param {Object} arg The object containing the incoming named arguments that f is called with
+ * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The output of f named named and merged with arg
  */
 export const toNamedResponseAndInputs = R.curry((name, f, arg) => {
   const monadF = _arg => Just(f(_arg));
-  const just = mapToNamedResponseAndInputs(name, monadF, arg);
+  const just = mapToNamedResponseAndInputs(name, monadF, R.when(R.isNil, () => ({}))(arg));
   return just.unsafeGet();
 });
 
@@ -1115,12 +1130,12 @@ export const toNamedResponseAndInputs = R.curry((name, f, arg) => {
  * Same as toMergedResponseAndInputs but works with a non-monad
  * @param {String} name The key name for the output
  * @param {Function} f Function expecting an object and returning an value that is directly merged with the other args
- * @param {Object} arg The object containing the incoming named arguments that f is called with
+ * @param {Object} arg The object containing the incoming named arguments that f is called with.  If null defaults to {}.
  * @return {Object} The output of f named named and merged with arg
  */
 export const toMergedResponseAndInputs = R.curry((f, arg) => {
   const monadF = _arg => Just(f(_arg));
-  const just = mapToMergedResponseAndInputs(monadF, arg);
+  const just = mapToMergedResponseAndInputs(monadF, R.when(R.isNil, () => ({}))(arg));
   return just.unsafeGet();
 });
 
@@ -1550,4 +1565,28 @@ export const resultsToResultObj = results => {
     {Ok: [], Error: []},
     results
   );
+};
+
+/**
+ * Run the given task the given number of times until it succeeds. If after the give times it still rejects then
+ * reject with the accumulated errors of each failed run
+ * @param {Object} tsk Task to run multiply times
+ * @param {Number} times The number of times to run the tasks
+ * @param {[Object]} [errors] Optional place to push errors
+ * @return {Task <Object>} Returns a task that resolves task or rejects
+ */
+export const retryTask = (tsk, times, errors) => {
+  const errs = errors || [];
+  const _retryTask = _times => {
+    return tsk.orElse(reason => {
+      errs.push(reason);
+      if (_times > 1) {
+        return _retryTask(_times - 1);
+      }
+      return rejected(`Task failed after ${_times} tries ${
+        R.join('\n', R.map(error => stringifyError(error), errs))
+      }`);
+    });
+  };
+  return _retryTask(times);
 };

@@ -750,6 +750,19 @@ describe('helperFunctions', () => {
     expect(res2).toEqual({});
   });
 
+  test('omitDeepByNullsStayNull', () => {
+    const obj = {
+      viewport: {
+        latitude: null,
+        longitude: null,
+        zoom: 1
+      }
+    };
+    expect(omitDeepBy(R.startsWith('_'), obj)).toEqual(
+      obj
+    );
+  });
+
   test('keyStringToLensPath', () => {
     expect(keyStringToLensPath('foo.bar.0.wopper')).toEqual(['foo', 'bar', 0, 'wopper']);
   });
