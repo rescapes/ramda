@@ -46,6 +46,7 @@ export {
   orEmpty,
   alwaysFunc,
   strPathOr,
+  strPathOrNullOk,
   removeDuplicateObjectsByProp,
   renameKey,
   reqPath,

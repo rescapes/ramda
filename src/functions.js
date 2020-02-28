@@ -433,6 +433,22 @@ export const strPathOr = R.curry((defaultValue, str, props) => {
   )(result);
 });
 
+export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
+  const segments = R.split('.', str);
+  const result = R.view(R.lensPath(R.init(segments)), props);
+  return R.ifElse(
+    R.isNil,
+    R.always(defaultValue),
+    r => {
+      try {
+        return R.when(v => typeof v === 'undefined', () => defaultValue)(R.prop(R.last(segments), r));
+      } catch {
+        return defaultValue;
+      }
+    }
+  )(result);
+});
+
 /**
  * Returns true if the given string path is non-null
  * @param {String} str dot-separated prop path
