@@ -501,11 +501,13 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValueMon
   const _reduceMonadsWithWhilst = _reduceMonadsWithWhile({predicateOrObj, accumulator, initialValueMonad});
   // Use R.reduce for processing each monad unless an alternative is specified.
   const reduceFunction = R.ifElse(R.both(R.is(Object), R.prop('reducer')), R.prop('reducer'), () => R.reduce)(predicateOrObj);
+
+  // By default we call
   const chainWith = R.propOr(_chainTogetherWith, 'chainTogetherWith', predicateOrObj);
 
   // Call the reducer. After it finishes strip out @@transducer/reduced if we aborted with it at some point
-  return composeWithChainMDeep(1, [
-    value => {
+  return composeWithChain([
+    reducedMonadValue => {
       // Using the initial value to get the right monad type, strip reduced if if was returned on the last iteration
       return R.map(
         () => {
@@ -513,21 +515,24 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValueMon
             R.prop('@@transducer/reduced'),
             res => R.prop('@@transducer/value', res),
             R.identity
-          )(value);
+          )(reducedMonadValue);
         },
         initialValueMonad
       );
     },
-    // Reduce each monad
+    // Reduce each monad. This reducer operate on the monad level.
+    // The reducer function _reduceMonadsWithWhilst. It is called with the two monads and either chains
+    // them together if if the predicate passes or returns the accMonad unchanged each time once the predicate
+    // fails.
     () => {
       return R.addIndex(reduceFunction)(
-        (accumulatedMonad, applicator, index) => {
+        (accumulatedMonad, currentMonad, index) => {
           return chainWith(
             (accMonad, app, i) => {
               return _reduceMonadsWithWhilst(accMonad, app, i);
             },
             accumulatedMonad,
-            applicator,
+            currentMonad,
             index
           );
         },
@@ -605,6 +610,7 @@ export const traverseReduceWhileBucketedTasks = (config, accumulator, initialVal
     R.merge(
       config,
       {
+        monadConstructor: of,
         // This has to be chain so we can return a task in our accumulator
         mappingFunction: R.chain,
         // This adds a timeout in the chaining process to avoid max stack trace problems
@@ -613,10 +619,12 @@ export const traverseReduceWhileBucketedTasks = (config, accumulator, initialVal
     ),
     // Call the timeout task to break the stacktrace chain. Then call the accumulator with the normal inputs.
     // Always returns a task no matter if the accumulator does or not
-    accumulatorComposeChainOrMap(1, [
-      args => accumulator(...args),
-      (...args) => timeoutTask(args)
-    ]),
+    (accum, current) => {
+      return accumulatorComposeChainOrMap(1, [
+        ([a, c]) => accumulator(a, c),
+        ([a, c]) => timeoutTask([a, c])
+      ])([accum, current]);
+    },
     initialValue,
     list
   );

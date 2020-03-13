@@ -24,6 +24,9 @@ import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
 import * as Result from 'folktale/result';
 
+// https://stackoverflow.com/questions/17843691/javascript-regex-to-match-a-regex
+const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\/((?:g(?:im?|mi?)?|i(?:gm?|mg?)?|m(?:gi?|ig?)?)?)/;
+
 /**
  * Return an empty string if the given entity is falsy
  * @param {Object} entity The entity to check
@@ -1029,7 +1032,7 @@ export const omitDeep = R.curry(
  * Omit by the given function that is called with key and value. You can ignore the value if you only want to test the key
  * Objects and arrays are recursed and omit_deep is called
  * on each dictionary that hasn't been removed by omit_deep at a higher level
- * @param {Function} f Binary function accepting each key and value. Return non-nil to omit and false or nil to keep
+ * @param {Function} f Binary function accepting each key, value. Return non-nil to omit and false or nil to keep
  */
 export const omitDeepBy = R.curry(
   (f, obj) => R.compose(
@@ -1059,6 +1062,20 @@ export const omitDeepBy = R.curry(
   )(obj)
 );
 
+/**
+ * Given a predicate for eliminating an item based on paths, return the paths of item that don't pass the predicate.
+ * keyOrIndex is the object key or array index that the item came from. We use it for the eliminateItemPredicate
+ * test. If each paths current first segment matches keyOrIndex or equals '*', we consider that path.
+ * With the considered paths
+ * @param {Function} eliminateItemPredicate Accepts the remaining paths and optional item as a second argument.
+ * Returns true if the item shall be eliminated
+ * @param {[String]} paths Paths to caculate if they match the item
+ * @param {*} item Item to test
+ * @param {String|Number} keyOrIndex The key or index that the item belonged to of an object or array
+ * @return {Object} {item: the item, paths: remaining paths with first segment removed}. Or null if eliminateItemPredicate
+ * returns true
+ * @private
+ */
 const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrIndex) => {
   // Keep paths that match keyOrIndex as the first item. Remove other paths
   // since they can't match item or its descendants
@@ -1066,7 +1083,19 @@ const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrInde
     R.compose(
       R.ifElse(
         R.compose(
-          R.equals(keyOrIndex),
+          aKeyOrIndex => {
+            return R.ifElse(
+              // if keyOrIndex is a string and matches the shape of a regex: /.../[gim]
+              possibleRegex => R.both(R.is(String), str => R.test(regexToMatchARegex, str))(possibleRegex),
+              // Construct the regex with one or two, the expression and options (gim)
+              provenRegex => {
+                const args = compactEmpty(R.split('/', provenRegex));
+                return new RegExp(...args).test(keyOrIndex);
+              },
+              // If aKeyOrIndex is '*' or equals keyOrIndex always return true
+              str => R.includes(str, ['*', keyOrIndex])
+            )(aKeyOrIndex);
+          },
           R.head
         ),
         // Matches the keyOrIndex at the head. Return the tail
@@ -1083,9 +1112,10 @@ const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrInde
   // If no path is down to zero length return the item and the paths
   // For pick:
   // If no path matches the path to the item return null so we can throw away the item
-  // If any path is not down to zero return the item and the paths
+  // If any path is not down to zero return the item and the paths, unless item is a primitive meaning it can't match
+  // a path
   return R.ifElse(
-    eliminateItemPredicate,
+    tailPaths => eliminateItemPredicate(tailPaths, item),
     R.always(null),
     p => ({item: item, paths: R.map(R.join('.'), p)})
   )(tailPathsStillMatchingItemPath);
@@ -1135,11 +1165,25 @@ export const omitDeepPaths = R.curry((pathSet, obj) => R.cond([
 );
 
 // This eliminate predicate returns true if no path is left matching the item's path so the item should not
-// be picked
-const _pickDeepPathsEliminateItemPredicate = paths => R.compose(R.equals(0), R.length)(paths);
+// be picked. It also returns true if the there are paths with length greater than 0
+// but item is a primitive, meaning it can't match a path
+const _pickDeepPathsEliminateItemPredicate = (paths, item) => {
+  return R.either(
+    R.compose(R.equals(0), R.length),
+    pths => {
+      return R.both(
+        // Item is not an object
+        () => R.complement(R.is)(Object, item),
+        ps => R.any(R.compose(R.lt(0), R.length), ps)
+      )(pths);
+    }
+  )(paths);
+};
 /**
  * Pick matching paths in a a structure. For instance pickDeepPaths(['a.b.c', 'a.0.1']) will pick only keys
- * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
+ * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}.
+ * Use * in the path to capture all array items or keys, e.g. ['a.*.c./1|3/']
+ * to get all items 0 or 3 of c that is in all items of a, whether a is an object or array
  */
 export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
     // Arrays
@@ -1148,24 +1192,30 @@ export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
         // Recurse on each array item that doesn't match the paths. We pass the key without the index
         // We pass the key without the index
         // If any path matches the path to the value we return the item and the matching paths
-        const survivingItems = compact(R.addIndex(R.map)(
-          (item, index) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index),
+        const survivingItemsEachWithRemainingPaths = compact(R.addIndex(R.map)(
+          (item, index) => {
+            return _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index);
+          },
           list
         ));
         return R.map(
           R.ifElse(
-            // If the only path is now empty we have a match with the items path and keep the item.
+            // If the only paths are now empty we have a match with the items path and keep the item.
             // Otherwise we pick recursively
-            ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
-            R.prop('item'),
+            ({paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+            ({item}) => item,
             ({item, paths}) => pickDeepPaths(paths, item)
           ),
-          survivingItems
+          survivingItemsEachWithRemainingPaths
         );
       }
     ],
-    // Primitives always pass.
-    [R.complement(R.is(Object)), primitive => primitive],
+    // Primitives never match because we'd only get here if we have pathSets remaining and no path can match a primitive
+    [R.complement(R.is(Object)),
+      () => {
+        throw new Error('pickDeepPaths encountered a value that is not an object or array at the top level. This should never happens and suggests a bug in this function');
+      }
+    ],
     // Objects
     [R.T,
       o => {

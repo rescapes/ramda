@@ -953,13 +953,50 @@ describe('helperFunctions', () => {
 
   test('pickDeepPaths', () => {
     expect(pickDeepPaths(
-      ['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'],
+      ['foo.bunny',
+        'boo.funny.foo.sunny.2',
+        'boo.funny.foo.sunny.1.4.go',
+        'coo.moo.*.cow./[1|6]/.*.forever'
+      ],
       {
         foo: {bunny: {humorous: 'stuff'}},
-        boo: {funny: {foo: {sunny: [8, [10, 'more', 'miles', 'to', {go: 'teo', wo: 1}], 9]}, soo: 3}}
+        boo: {funny: {foo: {sunny: [8, [10, 'more', 'miles', 'to', {go: 'teo', wo: 1}], 9]}, soo: 3}},
+        coo: {
+          moo: [
+            1,
+            2,
+            {
+              cow: [
+                'come',
+                {me: {forever: 'hers'}, never: 'mine'},
+                'baby',
+                'say',
+                {me: {forever: 'his'}, never: 'mine'},
+                'love',
+                {me: {forever: 'yours'}, never: 'mine'}
+              ]
+            },
+            4
+          ]
+        }
       }
     )).toEqual(
-      {foo: {bunny: {humorous: 'stuff'}}, boo: {funny: {foo: {sunny: [[{go: 'teo'}], 9]}}}}
+      {
+        foo:
+          {
+            bunny: {humorous: 'stuff'}
+          },
+        boo: {
+          funny: {
+            foo: {
+              sunny: [[{go: 'teo'}], 9]
+            }
+          }
+        },
+        coo: {
+          moo: [{cow: [{me: {forever: 'hers'}}, {me: {forever: 'yours'}}]}]
+        }
+      }
     );
   });
 

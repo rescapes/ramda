@@ -842,8 +842,7 @@ describe('monadHelpers', () => {
           return R.length(things);
         },
         // Chain to chain the results of each task. R.map would embed them within each other
-        mappingFunction: R.chain,
-        monadConstructor: of
+        mappingFunction: R.chain
       },
       // Ignore x, which just indicates the index of the reduction. We reduce until we run out of partialBlocks
       ({value: {things, goods, bads}}, x) => {
