@@ -15,6 +15,7 @@ import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
 import {Just} from 'folktale/maybe';
 import {stringifyError} from './errorHelpers';
+import {toArrayIfNot} from './functions';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -25,7 +26,8 @@ import {stringifyError} from './errorHelpers';
  */
 export const defaultOnRejected = R.curry((errors, reject) => {
   // Combine reject and errors
-  const allErrors = R.uniq(R.concat(errors, [reject]));
+  const errorsAsArray = toArrayIfNot(errors);
+  const allErrors = R.uniq(R.concat(errorsAsArray, [reject]));
   console.error('Accumulated task errors:\n', // eslint-disable-line no-console
     R.join('\n', R.map(error => stringifyError(error), allErrors))
   );
@@ -1056,17 +1058,22 @@ export const doMDeepExceptDeepest = R.curry((monadDepth, funcPair, f, monad) => 
  * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The value of the monad at the value key merged with the input args
  */
-export const mapToResponseAndInputs = R.curry((f, arg) => {
-    return R.map(value => R.merge(arg, {value}), f(arg));
-  }
-);
+export const mapToResponseAndInputs = f => arg => {
+  return mapMonadByConfig({name: 'value'}, f)(arg);
+};
 
-export const mapToMergedResponseAndInputsMDeep = R.curry(
-  (level, f, arg) => mapMDeep(level,
-    obj => R.merge(arg, obj),
-    f(R.when(R.isNil, () => ({}))(arg))
-  )
-);
+/**
+ * Applies f to arg returning a monad that is at least level deep. mapMDeep(level) is then used to map the value
+ * of the monad at that level
+ * @param {Number} level Monadic level of 1 or greater. For instance 1 would map the 'apple' of task.of('apple'),
+ * 2 would map the 'apple' of task.of(Result.Ok('apple')) etc. The mapped value is merged with arg and returned
+ * @param {Function} f The function applied to arg
+ * @param {*} arg Argument passed to f
+ * @return {Object} The monad that result from the deep mapping
+ */
+export const mapToMergedResponseAndInputsMDeep = (level, f) => arg => {
+  return mapMonadByConfig({mappingFunction: mapMDeep(level)}, f)(arg);
+};
 
 /**
  * Given a monad whose return value can be mapped and a single input object,
@@ -1076,7 +1083,7 @@ export const mapToMergedResponseAndInputsMDeep = R.curry(
  * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The value of the monad merged with the input args
  */
-export const mapToMergedResponseAndInputs = mapToMergedResponseAndInputsMDeep(1);
+export const mapToMergedResponseAndInputs = f => arg => mapToMergedResponseAndInputsMDeep(1, f)(arg);
 
 /**
  * Given a monad whose return value can be mapped and a single input object,
@@ -1087,16 +1094,9 @@ export const mapToMergedResponseAndInputs = mapToMergedResponseAndInputsMDeep(1)
  * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The value of the monad at the value key merged with the input args
  */
-export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => {
-  return R.map(
-    value => R.merge(
-      arg,
-      {[name]: value}
-    ),
-    // Must return a monad
-    f(R.when(R.isNil, () => ({}))(arg))
-  );
-});
+export const mapToNamedResponseAndInputs = (name, f) => arg => {
+  return mapMonadByConfig({name}, f)(arg);
+};
 
 /**
  * Given a monad the specified levels deep whose return value can be mapped and a single input object,
@@ -1108,16 +1108,7 @@ export const mapToNamedResponseAndInputs = R.curry((name, f, arg) => {
  * @return {Object} The value of the monad at the value key merged with the input args
  */
 export const mapToNamedResponseAndInputsMDeep = R.curry((level, name, f, arg) => {
-  return mapMDeep(level,
-    value => {
-      return R.merge(
-        arg,
-        {[name]: value}
-      );
-    },
-    // Must return a monad
-    f(R.when(R.isNil, () => ({}))(arg))
-  );
+  return mapMonadByConfig({mappingFunction: mapMDeep(level), name}, f)(arg);
 });
 
 /**
@@ -1127,25 +1118,23 @@ export const mapToNamedResponseAndInputsMDeep = R.curry((level, name, f, arg) =>
  * @param {Object} arg The object containing the incoming named arguments that f is called with. If null defaults to {}.
  * @return {Object} The output of f named named and merged with arg
  */
-export const toNamedResponseAndInputs = R.curry((name, f, arg) => {
+export const toNamedResponseAndInputs = (name, f) => arg => {
   const monadF = _arg => Just(f(_arg));
-  const just = mapToNamedResponseAndInputs(name, monadF, R.when(R.isNil, () => ({}))(arg));
+  const just = mapToNamedResponseAndInputs(name, monadF)(R.when(R.isNil, () => ({}))(arg));
   return just.unsafeGet();
-});
-
+};
 
 /**
  * Same as toMergedResponseAndInputs but works with a non-monad
- * @param {String} name The key name for the output
  * @param {Function} f Function expecting an object and returning an value that is directly merged with the other args
  * @param {Object} arg The object containing the incoming named arguments that f is called with.  If null defaults to {}.
  * @return {Object} The output of f named named and merged with arg
  */
-export const toMergedResponseAndInputs = R.curry((f, arg) => {
+export const toMergedResponseAndInputs = f => arg => {
   const monadF = _arg => Just(f(_arg));
-  const just = mapToMergedResponseAndInputs(monadF, R.when(R.isNil, () => ({}))(arg));
+  const just = mapToMergedResponseAndInputs(monadF)(arg);
   return just.unsafeGet();
-});
+};
 
 /**
  * Internal method to place a Result instance at the key designated by resultOutputKey merged with an
@@ -1313,22 +1302,117 @@ export const mapResultTaskWithOtherInputs = R.curry(
  * @returns {Object} The resulting monad containing the strPath value of the monad at the named key merged with the input args
  */
 export const mapToNamedPathAndInputs = R.curry(
-  (name, strPath, f) => arg => R.map(
+  (name, strPath, f) => arg => {
+    return mapMonadByConfig({name, strPath}, f)(arg);
+  }
+);
+
+/**
+ * A generalized form of mapToNamedPathAndInputs and mapToNamedResponse
+ * @param {Object} config The configuration
+ * @param {Function} [config.mappingFunction]. Defaults to R.map, the mapping function to use to map the monad
+ * returned by f(arg). For example R.mapMDeep(2) to map 2-level monad
+ * @param {String} [config.name] The name to assign the result of applying the monadic function f to arg. This
+ * name/value is merged with the incoming object arg. If omitted
+ * @param {String} [config.strPath] Optional string path to extract a value with the value that the monad that f(arg) returns
+ * @param {Function} [config.isMonadType] Optionaly accepts f(arg) and tests if it matches the desired monad, such
+ * as task.of, Result.of, Array.of. Returns true or false accordingly
+ * f(arg).
+ * @param {Function} [config.errorMonad] Optional. If the monad returned by f(arg) doesn't match the monad,
+ * then the errorMonad is returned containing an {f, arg, value, message} where value is the return value and message
+ * is an error message. If config.successMonad isn't specified, this value is used if the the return value of f(arg)
+ * lacks a .map function
+ * @param {Function} f The monadic function to apply to arg
+ * @param {Object} arg The argument to pass to f. No that this argument must be called on the result of such as:
+ * mapMonadByConfig(config, f)(arg)
+ * @return {Object} The monad or error monad value or throws
+ */
+export const mapMonadByConfig = (
+  {mappingFunction, name, strPath, isMonadType, errorMonad},
+  f
+) => arg => {
+  return R.defaultTo(R.map, mappingFunction)(
     // Container value
     value => {
-      // It has to be an object to be merged
-      if (R.not(R.is(Object, value))) {
-        throw new Error(`value ${value} is not an object. arg: ${arg}, f: ${f}`);
+      // If name is not specified, value must be an object
+      // If strPath is specified, value must be an object
+      if (R.both(
+        v => R.not(R.is(Object, v)),
+        () => {
+          return R.either(
+            ({name: n}) => R.isNil(n),
+            ({strPath: s}) => s
+          )({name, strPath});
+        }
+      )(value)) {
+        const message = `value ${JSON.stringify(value)} is not an object. arg: ${JSON.stringify(arg)}, f: ${f}`;
+        if (errorMonad) {
+          // return the errorMonad if defined
+          return errorMonad({f, arg, value, message});
+        }
+          throw new Error(message);
       }
-      // Merge the current args with the value object
+      // Merge the current args with the value object, or the value at name,
+      // first optionally extracting what is at strPath
+      const resolvedValue = R.when(
+        () => strPath,
+        v => reqStrPathThrowing(strPath, v)
+      )(value);
       return R.merge(
         arg,
-        {[name]: reqStrPathThrowing(strPath, value)}
+        R.when(
+          () => name,
+          v => {
+            return {[name]: v};
+          }
+        )(resolvedValue)
       );
     },
-    f(arg)
-  )
-);
+    // Call f(arg), raising an exception if it doesn't return a monad
+    applyMonadicFunction({isMonadType, errorMonad}, f, arg)
+  );
+};
+
+/**
+ *
+ * @param {Object} config The configuration
+ * @param {Function} [config.isMonadType] if specified the result of f(arg) is applied to it to see if f(arg) returns
+ * the right type. Returns a boolean
+ * @param {Object} [config.errorMonad] if f(arg) doesn't match the type of config.successMonad or if config.successMonad
+ * is not specified but the returned value of f(arg) lacks a map method, this type is called with the given values:
+ * {f, arg, value, message} where value is the return value of f(arg) and message is an error message
+ * @param {Function} f Expects a single argument and returns a monad
+ * @param {*} arg The argument. If this is mistakenly null it will be made {}
+ * @return {*} The monad
+ */
+export const applyMonadicFunction = ({isMonadType, errorMonad}, f, arg) => {
+  return R.unless(
+    value => R.both(
+      v => R.is(Object, v),
+      v => R.ifElse(
+        () => isMonadType,
+        // If successMonad is specified check that the value matches its type
+        vv => isMonadType(vv),
+        // Otherwise just check that it has a map function
+        vv => R.hasIn('map', vv)
+      )(v)
+    )(value),
+    value => {
+      const message = `mapToNamedPathAndInputs: function f with args: ${
+        JSON.stringify(arg)
+      } returned value ${
+        JSON.stringify(value)
+      }, which lacks a .map() function, meaning it is not a monad. Make sure the return value is the desired monad type: task, array, etc`;
+
+      if (errorMonad) {
+        return errorMonad({f, arg, value, message});
+      }
+        throw new TypeError(message);
+    }
+    // Default arg to {} if null
+  )(f(R.when(R.isNil, () => ({}))(arg)));
+};
+
 
 /**
  * Calls a function that returns a monad and maps the result to the given string path
@@ -1348,7 +1432,8 @@ export const mapToPath = R.curry(
 );
 
 /**
- * Calls a function with arg that returns a monad and maps the result to the given string path
+ * Calls a function with arg that returns a monad and maps the result to the given string path.
+ * The input values are not returned, just the mapped value
  * @param {String} strPath dot-separated path with strings and indexes
  * @param {Function} f Function that returns a monad
  * @param {*} arg Passed to f
@@ -1361,7 +1446,8 @@ export const mapWithArgToPath = R.curry(
       // Find the path in the returned value
       return reqStrPathThrowing(strPath, value);
     },
-    f(arg)
+    // Call f(arg), raising an exception if it doesn't return a monad
+    applyMonadicFunction({}, f, arg)
   )
 );
 
@@ -1598,3 +1684,4 @@ export const retryTask = (tsk, times, errors) => {
   };
   return _retryTask(times);
 };
+

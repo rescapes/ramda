@@ -21,7 +21,7 @@ import {
   defaultRunToResultConfig,
   lift1stOf2ForMDeepMonad,
   mapExceptChainDeepestMDeep,
-  mapMDeep,
+  mapMDeep, mapMonadByConfig,
   mapResultMonadWithOtherInputs,
   mapResultTaskWithOtherInputs,
   mapToMergedResponseAndInputs,
@@ -161,7 +161,7 @@ describe('monadHelpers', () => {
       }).run().listen(
         defaultRunConfig({
           onResolved: resolve => {
-            throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
+            throw new Error('Should not have resolved!');
           }
         }, errors, () => {
         })
@@ -1440,6 +1440,7 @@ describe('monadHelpers', () => {
   });
 
   test('mapToMergedResponseAndInputs', done => {
+    const errors = [];
     mapToMergedResponseAndInputs(
       ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'})
     )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
@@ -1448,7 +1449,7 @@ describe('monadHelpers', () => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
           done();
         }
-      })
+      }, errors, done)
     );
   });
 
@@ -1545,7 +1546,8 @@ describe('monadHelpers', () => {
   test('toNamedResponseAndInputs', () => {
     const value = toNamedResponseAndInputs(
       'foo',
-      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'}),
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
       ({a: 1, b: 1, c: 'was a racehorse'})
     );
     expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
@@ -1553,7 +1555,8 @@ describe('monadHelpers', () => {
 
   test('toMergedResponseAndInputs', () => {
     const value = toMergedResponseAndInputs(
-      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'}),
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
       ({a: 1, b: 1, c: 'was a racehorse'})
     );
     expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
@@ -1589,12 +1592,10 @@ describe('monadHelpers', () => {
 
   test('mapToNamedPathAndInputs', done => {
     const errors = [];
-    R.compose(
-      mapToNamedPathAndInputs(
-        'billy',
-        'is.1.goat',
-        ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
-      )
+    mapToNamedPathAndInputs(
+      'billy',
+      'is.1.goat',
+      ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
     )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
@@ -1603,6 +1604,37 @@ describe('monadHelpers', () => {
       }, errors, done)
     );
   });
+
+  test('mapToNamedPathAndInputsError', done => {
+    const errs = [];
+    expect.assertions(1);
+    const tsk = composeWithChain([
+      // Forget to return a monad
+      mapToNamedPathAndInputs(
+        'billy',
+        'is.1.goat',
+        ({a, b, c, billy}) => billy
+      ),
+      mapToNamedPathAndInputs(
+        'billy',
+        'is.1.goat',
+        ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
+      )
+    ])({a: 1, b: 1, c: 'was a racehorse'});
+
+    try {
+      tsk.run().listen(
+        defaultRunConfig({
+          onResolved: resolve => {
+          }
+        }, errs, done)
+      );
+    } catch (e) {
+      expect(e).toBeTruthy();
+      done();
+    }
+  });
+
 
   test('mapResultMonadWithOtherInputs', done => {
     expect.assertions(6);
@@ -1989,6 +2021,64 @@ describe('monadHelpers', () => {
         expect(success).toBe('success');
       }
     }, errors, done));
+  });
+
+  test('mapMonadByConfig', done => {
+    const errors = [];
+    const tsk = mapMonadByConfig({
+        // Is it a task?
+        isMonadType: value => R.hasIn('run', value),
+        errorMonad: rejected,
+        name: 'billy'
+      },
+      ({billy}) => of(`${billy} in the low ground`))({billy: 'goat'});
+    tsk.run().listen(defaultRunConfig({
+      onResolved: success => {
+        expect(success).toEqual({billy: 'goat in the low ground'});
+      }
+    }, errors, done));
+  });
+
+  test('mapMonadByConfigError', done => {
+    const errors = [];
+    const tsk = mapMonadByConfig({
+        // Is it a task?
+        isMonadType: value => {
+          // This will run and fail
+          return R.hasIn('run', value);
+        },
+        errorMonad: rejected,
+        name: 'billy'
+      },
+      // Forget to return a task, thus our errorMonad will be called
+      ({billy}) => ({notask: `${billy} in the low ground`})
+    )({billy: 'don\'t cha lose my number'});
+    tsk.run().listen(defaultRunConfig({
+      onRejected: (es, error) => {
+        expect(R.keys(error)).toEqual(['f', 'arg', 'value', 'message']);
+      }
+    }, errors, done));
+  });
+
+  test('mapMonadByConfigWrongMonadError', done => {
+    const errs = [];
+    const tsk = mapMonadByConfig({
+        // Is it a task?
+        isMonadType: value => {
+          // This will run and fail
+          return R.hasIn('run', value);
+        },
+        errorMonad: rejected,
+        name: 'billy'
+      },
+      // Whoops, wrong monad type returned
+      ({billy}) => Result.Ok({notask: `${billy} in the low ground`})
+    )({billy: 'don\'t cha lose my number'});
+    tsk.run().listen(defaultRunConfig({
+      onRejected: (es, error) => {
+        expect(R.keys(error)).toEqual(['f', 'arg', 'value', 'message']);
+      }
+    }, errs, done));
   });
 });
 
