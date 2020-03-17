@@ -139,7 +139,8 @@ export {
   composeWithChainMDeep,
   composeWithMapExceptChainDeepestMDeep,
   composeWithMapMDeep,
-  retryTask
+  retryTask,
+  mapMonadByConfig
 } from './monadHelpers';
 export {memoized, memoizedWith} from './memoizeHelpers';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';
