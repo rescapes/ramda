@@ -83,8 +83,8 @@ describe('monadHelpers', () => {
           throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
         },
         onRejected: (errs, error) => {
-          // Wrap the default defaultOnRejected with an expect.toThrow
-          expect(() => defaultOnRejected(errs, error)).toThrow();
+          expect(R.length(errs)).toEqual(2);
+          expect(error).toBeTruthy();
         }
       }, errors, done)
     );
@@ -171,17 +171,20 @@ describe('monadHelpers', () => {
 
   test('defaultRunConfig Throws on Assertion', done => {
     const errors = [];
-    expect.assertions(1);
-    expect(
-      () => {
-        return of({cool: true}).run().listen(
-          defaultRunConfig({
-            onResolved: resolve => {
-              throw ('Crazy assertion failure'); // eslint-disable-line no-throw-literal
-            }
-          }, errors, done)
-        );
-      }).toThrow();
+    of({cool: true}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          throw new Error('Crazy assertion failure'); // eslint-disable-line no-throw-literal
+        },
+        onRejected: (errs, error) => {
+          // Normally this would just be called
+          defaultOnRejected(errs, error);
+          // Call done to make jest happy. Normally we'd call done with errors
+          done();
+        }
+      }, errors, () => {
+      })
+    );
   });
 
   test('defaultRunConfig assertion failure', done => {
@@ -193,6 +196,12 @@ describe('monadHelpers', () => {
           defaultRunConfig({
             onResolved: resolve => {
               expect(true).toEqual(false);
+            },
+            _whenDone: (error, dne) => {
+              // Jest would normally print this itself
+              console.log(error); // eslint-disable-line no-console
+              // To make this test pass
+              dne();
             }
           }, errors, done)
         );
@@ -212,19 +221,24 @@ describe('monadHelpers', () => {
 
   test('defaultRunToResultConfig Throws', done => {
     let errors = [];
-    expect(
-      () => task(resolver => {
-        // Result.Error should result in defaultOnRejected being called, which throws
-        errors.push(new Error('Expect this warning about some bad Result'));
-        resolver.resolve(Result.Error('Oh noo!!!'));
-      }).run().listen(
-        defaultRunToResultConfig({
-          onResolved: resolve => {
-            throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
-          }
-        }, errors, done)
-      )
-    ).toThrow();
+    task(resolver => {
+      // Result.Error should result in defaultOnRejected being called, which throws
+      errors.push(new Error('Expect this warning about some bad Result'));
+      resolver.resolve(Result.Error('Oh noo!!!'));
+    }).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
+        },
+        onRejected: (errs, error) => {
+          // This would normally be called
+          defaultOnRejected(errs, error);
+          // Make the test pass
+          done();
+        }
+      }, errors, () => {
+      })
+    );
   });
 
 
@@ -277,7 +291,9 @@ describe('monadHelpers', () => {
         resolver => resolver.resolve('donut')
       )
     ).run().listen(defaultRunToResultConfig({
-        onResolved: v => expect(v).toEqual('donut')
+        onResolved: v => {
+          expect(v).toEqual('donut');
+        }
       }, errors, done)
     );
   });
@@ -1087,8 +1103,13 @@ describe('monadHelpers', () => {
       of(Result.Error('a'))
     ).run().listen(
       defaultRunToResultConfig({
-        onRejected: (errs, value) => expect(value).toEqual('a')
-      }, errors, done)
+        onRejected: (errs, value) => {
+          expect(value).toEqual('a');
+          // Manually call to prevent our test from failing
+          done();
+        }
+      }, errors, () => {
+      })
     );
   });
 

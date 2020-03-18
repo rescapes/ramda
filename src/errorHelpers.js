@@ -17,9 +17,12 @@ import * as R from 'ramda';
  * @return {string} The json stringified error
  */
 export const stringifyError = err => {
+  // If the error isn't an Error object, wrap it
+  const wrappedError = wrapError(err);
+
   const obj = R.fromPairs(R.map(
-    key => [key, err[key]],
-    Object.getOwnPropertyNames(err)
+    key => [key, wrappedError[key]],
+    Object.getOwnPropertyNames(wrappedError)
   ));
   // Use replace to convert escaped in stack \\n to \n
   return R.replace(/\\n/g, '\n', JSON.stringify(
@@ -28,4 +31,17 @@ export const stringifyError = err => {
     null,
     2
   ));
+};
+
+/**
+ * Wraps an error in Error unless it already is an Error. Useful for Result.Error strings that need to be
+ * converted to errors
+ * @param {*} error The value to wrap if needed
+ * @return {Error} The wrapped error
+ */
+export const wrapError = error => {
+  return R.unless(
+    R.is(Error),
+    e => new Error(e)
+  )(error);
 };

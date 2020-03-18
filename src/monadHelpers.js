@@ -15,11 +15,11 @@ import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
 import {Just} from 'folktale/maybe';
 import {stringifyError} from './errorHelpers';
-import {toArrayIfNot} from './functions';
+import {compact, toArrayIfNot} from './functions';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
- * with a useful stack and message
+ * with a useful error message
  * @param {[Object]} Errors that are accumulated
  * @param {*} reject Rejection value from a Task
  * @returns {void} No return
@@ -28,10 +28,11 @@ export const defaultOnRejected = R.curry((errors, reject) => {
   // Combine reject and errors
   const errorsAsArray = toArrayIfNot(errors);
   const allErrors = R.uniq(R.concat(errorsAsArray, [reject]));
+  // Wrap each error in an Error object if it isn't already one
   console.error('Accumulated task errors:\n', // eslint-disable-line no-console
-    R.join('\n', R.map(error => stringifyError(error), allErrors))
+    R.join('\n', R.map(error => stringifyError(error), allErrors)
+    )
   );
-  throw(reject);
 });
 const _onRejected = defaultOnRejected;
 
@@ -44,11 +45,21 @@ export const defaultOnCancelled = () => {
 };
 const _onCanceled = defaultOnCancelled;
 
-const whenDone = done => {
+const whenDone = (errors, done) => {
   if (done) {
-    done();
+    done(
+      R.when(
+        R.identity,
+        errs => R.map(
+          stringifyError,
+          errs || []
+        )
+      )(errors)
+    );
   }
 };
+
+
 /**
  * Defaults the defaultOnRejected and defaultOnCancelled to throw or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result. Example:
@@ -65,47 +76,77 @@ const whenDone = done => {
  * @param {Function} done Optional or tests. Will be called after rejecting, canceling or resolving
  * @returns {Object} Run config with defaultOnCancelled, defaultOnRejected, and onReolved handlers
  */
-export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, done) => {
+export const defaultRunConfig = ({onResolved, onCancelled, onRejected, _whenDone}, errors, done) => {
   return ({
     onCancelled: () => {
       (onCancelled || _onCanceled)();
-      whenDone(done);
+      whenDone(null, done);
     },
     onRejected: error => {
-      // Since the default defaultOnRejected throws, wrap it
-      try {
-        (onRejected || _onRejected)(errors, error);
-      } finally {
-        whenDone(done);
-      }
+      _handleReject(onRejected, done, errors, error);
     },
     onResolved: value => {
+      let errs = null;
       try {
         // Wrap in case anything goes wrong with the assertions
         onResolved(value);
       } catch (e) {
         // I can't import this but we don't want to process assertion errors
         if (e.constructor.name === 'JestAssertionError') {
+          errs = [e];
           throw e;
         }
         const error = new Error('Assertion threw error');
-        (onRejected || _onRejected)([e, error], error);
+        errs = [e, error];
+        const reject = onRejected || _onRejected;
+        reject(errs, error);
       } finally {
-        whenDone(done);
+        (_whenDone || whenDone)(errs, done);
       }
     }
   });
 };
 
 /**
+ * Given a rejection in runDefaultConfig or runDefaultToResultConfig, calls the given rejected or the default.
+ * if no onRejected is given or it throws an error when called, then done is called with the errors to make the
+ * test fail
+ * @param {Function} onRejected Expects errors and error
+ * @param {Function} done Done function
+ * @param {[Object]} errs Accumulated error
+ * @param {Object} error Error that caused the oReject
+ * @returns {void} No return
+ * @private
+ */
+const _handleReject = (onRejected, done, errs, error) => {
+  let noThrow = true;
+  let caughtError = null;
+  try {
+    (onRejected || _onRejected)(errs, error);
+  } catch (e) {
+    noThrow = false;
+    caughtError = e;
+  } finally {
+    // If we didn't define onRejected or our onRejected threw, pass errors so jest fails
+    whenDone(
+      onRejected && noThrow ?
+        null :
+        R.concat(errs, compact([error, caughtError])),
+      done
+    );
+  }
+};
+
+/**
  * For a task that returns a Result.
- * Defaults the defaultOnRejected and defaultOnCancelled to throw or log, respectively, when neither is expected to occur.
+ * Defaults the defaultOnRejected and defaultOnCancelled to fail the test or log, respectively, when neither is expected to occur.
  * Pass the onResolved function with the key onResolved pointing to a unary function with the result.
  * If the task resolves to an Result.Ok, resolves the underlying value and passes it to the onResolved function
  * that you define. If the task resolves ot an Result.Error, the underlying value is passed to on Rejected.
  * rejection and cancellation resolves the underlying value of the Result.Ok or Result.Error. In practice defaultOnRejected shouldn't
  * get called directly. Rather a Result.Error should be resolved and then this function calls defaultOnRejected. cancellation
- * should probably ignores the value
+ * should probably ignores the value.
+ * If you don't define onRejected an a rejection occurs or your onRejected throws an exception, the test will fail
  * Example:
  * task.run().listen(defaultRunConfig({
  *  onResolved: value => ... do something with value ...
@@ -121,15 +162,9 @@ export const defaultRunConfig = ({onResolved, onCancelled, onRejected}, errors, 
  * @returns {Object} Run config with defaultOnCancelled, defaultOnRejected, and onReolved handlers
  */
 export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, errors, done) => {
-  let finalized = false;
   // We have to do this here instead of using defaultRunConfig's version
   const reject = (errs, error) => {
-    try {
-      (onRejected || _onRejected)(R.concat(errs, [error]), error);
-    } finally {
-      finalized = true;
-      whenDone(done);
-    }
+    _handleReject(onRejected, done, errs, error);
   };
 
   return defaultRunConfig({
@@ -1350,7 +1385,7 @@ export const mapMonadByConfig = (
           // return the errorMonad if defined
           return errorMonad({f, arg, value, message});
         }
-          throw new Error(message);
+        throw new Error(message);
       }
       // Merge the current args with the value object, or the value at name,
       // first optionally extracting what is at strPath
@@ -1407,7 +1442,7 @@ export const applyMonadicFunction = ({isMonadType, errorMonad}, f, arg) => {
       if (errorMonad) {
         return errorMonad({f, arg, value, message});
       }
-        throw new TypeError(message);
+      throw new TypeError(message);
     }
     // Default arg to {} if null
   )(f(R.when(R.isNil, () => ({}))(arg)));
