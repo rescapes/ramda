@@ -40,6 +40,7 @@ export {
   mergeDeepWithConcatArrays,
   mergeDeepWithRecurseArrayItemsAndMapObjs,
   mergeDeepWithRecurseArrayItems,
+  mergeDeepWithRecurseArrayItemsByRight,
   moveToKeys,
   onlyOne,
   onlyOneValue,
