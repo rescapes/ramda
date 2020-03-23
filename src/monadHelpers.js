@@ -1395,7 +1395,7 @@ export const mapMonadByConfig = (
           try {
             return reqStrPathThrowing(strPath, v);
           } catch (e) {
-            console.error(`${mappingFunction} did not produce a value at ${strPath}`); // eslint-disable-line no-console
+            console.error(`Function ${f} did not produce a value at ${strPath}`); // eslint-disable-line no-console
             throw e;
           }
         }

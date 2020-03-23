@@ -230,7 +230,7 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.con
  *   item => R.when(R.is(Object), R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
  * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @params {Object} right the 'right' side object to merge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
@@ -266,7 +266,7 @@ export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left,
     // Primitives
     [R.complement(R.all)(R.is(Object)),
       ([l, r]) => {
-        return r
+        return r;
       }
     ],
     // Objects
