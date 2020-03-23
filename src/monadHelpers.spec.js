@@ -174,7 +174,7 @@ describe('monadHelpers', () => {
     of({cool: true}).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
-          throw new Error('Crazy assertion failure'); // eslint-disable-line no-throw-literal
+          throw new Error('Success! Crazy assertion failure'); // eslint-disable-line no-throw-literal
         },
         onRejected: (errs, error) => {
           // Normally this would just be called
@@ -199,6 +199,7 @@ describe('monadHelpers', () => {
             },
             _whenDone: (error, dne) => {
               // Jest would normally print this itself
+              console.log('We expected this assertion error ...'); // eslint-disable-line no-console
               console.log(error); // eslint-disable-line no-console
               // To make this test pass
               dne();

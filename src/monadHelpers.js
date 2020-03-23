@@ -1391,7 +1391,14 @@ export const mapMonadByConfig = (
       // first optionally extracting what is at strPath
       const resolvedValue = R.when(
         () => strPath,
-        v => reqStrPathThrowing(strPath, v)
+        v => {
+          try {
+            return reqStrPathThrowing(strPath, v);
+          } catch (e) {
+            console.error(`${mappingFunction} did not produce a value at ${strPath}`); // eslint-disable-line no-console
+            throw e;
+          }
+        }
       )(value);
       return R.merge(
         arg,
