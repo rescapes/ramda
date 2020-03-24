@@ -225,59 +225,71 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.con
  * if an item from each array of left and right represents the same objects. The right object's array
  * items are returned but any left object item matching by itemMatchBy is deep merged with the matching right item.
  * There is no merge function for primitives, r is always returned
- * @params {Function} fn The item matching function, Arrays deep items in left and right
+ * @params {Function} fn The item matching function, Arrays deep items in left and right. Called with the
+ * item and current key/index
  * are merged. For example
  *   item => R.when(R.is(Object), R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
  * @params {Object} left the 'left' side object to merge
  * @params {Object} right the 'right' side object to merge
+ * @params {String} [key] Optional key or index of the parent object/array item
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
-export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left, right) => R.cond(
-  [
-    // Arrays
-    [([l, r]) => {
-      return R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray]))([l, r]);
-    },
-      ([l, r]) => {
-        // Create a lookup of l items
-        const lItemsByValue = R.indexBy(itemMatchBy, l);
-        // Map each item of r
-        return R.map(
-          rItem => {
-            // If the lookup of the r item matches one of l items' itemMatchBy value,
-            // recurse with both items. Else just return r
-            const rItemValue = itemMatchBy(rItem);
-            const hasMatchingLItem = R.has(rItemValue, lItemsByValue);
-            return R.when(
-              () => hasMatchingLItem,
-              () => {
-                return mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, R.prop(rItemValue, lItemsByValue), rItem);
-              }
-            )(rItem);
-          }, r
-        );
+export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left, right) => {
+  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, left, right, null);
+});
+
+export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, left, right, key) => {
+  return R.cond(
+    [
+      // Arrays
+      [([l, r]) => {
+        return R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray]))([l, r]);
       },
-      ([l, r]) => {
-        return R.zipWith((a, b) => mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, a, b), l, r);
-      }
-    ],
-    // Primitives
-    [R.complement(R.all)(R.is(Object)),
-      ([l, r]) => {
-        return r;
-      }
-    ],
-    // Objects
-    [R.T,
-      ([l, r]) => {
-        return R.mergeWith(mergeDeepWithRecurseArrayItemsByRight(itemMatchBy), l, r);
-      }
+        ([l, r]) => {
+          // Create a lookup of l items
+          const lItemsByValue = R.indexBy(li => itemMatchBy(li, key), l);
+          // Map each item of r
+          return R.addIndex(R.map)(
+            (rItem, i) => {
+              // If the lookup of the r item matches one of l items' itemMatchBy value,
+              // recurse with both items. Else just return r
+              const rItemValue = itemMatchBy(rItem, key);
+              const hasMatchingLItem = R.has(rItemValue, lItemsByValue);
+              return R.when(
+                () => hasMatchingLItem,
+                () => {
+                  // Pass the index as a key
+                  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, R.prop(rItemValue, lItemsByValue), rItem, i);
+                }
+              )(rItem);
+            }, r
+          );
+        }
+      ],
+      // Primitives
+      [R.complement(R.all)(R.is(Object)),
+        ([l, r]) => {
+          return r;
+        }
+      ],
+      // Objects
+      [R.T,
+        ([l, r]) => {
+          return R.mergeWithKey(
+            (kk, ll, rr) => {
+              return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, ll, rr, kk);
+            },
+            l,
+            r
+          );
+        }
+      ]
     ]
-  ]
-  )([left, right])
-);
+  )([left, right]);
+};
+
 
 /**
  * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key
