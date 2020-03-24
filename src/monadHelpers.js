@@ -16,6 +16,7 @@ import {reqStrPathThrowing} from './throwingFunctions';
 import {Just} from 'folktale/maybe';
 import {stringifyError} from './errorHelpers';
 import {compact, toArrayIfNot} from './functions';
+import {inspect} from 'util';
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution
@@ -1380,7 +1381,8 @@ export const mapMonadByConfig = (
           )({name, strPath});
         }
       )(value)) {
-        const message = `value ${JSON.stringify(value)} is not an object. arg: ${JSON.stringify(arg)}, f: ${f}`;
+        let message;
+        message = `value ${inspect(value)} is not an object. arg: ${inspect(arg)}, f: ${f}`;
         if (errorMonad) {
           // return the errorMonad if defined
           return errorMonad({f, arg, value, message});
