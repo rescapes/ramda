@@ -249,6 +249,10 @@ export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left,
  * item => R.when(R.is(Object), R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
  * @params {Function} itemMatchBy Expects the left and right object that need to be merged
+ * @params {Function} mergeObject Expects left and right when they are objects. mergeObject typically recurses
+ * with mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight on each item of left and right after doing something
+ * special. This function was designed with the idea of being used in Apollo InMemory Cache Type Policy merge functions
+ * to continue calling Apollowing merge function on objects, which in tern delegates back to this function
  * @params {Object} left the 'left' side object to merge
  * @params {Object} right the 'right' side object to merge
  * @params {String} [key] Optional key or index of the parent object/array item
