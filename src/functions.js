@@ -234,13 +234,31 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.con
  * @params {Object} right the 'right' side object to merge
  * @params {String} [key] Optional key or index of the parent object/array item
  * @returns {Object} The deep-merged object
- * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
 export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left, right) => {
-  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, left, right, null);
+  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, null, left, right, null);
 });
 
-export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, left, right, key) => {
+/**
+ * Like mergeDeepWithRecurseArrayItemsByRight but takes mergeObject to merge objects, rather than just taking the
+ * right value. Primitives still resolve to the right value. the mergeObject function should handle internal array
+ * merging by recursing on this function or similar
+ * @params {Function} fn The item matching function, Arrays deep items in left and right. Called with the
+ * item and current key/index
+ * are merged. For example
+ * item => R.when(R.is(Object), R.propOr(v, 'id'))(item)
+ * would match on id if item is an object and has an id
+ * @params {Function} itemMatchBy Expects the left and right object that need to be merged
+ * @params {Object} left the 'left' side object to merge
+ * @params {Object} right the 'right' side object to merge
+ * @params {String} [key] Optional key or index of the parent object/array item
+ * @returns {Object} The deep-merged object
+ */
+export const mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight = R.curry((itemMatchBy, mergeObject, left, right) => {
+  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, mergeObject, left, right, null);
+});
+
+export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject, left, right, key) => {
   return R.cond(
     [
       // Arrays
@@ -261,7 +279,13 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, left, right,
                 () => hasMatchingLItem,
                 () => {
                   // Pass the index as a key
-                  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, R.prop(rItemValue, lItemsByValue), rItem, i);
+                  return _mergeDeepWithRecurseArrayItemsByRight(
+                    itemMatchBy,
+                    mergeObject,
+                    R.prop(rItemValue, lItemsByValue),
+                    rItem,
+                    i
+                  );
                 }
               )(rItem);
             }, r
@@ -277,9 +301,15 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, left, right,
       // Objects
       [R.T,
         ([l, r]) => {
-          return R.mergeWithKey(
+          return mergeObject ? mergeObject(l, r) : R.mergeWithKey(
             (kk, ll, rr) => {
-              return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, ll, rr, kk);
+              return _mergeDeepWithRecurseArrayItemsByRight(
+                itemMatchBy,
+                mergeObject,
+                ll,
+                rr,
+                kk
+              );
             },
             l,
             r

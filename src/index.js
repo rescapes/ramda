@@ -44,6 +44,7 @@ export {
   mergeDeepWithRecurseArrayItemsAndMapObjs,
   mergeDeepWithRecurseArrayItems,
   mergeDeepWithRecurseArrayItemsByRight,
+  mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight,
   moveToKeys,
   onlyOne,
   onlyOneValue,
