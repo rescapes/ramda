@@ -27,6 +27,17 @@ import * as Result from 'folktale/result';
 // https://stackoverflow.com/questions/17843691/javascript-regex-to-match-a-regex
 const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\/((?:g(?:im?|mi?)?|i(?:gm?|mg?)?|m(?:gi?|ig?)?)?)/;
 
+
+/**
+ * We use this instead of isObject since it's possible to have something that is an object without
+ * a prototype to make it an object type
+ * @param {*} obj value to test
+ * @return {boolean} True if R.is(Object, obj) or is not null and it a typeof 'object'
+ */
+export const isObject = obj => {
+  return R.is(Object, obj) || (obj !== null && typeof obj === 'object');
+};
+
 /**
  * Return an empty string if the given entity is falsy
  * @param {Object} entity The entity to check
@@ -168,7 +179,7 @@ export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => 
     (l && l.concat && Array.isArray(l)) ||
     (r && r.concat && Array.isArray(r))
   ) ||
-  !(R.all(R.is(Object)))([l, r]) ||
+  !(R.all(isObject))([l, r]) ||
   R.any(R.is(Function))([l, r]) ?
     fn(l, r) :
     mergeDeepWith(fn, l, r); // tail recursive
@@ -185,7 +196,7 @@ export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith(
   return R.cond(
     [
       [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
-      [R.complement(R.all)(R.is(Object)), R.last],
+      [R.complement(R.all)(isObject), R.last],
       [R.T, R.apply(mergeDeepWithConcatArrays)] // tail recursive
     ]
   )([l, r]);
@@ -208,7 +219,7 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.con
       }
     ],
     // Primitives
-    [R.complement(R.all)(R.is(Object)),
+    [R.complement(R.all)(isObject),
       ([l, r]) => {
         return fn(l, r);
       }],
@@ -228,7 +239,7 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.con
  * @params {Function} fn The item matching function, Arrays deep items in left and right. Called with the
  * item and current key/index
  * are merged. For example
- *   item => R.when(R.is(Object), R.propOr(v, 'id'))(item)
+ *   item => R.when(isObject, R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
  * @params {Object} left the 'left' side object to merge
  * @params {Object} right the 'right' side object to merge
@@ -246,7 +257,7 @@ export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left,
  * @params {Function} fn The item matching function, Arrays deep items in left and right. Called with the
  * item and current key/index
  * are merged. For example
- * item => R.when(R.is(Object), R.propOr(v, 'id'))(item)
+ * item => R.when(isObject, R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
  * @params {Function} itemMatchBy Expects the left and right object that need to be merged
  * @params {Function} mergeObject Expects left and right when they are objects. mergeObject typically recurses
@@ -297,7 +308,7 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
         }
       ],
       // Primitives
-      [R.complement(R.all)(R.is(Object)),
+      [R.complement(R.all)(isObject),
         ([l, r]) => {
           return r;
         }
@@ -390,7 +401,7 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
           }
         ],
         // Primitives: call the function with left and right as the first two args and key as the last
-        [R.complement(R.all)(R.is(Object)), lr => {
+        [R.complement(R.all)(x => isObject(x)), lr => {
           return fn(...lr, key);
         }],
         // Always leave functions alone.
@@ -944,14 +955,14 @@ export const fromPairsDeep = deepPairs => R.cond(
  * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
  * Depth 0 converts {a: {b: {c: 1}}} to '...'
  * @param {String|Function} replaceStringOrFunc String such as '...' or a unary function that replaces the value
- * e.g. R.when(R.is(Object), R.length(R.keys)) will count objects and arrays but leave primitives alone
+ * e.g. R.when(isObject, R.length(R.keys)) will count objects and arrays but leave primitives alone
  * @param {Object} obj Object to process
  * @returns {Object} with the above transformation. Use replaceValuesAtDepthAndStringify to get a string
  */
 export function replaceValuesAtDepth(n, replaceStringOrFunc, obj) {
   return R.ifElse(
     // If we are above level 0 and we have an object
-    R.both(R.always(R.lt(0, n)), R.is(Object)),
+    R.both(R.always(R.lt(0, n)), isObject),
     // Then recurse on each object or array value
     o => R.map(oo => replaceValuesAtDepth(n - 1, replaceStringOrFunc, oo), o),
     // If at level 0 replace the value. If not an object or not at level 0, leave it alone
@@ -967,7 +978,7 @@ export function replaceValuesAtDepth(n, replaceStringOrFunc, obj) {
  * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
  * Depth 0 converts {a: {b: {c: 1}}} to '...'
  * @param {String|Function} replaceString String such as '...' or a unary function that replaces the value
- * e.g. R.when(R.is(Object), R.length(R.keys)) will count objects and arrays but leave primitives alone
+ * e.g. R.when(isObject, R.length(R.keys)) will count objects and arrays but leave primitives alone
  * @param {Object} obj Object to process
  * @returns {String} after the above replacement
  */
@@ -985,7 +996,7 @@ export const replaceValuesWithCountAtDepth = (n, obj) => {
   return replaceValuesAtDepth(
     n,
     R.when(
-      R.is(Object),
+      isObject,
       o => R.compose(
         // Show arrays and objs different
         R.ifElse(R.always(Array.isArray(o)), c => `[...${c}]`, c => `{...${c}}`),
@@ -1030,7 +1041,7 @@ const _flattenObj = (config, obj, keys = []) => {
   return R.ifElse(
     // If we have an object
     o => R.both(
-      R.is(Object),
+      isObject,
       oo => R.when(
         () => predicate,
         ooo => R.complement(predicate)(ooo)
@@ -1170,7 +1181,7 @@ export const omitDeepBy = R.curry(
         // Reject any function return value that isn't null or false
         k => R.anyPass([R.isNil, R.equals(false)])(f(k, l)),
         R.always(l),
-        R.always({})
+        () => ({})
       )(kk),
       // Called as the result of each recursion. Removes the keys at any level except the topmost level
       (key, result) => filterWithKeys(
@@ -1272,7 +1283,7 @@ export const omitDeepPaths = R.curry((pathSet, obj) => R.cond([
       }
     ],
     // Primitives always pass.
-    [R.complement(R.is(Object)), primitive => primitive],
+    [R.complement(isObject), primitive => primitive],
     // Objects
     [R.T,
       o => {
@@ -1338,7 +1349,7 @@ export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
       }
     ],
     // Primitives never match because we'd only get here if we have pathSets remaining and no path can match a primitive
-    [R.complement(R.is(Object)),
+    [R.complement(isObject),
       () => {
         throw new Error('pickDeepPaths encountered a value that is not an object or array at the top level. This should never happens and suggests a bug in this function');
       }

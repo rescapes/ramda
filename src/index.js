@@ -81,7 +81,8 @@ export {
   splitAtInclusive,
   eqStrPath,
   eqStrPathsAll,
-  toArrayIfNot
+  toArrayIfNot,
+  isObject
 } from './functions';
 export {
   throwIfSingleResultError,

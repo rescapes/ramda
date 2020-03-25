@@ -15,7 +15,7 @@ import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
 import {Just} from 'folktale/maybe';
 import {stringifyError} from './errorHelpers';
-import {compact, toArrayIfNot} from './functions';
+import {compact, isObject, toArrayIfNot} from './functions';
 import {inspect} from 'util';
 
 /**
@@ -538,7 +538,7 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValueMon
   // and each in list
   const _reduceMonadsWithWhilst = _reduceMonadsWithWhile({predicateOrObj, accumulator, initialValueMonad});
   // Use R.reduce for processing each monad unless an alternative is specified.
-  const reduceFunction = R.ifElse(R.both(R.is(Object), R.prop('reducer')), R.prop('reducer'), () => R.reduce)(predicateOrObj);
+  const reduceFunction = R.ifElse(R.both(isObject, R.prop('reducer')), R.prop('reducer'), () => R.reduce)(predicateOrObj);
 
   // By default we call
   const chainWith = R.propOr(_chainTogetherWith, 'chainTogetherWith', predicateOrObj);

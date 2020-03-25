@@ -43,6 +43,7 @@ import {flattenObjUntil} from './functions';
 import {findMapped} from './functions';
 import {duplicateKey} from './functions';
 import {renameKey} from './functions';
+import {isObject} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -125,14 +126,14 @@ describe('helperFunctions', () => {
 
   test('mergeDeepWithRecurseArrayItemsByRight', () => {
     expect(f.mergeDeepWithRecurseArrayItemsByRight(
-      (v, k) => R.when(R.is(Object), R.propOr(v, 'id'))(v),
+      (v, k) => R.when(isObject, R.propOr(v, 'id'))(v),
       {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]}}
     )).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snippy: 1}], buzz: 7}});
   });
 
   test('mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight', () => {
-    const itemMatchBy = (v, k) => R.when(R.is(Object), R.propOr(v, 'id'))(v);
+    const itemMatchBy = (v, k) => R.when(isObject, R.propOr(v, 'id'))(v);
     const renameSnippy = (left, right) => {
       // Recurse on each item usual, but rename snippy to snappy
       const rename = renameKey(R.lensPath([]), 'snippy', 'snappy');
@@ -610,7 +611,7 @@ describe('helperFunctions', () => {
 
     // Test replacement function that takes length of objects and leaves primitives alone
     expect(
-      replaceValuesAtDepth(3, R.when(R.is(Object), R.compose(R.length, R.keys)), {
+      replaceValuesAtDepth(3, R.when(isObject, R.compose(R.length, R.keys)), {
         a: {
           A: {
             å: [1, 2, 3],
