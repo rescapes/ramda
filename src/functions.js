@@ -815,6 +815,21 @@ export const findByParams = (params, items) => {
 };
 
 /**
+ * Returns the first mapped item that is not null
+ * @param {Function} f The mapping function
+ * @param {[*]} items The items
+ * @returns {*} The first mapped item value that is not nil
+ */
+export const findMapped = (f, items) => {
+  return R.reduceWhile(
+    R.isNil,
+    (_, i) => f(i),
+    null,
+    items
+  );
+};
+
+/**
  * Converts the given value to an always function (that ignores all arguments) unless already a function
  * @param {Function} maybeFunc A function or something else
  * @return {Function} a function that always returns the non funcion value of maybeFunc, or maybeFunc

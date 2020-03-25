@@ -40,6 +40,7 @@ import {eqStrPathsAll} from './functions';
 import {toArrayIfNot} from './functions';
 import {unflattenObjNoArrays} from './functions';
 import {flattenObjUntil} from './functions';
+import {findMapped} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -473,6 +474,10 @@ describe('helperFunctions', () => {
     // With objs
     const objs = {a: {foo: 1}, b: {foo: 2}};
     expect(f.findByParams({foo: 2}, objs)).toEqual({b: {foo: 2}});
+  });
+
+  test('findMapped', () => {
+    expect(findMapped(R.prop('fri'), [{a: 1}, {b: 2}, {fri: 0}, {fi: 'willy'}, {fra: 4}])).toEqual(0);
   });
 
   test('alwaysFunc', () => {
