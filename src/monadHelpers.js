@@ -1443,9 +1443,9 @@ export const applyMonadicFunction = ({isMonadType, errorMonad}, f, arg) => {
     )(value),
     value => {
       const message = `mapToNamedPathAndInputs: function f with args: ${
-        JSON.stringify(arg)
+        inspect(arg)
       } returned value ${
-        JSON.stringify(value)
+        inspect(value)
       }, which lacks a .map() function, meaning it is not a monad. Make sure the return value is the desired monad type: task, array, etc`;
 
       if (errorMonad) {

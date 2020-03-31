@@ -278,11 +278,15 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
     [
       // Arrays
       [([l, r]) => {
-        return R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray]))([l, r]);
+        return R.any(R.allPass([R.identity, R.prop('concat'), Array.isArray]))([l, r]);
       },
         ([l, r]) => {
+          // Null case, return the only array
+          if (!l || !r) {
+            return l || r;
+          }
           // Create a lookup of l items
-          const lItemsByValue = R.indexBy(li => itemMatchBy(li, key), l);
+          const lItemsByValue = R.indexBy(li => itemMatchBy(li, key), l || []);
           // Map each item of r
           return R.addIndex(R.map)(
             (rItem, i) => {
@@ -303,17 +307,18 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
                   );
                 }
               )(rItem);
-            }, r
+            },
+            r || []
           );
         }
       ],
-      // Primitives
-      [R.complement(R.all)(isObject),
+      // Primitives. If either is an object skip, it means 1 is null
+      [R.none(isObject),
         ([l, r]) => {
           return r;
         }
       ],
-      // Objects
+      // Objects and nulls
       [R.T,
         ([l, r]) => {
           return mergeObject ? mergeObject(l, r) : R.mergeWithKey(
@@ -326,8 +331,8 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
                 kk
               );
             },
-            l,
-            r
+            l || {},
+            r || {}
           );
         }
       ]
@@ -1148,22 +1153,10 @@ export const overDeep = R.curry((func, obj) => mergeDeepWithRecurseArrayItemsAnd
  * on each dictionary that hasn't been removed by omit_deep at a higher level
  */
 export const omitDeep = R.curry(
-  (omit_keys, obj) => R.compose(
-    o => applyDeepAndMapObjs(
-      // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
-      (l, r, kk) => R.ifElse(
-        k => R.contains(k, omit_keys),
-        R.always({}),
-        R.always(l)
-      )(kk),
-      // Called as the result of each recursion. Removes the keys at any level except the topmost level
-      (key, result) => R.omit(omit_keys, result),
-      o
-    ),
-    // Omit at the top level. We have to do this because applyObj of applyDeepAndMapObjs only gets called starting
-    // on the object of each key
-    o => R.omit(omit_keys, o)
-  )(obj)
+  (omit_keys, obj) => omitDeepBy(
+    (k, v) => R.includes(k, omit_keys),
+    obj
+  )
 );
 
 /**

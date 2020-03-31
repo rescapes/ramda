@@ -159,6 +159,22 @@ describe('helperFunctions', () => {
     )).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7}});
   });
 
+  test('mergeDeepWithRecurseArrayItemsByRightHandlNull', () => {
+    expect(f.mergeDeepWithRecurseArrayItemsByRight(
+      () => {
+      },
+      {fever: 1},
+      null
+    )).toEqual({fever: 1});
+
+    expect(f.mergeDeepWithRecurseArrayItemsByRight(
+      () => {
+      },
+      [1],
+      null
+    )).toEqual([1]);
+  });
+
   test('mergeDeepWithRecurseArrayItemsAndMapObjs', () => {
     expect(f.mergeDeepWithRecurseArrayItemsAndMapObjs(
       (l, r) => R.when(
@@ -736,7 +752,7 @@ describe('helperFunctions', () => {
     expect(res.peanut.almond.butter).toEqual('ALMOND Butter');
   });
 
-  test('omitDeepBy', () => {
+  test('mitDeepBy', () => {
     const whatTheFunc = () => {
       return 'what the func';
     };
@@ -818,16 +834,6 @@ describe('helperFunctions', () => {
   });
 
   test('omitDeep', () => {
-    /*
-    expect(omitDeep(
-      ['foo'],
-      {foo: {bunny: 1}, boo: {funny: {foo: {sunny: 1}, soo: 3}}}
-    )).toEqual({
-      boo: {
-        funny: {soo: 3}
-      }
-    });
-    */
 
     const tricky = {
       urlObjSpots: [],
@@ -910,6 +916,87 @@ describe('helperFunctions', () => {
         ]
       }
     );
+  });
+
+  test('omitDeepNull', () => {
+    const json = {
+      "data": {
+        "regions": [
+          {
+            "__typename": "RegionType",
+            "id": 1,
+            "deleted": null,
+            "key": "MyBuddy",
+            "name": "My Buddy",
+            "createdAt": "2019-01-01T10:11:44.051507+00:00",
+            "updatedAt": "2020-03-31T10:44:47.012902+00:00",
+            "geojson": {
+              "__typename": "FeatureCollectionDataType",
+              "type": "FeatureCollection",
+              "features": [
+                {
+                  "__typename": "FeatureDataType",
+                  "type": "Feature",
+                  "id": null,
+                  "geometry": {
+                    "__typename": "FeatureGeometryDataType",
+                    "type": "Polygon",
+                    "coordinates": [
+                      [
+                        [
+                          49.5294835476,
+                          2.51357303225
+                        ],
+                        [
+                          51.4750237087,
+                          2.51357303225
+                        ],
+                        [
+                          51.4750237087,
+                          6.15665815596
+                        ],
+                        [
+                          49.5294835476,
+                          6.15665815596
+                        ],
+                        [
+                          49.5294835476,
+                          2.51357303225
+                        ]
+                      ]
+                    ]
+                  },
+                  "properties": null
+                }
+              ],
+              "generator": null,
+              "copyright": null
+            },
+            "data": {
+              "__typename": "RegionDataType",
+              "locations": {
+                "__typename": "RegionsLocationDataType",
+                "params": null
+              },
+              "mapbox": {
+                "__typename": "MapboxDataType",
+                "viewport": {
+                  "__typename": "ViewportDataType",
+                  "latitude": null,
+                  "longitude": null,
+                  "zoom": 10
+                }
+              }
+            }
+          }
+        ]
+      },
+      "loading": false,
+      "networkStatus": 7,
+      "stale": false
+    };
+    expect(omitDeep(['createdAt', 'updatedAt'], json).data.regions[0].createdAt).toEqual(undefined);
+    expect(omitDeep(['createdAt', 'updatedAt'], json).data.regions[0].deleted).toEqual(null);
   });
 
   test('omitDeepPaths', () => {
