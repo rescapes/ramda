@@ -834,7 +834,6 @@ describe('helperFunctions', () => {
   });
 
   test('omitDeep', () => {
-
     const tricky = {
       urlObjSpots: [],
       location: {},
@@ -920,28 +919,28 @@ describe('helperFunctions', () => {
 
   test('omitDeepNull', () => {
     const json = {
-      "data": {
-        "regions": [
+      data: {
+        regions: [
           {
-            "__typename": "RegionType",
-            "id": 1,
-            "deleted": null,
-            "key": "MyBuddy",
-            "name": "My Buddy",
-            "createdAt": "2019-01-01T10:11:44.051507+00:00",
-            "updatedAt": "2020-03-31T10:44:47.012902+00:00",
-            "geojson": {
-              "__typename": "FeatureCollectionDataType",
-              "type": "FeatureCollection",
-              "features": [
+            __typename: 'RegionType',
+            id: 1,
+            deleted: null,
+            key: 'MyBuddy',
+            name: 'My Buddy',
+            createdAt: '2019-01-01T10:11:44.051507+00:00',
+            updatedAt: '2020-03-31T10:44:47.012902+00:00',
+            geojson: {
+              __typename: 'FeatureCollectionDataType',
+              type: 'FeatureCollection',
+              features: [
                 {
-                  "__typename": "FeatureDataType",
-                  "type": "Feature",
-                  "id": null,
-                  "geometry": {
-                    "__typename": "FeatureGeometryDataType",
-                    "type": "Polygon",
-                    "coordinates": [
+                  __typename: 'FeatureDataType',
+                  type: 'Feature',
+                  id: null,
+                  geometry: {
+                    __typename: 'FeatureGeometryDataType',
+                    type: 'Polygon',
+                    coordinates: [
                       [
                         [
                           49.5294835476,
@@ -966,36 +965,36 @@ describe('helperFunctions', () => {
                       ]
                     ]
                   },
-                  "properties": null
+                  properties: null
                 }
               ],
-              "generator": null,
-              "copyright": null
+              generator: null,
+              copyright: null
             },
-            "data": {
-              "__typename": "RegionDataType",
-              "locations": {
-                "__typename": "RegionsLocationDataType",
-                "params": null
+            data: {
+              __typename: 'RegionDataType',
+              locations: {
+                __typename: 'RegionsLocationDataType',
+                params: null
               },
-              "mapbox": {
-                "__typename": "MapboxDataType",
-                "viewport": {
-                  "__typename": "ViewportDataType",
-                  "latitude": null,
-                  "longitude": null,
-                  "zoom": 10
+              mapbox: {
+                __typename: 'MapboxDataType',
+                viewport: {
+                  __typename: 'ViewportDataType',
+                  latitude: null,
+                  longitude: null,
+                  zoom: 10
                 }
               }
             }
           }
         ]
       },
-      "loading": false,
-      "networkStatus": 7,
-      "stale": false
+      loading: false,
+      networkStatus: 7,
+      stale: false
     };
-    expect(omitDeep(['createdAt', 'updatedAt'], json).data.regions[0].createdAt).toEqual(undefined);
+    expect(omitDeep(['createdAt', 'updatedAt'], json).data.regions[0].createdAt).toEqual(undefined); // eslint-disable-line no-undefined
     expect(omitDeep(['createdAt', 'updatedAt'], json).data.regions[0].deleted).toEqual(null);
   });
 

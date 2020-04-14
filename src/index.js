@@ -142,6 +142,7 @@ export {
   composeWithChain,
   composeWithChainMDeep,
   composeWithMapExceptChainDeepestMDeep,
+  composeWithMap,
   composeWithMapMDeep,
   retryTask,
   mapMonadByConfig

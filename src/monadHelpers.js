@@ -937,6 +937,16 @@ export const composeWithMapMDeep = (monadDepth, list) => {
 };
 
 /**
+ * composeWith using map. The final function in list (first run) must return a monad that can be mapped to the
+ * subsequent functions. The subsequent functions map the incoming value but do not return a monad.
+ * @param {*} list  List of functions that expects the unwrapped value and returns an unwrapped value
+ * @returns {Object} A function expecting the input value(s), which is/are passed to the last function of list
+ */
+export const composeWithMap = list => {
+  return composeWithMapMDeep(1, list);
+};
+
+/**
  * Chain based on the depth of the monad
  * @param {Number} monadDepth 1 or greater. [1] is 1, [[1]] is 2, Result.Ok(Maybe.Just(1)) is 2
  * @param {Function} Mapping function that operates at the given depth.
