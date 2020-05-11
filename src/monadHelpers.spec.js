@@ -58,6 +58,8 @@ import * as R from 'ramda';
 import * as Result from 'folktale/result';
 import * as Maybe from 'folktale/maybe';
 import * as f from './functions';
+import {reqStrPathThrowing} from './throwingFunctions';
+import {strPathOr} from './functions';
 
 
 describe('monadHelpers', () => {
@@ -1127,6 +1129,114 @@ describe('monadHelpers', () => {
     expect(R.sequence(Maybe.Just, maybes).value).toEqual(['(Maybe)', '(Tonight)!']);
   });
 
+
+  test('composeWithComponents', () => {
+    const props = {jello: 'squish'};
+    // Simple component
+    const simpleComponent = prop => R.cond([
+      [strPathOr(false, 'data.loading'), prop => `I rendered a ${JSON.stringify(prop)}`],
+      [R.identity, prop => `I rendered a ${JSON.stringify(prop)}`]
+    ])(prop);
+
+    // Render function component that does something and renders the children function that is given to it
+    // This would typically do something asynchronous
+    const renderPropComponent = props => {
+      const loadedData = R.merge(props, {data: {keyCount: R.length(R.keys(props))}});
+      return props.children(loadedData);
+    };
+    // This wraps component in container by creating and outer function (Looks like chainWith)
+    // Since container expects a render prop at 'children', we create a function for its children property
+    // that renders component with whatever component has done with the original props
+    // This doesn't need to be curried. Can also be container => component =>
+    const higherOrderComponent = R.curry((container, component) => {
+      return props => {
+        return container(R.merge(
+          props,
+          {
+            children: componentProps => {
+              return component(componentProps);
+            }
+          }
+        ));
+      };
+    });
+    expect(higherOrderComponent(renderPropComponent)(simpleComponent)({jello: 'squish'})).toEqual(
+      'I rendered a {"jello":"squish","data":{"keyCount":2}}'
+    )
+    // Render function component that does something and renders the children function that is given to it
+    // This would typically do something asynchronous
+    const renderPropComponentDependent = props => {
+      const data = reqStrPathThrowing('data', props);
+      const loading = strPathOr(false, 'loading', data);
+      if (loading) {
+        // If loading pass along the props without processing
+        return props.children(props);
+      }
+
+      const loadedData = R.merge(props, {data: R.over(R.lensProp('keyCount'), keyCount => `dynamite ${keyCount}`, data)});
+      return props.children(loadedData);
+    };
+    // Now what if we have two renderPropComponents and the second depends on the first
+    expect(R.compose(
+      higherOrderComponent(renderPropComponent),
+      higherOrderComponent(renderPropComponentDependent)
+    )(simpleComponent)(props)).toEqual(
+      'I rendered a {"jello":"squish","data":{"keyCount":"dynamite 2"}}'
+    )
+    // Now what if we codify our highOrderComponent into composeWith
+    const composeWithHighOrderComponent = R.composeWith(
+      (container, component) => higherOrderComponent(container)(component)
+    );
+    expect(
+      composeWithHighOrderComponent([
+        renderPropComponent,
+        renderPropComponentDependent,
+        // We always have to create the monad on the first call
+        higherOrderComponent(renderPropComponentDependent)
+      ])(simpleComponent)(props)
+    ).toEqual(
+      'I rendered a {"jello":"squish","data":{"keyCount":"dynamite dynamite 2"}}'
+    );
+
+    // Now simulate waiting for data
+    // Render function component that does something and renders the children function that is given to it
+    // This would typically do something asynchronous
+    const renderPropComponentLoading = props => {
+      const loadedData = R.merge(props, {data: {loading: true}});
+      return props.children(loadedData);
+    };
+    expect(composeWithHighOrderComponent([
+      renderPropComponentLoading,
+      renderPropComponentDependent,
+      // We always have to create the monad on the first call
+      higherOrderComponent(renderPropComponentDependent)
+    ])(simpleComponent)(props)).toEqual(
+      'I rendered a {"jello":"squish","data":{"loading":true}}'
+    );
+
+    // What if the higherOrderComponent wraps everything in a Just.Maybe
+    // so that we can be compatible composeWithChain
+    const higherOrderComponentMaybe = container => component => {
+      return Maybe.Just(props => {
+        return container(R.merge(
+          props,
+          {
+            children: componentProps => {
+              return component(componentProps);
+            }
+          }
+        ));
+      });
+    };
+    expect(composeWithChain([
+      higherOrderComponentMaybe(renderPropComponent),
+      higherOrderComponentMaybe(renderPropComponentDependent),
+      higherOrderComponentMaybe(renderPropComponentDependent)
+    ])(simpleComponent).value(props)).toEqual(
+      "I rendered a {\"jello\":\"squish\",\"data\":{\"keyCount\":\"dynamite dynamite 2\"}}"
+    );
+  });
+
   test('composeWithChainMDeep and result tasks', done => {
     const errors = [];
     const tsk = composeWithChainMDeep(2, [
@@ -2102,5 +2212,6 @@ describe('monadHelpers', () => {
       }
     }, errs, done));
   });
-});
+})
+;
 
