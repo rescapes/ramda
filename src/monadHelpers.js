@@ -1171,6 +1171,27 @@ export const toNamedResponseAndInputs = (name, f) => arg => {
 };
 
 /**
+ * Hybrid version of mapToNamedResponseAndInputs and toNamedResponseAndInputs.
+ * Handles mapping a monad containing an object or straight object
+ * @param {String} name The name for the key of the output value
+ * @param {Function} f mapping function
+ * @return {*} The monad if f(_arg) is a monad, other wise an object
+ */
+export const mapOrObjToNamedResponseAndInputs = (name, f) => arg => {
+  // Wrap in a monad unless there is a map property, meaning it's already a monad
+  let isMonad = null;
+  const monadF = _arg => {
+    const maybeMonad = f(_arg);
+    isMonad = R.hasIn('map', maybeMonad);
+    // Wrap if it wasn't a monad
+    return R.unless(() => isMonad, Just)(f(_arg));
+  };
+  const just = mapToNamedResponseAndInputs(name, monadF)(R.when(R.isNil, () => ({}))(arg));
+  // Unwrap if it wasn't a monad
+  return R.unless(() => isMonad, j => j.unsafeGet())(just);
+};
+
+/**
  * Same as toMergedResponseAndInputs but works with a non-monad
  * @param {Function} f Function expecting an object and returning an value that is directly merged with the other args
  * @param {Object} arg The object containing the incoming named arguments that f is called with.  If null defaults to {}.

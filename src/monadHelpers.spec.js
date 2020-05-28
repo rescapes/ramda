@@ -31,7 +31,7 @@ import {
   mapToNamedResponseAndInputsMDeep,
   mapToPath,
   mapToResponseAndInputs,
-  mapWithArgToPath,
+  mapWithArgToPath, mapOrObjToNamedResponseAndInputs,
   objOfMLevelDeepListOfMonadsToListWithPairs,
   objOfMLevelDeepMonadsToListWithPairs,
   pairsOfMLevelDeepListOfMonadsToListWithPairs,
@@ -1566,7 +1566,6 @@ describe('monadHelpers', () => {
     );
   });
 
-
   test('toNamedResponseAndInputs', () => {
     const value = toNamedResponseAndInputs(
       'foo',
@@ -1575,6 +1574,24 @@ describe('monadHelpers', () => {
       ({a: 1, b: 1, c: 'was a racehorse'})
     );
     expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+  });
+
+  test('monadOrObjToNamedResponseAndInputs', () => {
+    const value = mapOrObjToNamedResponseAndInputs(
+      'foo',
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
+      ({a: 1, b: 1, c: 'was a racehorse'})
+    );
+    expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+
+    const monad = mapOrObjToNamedResponseAndInputs(
+      'foo',
+      ({a, b, c}) => Maybe.Just({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
+      ({a: 1, b: 1, c: 'was a racehorse'})
+    );
+    expect(monad).toEqual(Maybe.Just({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}}));
   });
 
   test('toMergedResponseAndInputs', () => {

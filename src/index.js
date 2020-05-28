@@ -134,6 +134,7 @@ export {
   mapToNamedPathAndInputs,
   mapResultMonadWithOtherInputs,
   toNamedResponseAndInputs,
+  mapOrObjToNamedResponseAndInputs,
   toMergedResponseAndInputs,
   mapResultTaskWithOtherInputs,
   taskToResultTask,
@@ -150,4 +151,4 @@ export {
 export {memoized, memoizedWith} from './memoizeHelpers';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';
 export {stringifyError} from './errorHelpers';
-
+export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers'
