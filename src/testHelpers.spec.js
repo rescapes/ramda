@@ -21,7 +21,7 @@ describe('testHelpers', () => {
     })).rejects.toEqual(new Error('snapple'));
   });
 
-  test('resultToPromise', () => {
+  test('resultToPromise', async () => {
     expect(resultToPromise(Result.Ok(1))).resolves.toBe(1);
     expect(resultToPromise(Result.Error(1))).rejects.toBe(1);
   });

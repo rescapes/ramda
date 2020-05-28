@@ -9,8 +9,10 @@
  * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {keyStringToLensPath, reqStrPathThrowing, taskToPromise} from 'rescape-ramda';
 import * as R from 'ramda';
+import {keyStringToLensPath} from './functions';
+import {reqStrPathThrowing} from './throwingFunctions';
+import {taskToPromise} from './monadHelpers';
 
 /**
  * Given a task, wraps it in promise and passes it to Jest's expect.
@@ -23,7 +25,8 @@ export const expectTask = task => expect(taskToPromise(task));
 
 /**
  * Converts an Result to a Promise. Result.Ok calls resolve and Result.Error calls reject
- * @param result
+ * @param {Object} result A Result
+ * @returns {Promise} the promise
  */
 export const resultToPromise = result => {
   return new Promise((resolve, reject) => result.map(resolve).mapError(reject));
