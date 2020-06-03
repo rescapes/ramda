@@ -41,7 +41,7 @@ export {
   mergeDeepAll,
   mergeDeepWith,
   mergeDeepWithConcatArrays,
-  mergeDeepWithRecurseArrayItemsAndMapObjs,
+  mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs,
   mergeDeepWithRecurseArrayItems,
   mergeDeepWithRecurseArrayItemsByRight,
   mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight,
@@ -77,7 +77,7 @@ export {
   omitDeepBy,
   pickDeepPaths,
   applyDeep,
-  applyDeepAndMapObjs,
+  applyDeepWithKeyWithRecurseArraysAndMapObjs,
   splitAtInclusive,
   eqStrPath,
   eqStrPathsAll,
@@ -151,4 +151,4 @@ export {
 export {memoized, memoizedWith} from './memoizeHelpers';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';
 export {stringifyError} from './errorHelpers';
-export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers'
+export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers';

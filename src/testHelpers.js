@@ -45,9 +45,9 @@ export const expectKeys = R.curry((keyPaths, obj) => {
       // Put the keyPaths that survive in a set for comparison
       a => new Set(a),
       // Filter out keyPaths that don't resolve to a non-nil value
-      obj => R.filter(
+      o => R.filter(
         keyPath => R.complement(R.isNil)(
-          R.view(R.lensPath(keyStringToLensPath(keyPath)), obj)
+          R.view(R.lensPath(keyStringToLensPath(keyPath)), o)
         ),
         keyPaths
       )
@@ -72,11 +72,11 @@ export const expectKeysAtPath = R.curry((keyPaths, strPath, obj) => {
       // Put the keyPaths that survive in a set for comparison
       a => new Set(a),
       // Filter out keyPaths that don't resolve to a non-nil value
-      obj => R.filter(
+      o => R.filter(
         keyPath => R.complement(R.isNil)(
           R.view(
             R.lensPath(keyStringToLensPath(keyPath)),
-            reqStrPathThrowing(strPath, obj)
+            reqStrPathThrowing(strPath, o)
           )
         ),
         keyPaths

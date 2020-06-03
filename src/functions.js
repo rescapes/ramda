@@ -204,28 +204,41 @@ export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith(
 
 /**
  * Merge Deep and also apply the given function to array items with the same index
- * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @params {Object} left the 'left' side object to merge
+ * @params {Object} right the 'right' side object to merge
+ * @returns {Object} The deep-merged object
+ * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
+ */
+export const mergeDeepWithRecurseArrayItems =  R.curry((fn, left, right) => {
+  return mergeDeepWithKeyRecurseArrayItems(fn, null, left, right)
+})
+
+/**
+ * Merge Deep and also apply the given function to array items with the same index
+ * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @params {Object} key Used for recursions
  * @params {Object} left the 'left' side object to merge
  * @params {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
-export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.cond(
+export const mergeDeepWithKeyRecurseArrayItems = R.curry((fn, key, left, right) => R.cond(
   [
     // Arrays
     [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
       ([l, r]) => {
-        return R.zipWith((a, b) => mergeDeepWithRecurseArrayItems(fn, a, b), l, r);
+        return R.addIndex(R.zipWith)((a, b, i) => mergeDeepWithKeyRecurseArrayItems(fn, i, a, b), l, r);
       }
     ],
     // Primitives
     [R.complement(R.all)(isObject),
       ([l, r]) => {
-        return fn(l, r);
+        return fn(key, l, r);
       }],
     // Objects
     [R.T, ([l, r]) => {
-      return R.mergeWith(mergeDeepWithRecurseArrayItems(fn), l, r);
+      return R.mergeWithKey(mergeDeepWithKeyRecurseArrayItems(fn), l, r);
     }]
   ]
   )([left, right])
@@ -343,7 +356,8 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
 
 /**
  * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key
- * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * where k is the current k of the object
  * @params {Object} left the 'left' side object to merge
  * @params {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
@@ -351,35 +365,34 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
  */
 export const applyDeep = R.curry((fn, obj) => mergeDeepWithRecurseArrayItems(fn, obj, obj));
 
-
 /**
  * Merge Deep and also apply the given function to array items with the same index.
  * This adds another function that maps the object results to something else after the objects are recursed upon
- * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
  * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
  * @params {Object} left the 'left' side object to merge
  * @params {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
-export const mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, left, right) =>
-  _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
+export const mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, left, right) =>
+  _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
 );
 
 /**
- * Same as mergeDeepWithRecurseArrayItemsAndMapObjs but sends the same left and right value so fn is called on every key
- * of ob * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
+ * Same as mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but sends the same left and right value so fn is called on every key
+ * of ob * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
  * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
  * @params {Object} left the 'left' side object to merge
  * @params {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
- * @sig applyDeepAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
+ * @sig applyDeepWithKeyWithRecurseArraysAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
  */
-export const applyDeepAndMapObjs = R.curry((fn, applyObj, obj) =>
-  mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
+export const applyDeepWithKeyWithRecurseArraysAndMapObjs = R.curry((fn, applyObj, obj) =>
+  mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
 );
 
-const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => {
+const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => {
     return R.cond(
       [
         // Arrays
@@ -399,7 +412,7 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
                     ),
                     res => applyObj(key, res)
                   )(v),
-                  ([kk, ll, rr]) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
+                  ([kk, ll, rr]) => _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
                 )([key, l, r])
               )
             )(lr);
@@ -430,7 +443,7 @@ const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, le
                     res => applyObj(k, res)
                   )(v),
                   // First recurse on l and r
-                  ([kk, ll, rr]) => R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj), [kk, ll, rr])
+                  ([kk, ll, rr]) => R.apply(_mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj), [kk, ll, rr])
                 )([k, l, r])
               ),
               lr
@@ -564,6 +577,13 @@ export const strPathOr = R.curry((defaultValue, str, props) => {
   )(result);
 });
 
+/**
+ * Like strPathOr but just looks for the full path to lead to a defined value, it doesn't have to be truthy
+ * @param {Object} defaultValue. Default value if value is null undefined.
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {function(*=)}
+ */
 export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
   const segments = R.split('.', str);
   const result = R.view(R.lensPath(R.init(segments)), props);
@@ -682,7 +702,7 @@ export const filterWithKeys = R.curry((pred, obj) => {
     return obj;
   }
   return R.compose(
-    R.fromPairs,
+    pairs => R.fromPairs(pairs),
     R.filter(pair => R.apply(pred, R.reverse(pair))),
     R.toPairs
   )(obj);
@@ -1138,8 +1158,8 @@ export const _unflattenObj = (config, obj) => {
  * points at it from the parent object and the object itself
  * @param {Object} obj The object to process
  */
-export const overDeep = R.curry((func, obj) => mergeDeepWithRecurseArrayItemsAndMapObjs(
-  // We are using a mergeDeepWithRecurseArrayItemsAndMapObjs but we only need the second function
+export const overDeep = R.curry((func, obj) => mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(
+  // We are using a mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but we only need the second function
   (l, r, k) => l,
   func,
   // Use obj twice so that all keys match and get called with the merge function
@@ -1167,7 +1187,7 @@ export const omitDeep = R.curry(
  */
 export const omitDeepBy = R.curry(
   (f, obj) => R.compose(
-    o => applyDeepAndMapObjs(
+    o => applyDeepWithKeyWithRecurseArraysAndMapObjs(
       // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
       // l and r are always the same value
       (l, r, kk) => R.ifElse(
@@ -1183,7 +1203,7 @@ export const omitDeepBy = R.curry(
       ),
       o
     ),
-    // Omit at the top level. We have to do this because applyObj of applyDeepAndMapObjs only gets called starting
+    // Omit at the top level. We have to do this because applyObj of applyDeepWithKeyWithRecurseArraysAndMapObjs only gets called starting
     // on the object of each key
     // Reject any function return value that isn't null or false
     o => filterWithKeys(

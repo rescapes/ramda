@@ -10,92 +10,105 @@
  */
 
 import * as R from 'ramda';
-import * as f from './functions';
-import {Just} from 'folktale/maybe';
+import {
+  alwaysFunc,
+  applyDeep, camelCase, capitalize,
+  chainObjToValues,
+  compact,
+  compactEmpty,
+  compactJoin,
+  duplicateKey,
+  emptyToNull,
+  eqStrPath,
+  eqStrPathsAll,
+  filterObjToValues, filterWithKeys, findByParams,
+  findMapped, findOne, findOneValueByParams,
+  flattenObj,
+  flattenObjUntil,
+  fromPairsDeep, hasStrPath,
+  idOrIdFromObj,
+  isObject,
+  keyStringToLensPath, mapDefault, mapDefaultAndPrefixOthers, mapKeys,
+  mapKeysAndValues, mapKeysForLens,
+  mapObjToValues,
+  mapProp,
+  mapPropValueAsIndex, mapToObjValue, mergeAllWithKey,
+  mergeDeep, mergeDeepAll,
+  mergeDeepWith,
+  mergeDeepWithConcatArrays,
+  mergeDeepWithRecurseArrayItems, mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs,
+  mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight,
+  mergeDeepWithRecurseArrayItemsByRight, moveToKeys,
+  omitDeep,
+  omitDeepBy,
+  omitDeepPaths, onlyOne, onlyOneValue,
+  orEmpty,
+  overDeep,
+  pickDeepPaths,
+  removeDuplicateObjectsByProp,
+  renameKey,
+  replaceValuesAtDepth,
+  replaceValuesAtDepthAndStringify,
+  replaceValuesWithCountAtDepth, reqPath, reqPathPropEq, reqStrPath,
+  splitAtInclusive, strPath, strPathOr, strPathOrNullOk,
+  toArrayIfNot, transformKeys,
+  unflattenObj,
+  unflattenObjNoArrays, applyDeepWithKeyWithRecurseArraysAndMapObjs
+} from './functions';
 import * as Result from 'folktale/result';
-
-import {of} from 'folktale/concurrency/task';
-import {fromPairsDeep} from './functions';
-import {replaceValuesAtDepth} from './functions';
-import {replaceValuesAtDepthAndStringify} from './functions';
-import {replaceValuesWithCountAtDepth} from './functions';
-import {mapObjToValues} from './functions';
-import {chainObjToValues} from './functions';
-import {flattenObj} from './functions';
-import {unflattenObj} from './functions';
-import {filterObjToValues} from './functions';
-import {overDeep} from './functions';
-import {keyStringToLensPath} from './functions';
-import {mapKeysAndValues} from './functions';
-import {omitDeep} from './functions';
-import {mergeDeepWithRecurseArrayItems} from './functions';
-import {omitDeepPaths} from './functions';
-import {pickDeepPaths} from './functions';
-import {splitAtInclusive} from './functions';
 import {reqStrPathThrowing} from './throwingFunctions';
-import {omitDeepBy} from './functions';
-import {eqPropsAll} from './functions';
-import {eqStrPath} from './functions';
-import {eqStrPathsAll} from './functions';
-import {toArrayIfNot} from './functions';
-import {unflattenObjNoArrays} from './functions';
-import {flattenObjUntil} from './functions';
-import {findMapped} from './functions';
-import {duplicateKey} from './functions';
-import {renameKey} from './functions';
-import {isObject} from './functions';
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
-    expect(f.orEmpty(null)).toEqual('');
+    expect(orEmpty(null)).toEqual('');
   });
 
   test('Should filter out null and undef values', () => {
-    expect(f.compact([1, null, 2])).toEqual([1, 2]);
+    expect(compact([1, null, 2])).toEqual([1, 2]);
   });
 
   test('Should filter out null and empty values', () => {
-    expect(f.compactEmpty(['', null, []])).toEqual([]);
+    expect(compactEmpty(['', null, []])).toEqual([]);
   });
 
   test('emptyToNull', () => {
-    expect(f.emptyToNull('')).toEqual(null);
+    expect(emptyToNull('')).toEqual(null);
   });
 
   test('compactJoin should compact and join', () => {
-    expect(f.compactJoin('-', ['', 'a', null, 'b'])).toEqual('a-b');
-    expect(f.compactJoin('-', ['', null])).toEqual(null);
+    expect(compactJoin('-', ['', 'a', null, 'b'])).toEqual('a-b');
+    expect(compactJoin('-', ['', null])).toEqual(null);
   });
 
   test('Should map bars', () => {
-    expect(f.mapProp('bar')([{bar: 1}, {bar: 2}])).toEqual([1, 2]);
+    expect(mapProp('bar')([{bar: 1}, {bar: 2}])).toEqual([1, 2]);
   });
 
   test('Should map prop as key', () => {
-    expect(f.mapPropValueAsIndex('bar')([{bar: 1}, {bar: 2}])).toEqual(R.indexBy(R.prop('bar'), [{bar: 1}, {bar: 2}]));
+    expect(mapPropValueAsIndex('bar')([{bar: 1}, {bar: 2}])).toEqual(R.indexBy(R.prop('bar'), [{bar: 1}, {bar: 2}]));
   });
 
   test('Should remove duplicate objects with same prop key', () => {
-    expect(f.removeDuplicateObjectsByProp('bar')([{bar: 1, foo: 2}, {bar: 1, foo: 2}, {bar: 2}])).toEqual([{
+    expect(removeDuplicateObjectsByProp('bar')([{bar: 1, foo: 2}, {bar: 1, foo: 2}, {bar: 2}])).toEqual([{
       bar: 1,
       foo: 2
     }, {bar: 2}]);
   });
 
   test('Should return an id from an object or the identify from a value', () => {
-    expect(f.idOrIdFromObj('foo')).toEqual('foo');
-    expect(f.idOrIdFromObj({id: 'foo'})).toEqual('foo');
+    expect(idOrIdFromObj('foo')).toEqual('foo');
+    expect(idOrIdFromObj({id: 'foo'})).toEqual('foo');
   });
 
   test('Should deep merge objects', () => {
-    expect(f.mergeDeep(
+    expect(mergeDeep(
       {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
       {foo: 4, bar: {bizz: [5, 6]}}
     )).toEqual({foo: 4, bar: {bizz: [5, 6], buzz: 7}});
   });
 
   test('Should deep merge objects with a function', () => {
-    expect(f.mergeDeepWith(
+    expect(mergeDeepWith(
       (l, r) => R.when(
         R.is(Number),
         R.add(l)
@@ -106,18 +119,20 @@ describe('helperFunctions', () => {
   });
 
   test('Should deep merge objects and concat arrays of matching keys', () => {
-    expect(f.mergeDeepWithConcatArrays(
+    expect(mergeDeepWithConcatArrays(
       {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
       {foo: 4, bar: {bizz: [5, 6]}}
     )).toEqual({foo: 4, bar: {bizz: [2, 3, 5, 6], buzz: 7}});
   });
 
   test('mergeDeepWithRecurseArrayItems', () => {
-    expect(f.mergeDeepWithRecurseArrayItems(
-      (l, r) => R.when(
-        R.is(Number),
-        R.add(l)
-      )(r),
+    expect(mergeDeepWithRecurseArrayItems(
+      (k, l, r) => {
+        return R.when(
+          R.is(Number),
+          R.add(l)
+        )(r);
+      },
       {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
     )).toEqual({foo: 5, bar: {bizz: [7, {brewer: 19}], buzz: 7}});
@@ -125,7 +140,7 @@ describe('helperFunctions', () => {
 
 
   test('mergeDeepWithRecurseArrayItemsByRight', () => {
-    expect(f.mergeDeepWithRecurseArrayItemsByRight(
+    expect(mergeDeepWithRecurseArrayItemsByRight(
       (v, k) => R.when(isObject, R.propOr(v, 'id'))(v),
       {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]}}
@@ -139,7 +154,7 @@ describe('helperFunctions', () => {
       const rename = renameKey(R.lensPath([]), 'snippy', 'snappy');
       return R.mergeWithKey(
         (kk, ll, rr) => {
-          return f.mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
+          return mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
             itemMatchBy,
             renameSnippy,
             ll,
@@ -151,7 +166,7 @@ describe('helperFunctions', () => {
         rename(right)
       );
     };
-    expect(f.mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
+    expect(mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
       itemMatchBy,
       renameSnippy,
       {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}},
@@ -160,14 +175,14 @@ describe('helperFunctions', () => {
   });
 
   test('mergeDeepWithRecurseArrayItemsByRightHandlNull', () => {
-    expect(f.mergeDeepWithRecurseArrayItemsByRight(
+    expect(mergeDeepWithRecurseArrayItemsByRight(
       () => {
       },
       {fever: 1},
       null
     )).toEqual({fever: 1});
 
-    expect(f.mergeDeepWithRecurseArrayItemsByRight(
+    expect(mergeDeepWithRecurseArrayItemsByRight(
       () => {
       },
       [1],
@@ -176,7 +191,7 @@ describe('helperFunctions', () => {
   });
 
   test('mergeDeepWithRecurseArrayItemsAndMapObjs', () => {
-    expect(f.mergeDeepWithRecurseArrayItemsAndMapObjs(
+    expect(mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(
       (l, r) => R.when(
         R.is(Number),
         R.add(l)
@@ -188,7 +203,7 @@ describe('helperFunctions', () => {
   });
 
   test('Should merge deep all objects', () => {
-    expect(f.mergeDeepAll([
+    expect(mergeDeepAll([
       {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
       {foo: 4, bar: {bizz: [5, 6]}},
       {foo: 4, bar: {cat: [5, 6], pterodactyl: 'time is running out!'}}
@@ -198,19 +213,19 @@ describe('helperFunctions', () => {
   });
 
   test('Should capitalize first letter', () => {
-    expect(f.capitalize('good grief')).toEqual('Good grief');
+    expect(capitalize('good grief')).toEqual('Good grief');
   });
 
   test('Required path', () => {
-    expect(f.reqPath(['a'], {a: 1}).value).toBe(1);
-    expect(f.reqPath(['a', 'b'], {a: {c: 1}}).value).toEqual({
+    expect(reqPath(['a'], {a: 1}).value).toBe(1);
+    expect(reqPath(['a', 'b'], {a: {c: 1}}).value).toEqual({
       resolved: ['a'],
       path: ['a', 'b']
     });
   });
 
   test('reqStrPath', () => {
-    expect(f.reqStrPath('foo.bar.goo', {
+    expect(reqStrPath('foo.bar.goo', {
       foo: {
         bar: {
           goo: 1
@@ -218,7 +233,7 @@ describe('helperFunctions', () => {
       }
     })).toEqual(Result.Ok(1));
 
-    expect(f.reqStrPath('foo.bar.goo', {
+    expect(reqStrPath('foo.bar.goo', {
       foo: {
         car: {
           goo: 1
@@ -233,7 +248,7 @@ describe('helperFunctions', () => {
   });
 
   test('strPath', () => {
-    expect(f.strPath('foo.bar.goo', {
+    expect(strPath('foo.bar.goo', {
       foo: {
         bar: {
           goo: 1
@@ -241,7 +256,7 @@ describe('helperFunctions', () => {
       }
     })).toEqual(1);
 
-    expect(typeof f.strPath('foo.bar.goo', {
+    expect(typeof strPath('foo.bar.goo', {
       foo: {
         car: {
           goo: 1
@@ -251,24 +266,26 @@ describe('helperFunctions', () => {
   });
 
   test('strPathOr', () => {
-    expect(f.strPathOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
-    expect(f.strPathOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+    expect(strPathOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(strPathOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
   });
 
   test('strPathOrNullOk', () => {
-    expect(f.strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: null}}})).toEqual(null);
-    expect(f.strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
-    expect(f.strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: 'cabbage'}})).toEqual(1);
+    expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: null}}})).toEqual(null);
+    expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: 0}}})).toEqual(0);
+    expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+    expect(strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: 'cabbage'}})).toEqual(1);
   });
 
   test('hasStrPath', () => {
-    expect(f.hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
-    expect(f.hasStrPath('tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
+    expect(hasStrPath('tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(false);
   });
 
   test('Required path prop equals', () => {
-    expect(f.reqPathPropEq(['a'], 1, {a: 1}).value).toBe(true);
-    expect(f.reqPathPropEq(['a', 'b'], 1, {a: {c: 1}}).value).toEqual({
+    expect(reqPathPropEq(['a'], 1, {a: 1}).value).toBe(true);
+    expect(reqPathPropEq(['a', 'b'], 1, {a: {c: 1}}).value).toEqual({
       resolved: ['a'],
       path: ['a', 'b']
     });
@@ -276,7 +293,7 @@ describe('helperFunctions', () => {
 
   test('Should merge all with key', () => {
     expect(
-      f.mergeAllWithKey(
+      mergeAllWithKey(
         (k, l, r) => k === 'a' ? R.concat(l, r) : r,
         [{a: [1], b: 2}, {a: [2], c: 3}, {a: [3]}]
       )).toEqual({a: [1, 2, 3], b: 2, c: 3});
@@ -284,13 +301,13 @@ describe('helperFunctions', () => {
 
   test('Should reqPath of object', () => {
     expect(
-      f.reqPath(['a', 'b', 1, 'c'], {a: {b: [null, {c: 2}]}})
+      reqPath(['a', 'b', 1, 'c'], {a: {b: [null, {c: 2}]}})
     ).toEqual(Result.Ok(2));
   });
 
   test('mapKeys', () => {
-    expect(f.mapKeys(
-      key => `${f.capitalize(key)} Taco`,
+    expect(mapKeys(
+      key => `${capitalize(key)} Taco`,
       {fish: 'good', puppy: 'bad'})
     ).toEqual(
       {['Fish Taco']: 'good', ['Puppy Taco']: 'bad'}
@@ -298,9 +315,9 @@ describe('helperFunctions', () => {
   });
 
   test('mapKeysForLens', () => {
-    expect(f.mapKeysForLens(
+    expect(mapKeysForLens(
       R.lensPath(['x', 1, 'y']),
-      key => `${f.capitalize(key)} Taco`,
+      key => `${capitalize(key)} Taco`,
       {x: [null, {y: {fish: 'good', puppy: 'bad'}}]}
       )
     ).toEqual(
@@ -309,20 +326,20 @@ describe('helperFunctions', () => {
   });
 
   test('mapDefault should rename the default import', () => {
-    expect(f.mapDefault('friend', {default: 'foo', other: 'boo'})).toEqual(
+    expect(mapDefault('friend', {default: 'foo', other: 'boo'})).toEqual(
       {friend: 'foo', other: 'boo'}
     );
   });
 
   test('mapDefaultAndPrefixOthers should rename the default and prefix others', () => {
-    expect(f.mapDefaultAndPrefixOthers('friend', 'prefix', {default: 'foo', other: 'boo'})).toEqual(
+    expect(mapDefaultAndPrefixOthers('friend', 'prefix', {default: 'foo', other: 'boo'})).toEqual(
       {friend: 'foo', prefixOther: 'boo'}
     );
   });
 
   test('transformKeys', () => {
-    expect(f.transformKeys(
-      f.camelCase,
+    expect(transformKeys(
+      camelCase,
       {
         who_made_me_with_slugs: 'the snail',
         'what-kind-of-camel-Races': 'a dromedary'
@@ -337,7 +354,7 @@ describe('helperFunctions', () => {
 
   test('renameKey', () => {
     expect(
-      f.renameKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
+      renameKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
       {x: {y: {'and per se': {cactus: 'blossoms'}}}}
     );
@@ -345,7 +362,7 @@ describe('helperFunctions', () => {
 
   test('duplicateKey', () => {
     expect(
-      f.duplicateKey(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
+      duplicateKey(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
       {
         x: {
@@ -359,7 +376,7 @@ describe('helperFunctions', () => {
       }
     );
     expect(
-      f.duplicateKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
+      duplicateKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
       {
         x: {
@@ -374,7 +391,7 @@ describe('helperFunctions', () => {
 
   test('moveToKeys', () => {
     expect(
-      f.moveToKeys(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
+      moveToKeys(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
       {
         x: {
@@ -391,71 +408,71 @@ describe('helperFunctions', () => {
   test('findOne', () => {
     // Works with objects
     expect(
-      f.findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
+      findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
     ).toEqual(
       Result.Ok({b: 'Eli Whitney'})
     );
 
     // Works with arrays
     expect(
-      f.findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
+      findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
     ).toEqual(
       Result.Ok(['Eli Whitney'])
     );
 
     // None
     expect(
-      f.findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
+      findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
     ).toEqual(
       Result.Error({all: {a: 1, b: 2}, matching: {}})
     );
 
     // Too many
     expect(
-      f.findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
+      findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
       Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('onlyOne', () => {
-    expect(f.onlyOne({a: 'Eli Whitney'})).toEqual(Result.Ok({a: 'Eli Whitney'}));
+    expect(onlyOne({a: 'Eli Whitney'})).toEqual(Result.Ok({a: 'Eli Whitney'}));
 
     // None
     expect(
-      f.onlyOne({})
+      onlyOne({})
     ).toEqual(
       Result.Error({all: {}, matching: {}})
     );
 
     // Too many
     expect(
-      f.onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
+      onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
       Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('onlyOneValue', () => {
-    expect(f.onlyOneValue({a: 'Eli Whitney'})).toEqual(Result.Ok('Eli Whitney'));
+    expect(onlyOneValue({a: 'Eli Whitney'})).toEqual(Result.Ok('Eli Whitney'));
 
     // None
     expect(
-      f.onlyOneValue({})
+      onlyOneValue({})
     ).toEqual(
       Result.Error({all: {}, matching: {}})
     );
 
     // Too many
     expect(
-      f.onlyOneValue({a: 'Eli Whitney', b: 'Eli Whitney'})
+      onlyOneValue({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
       Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('mapToObjValue', () => {
-    expect(f.mapToObjValue(R.compose(f.camelCase, R.toLower), ['MY', 'SHOES_FIT'])).toEqual({
+    expect(mapToObjValue(R.compose(camelCase, R.toLower), ['MY', 'SHOES_FIT'])).toEqual({
       MY: 'my',
       SHOES_FIT: 'shoesFit'
     });
@@ -468,11 +485,11 @@ describe('helperFunctions', () => {
       {brand: 'crush', flavor: 'orange'}
     ];
     const params = {brand: 'crush', flavor: 'orange'};
-    expect(f.findOneValueByParams(params, items)).toEqual(
+    expect(findOneValueByParams(params, items)).toEqual(
       Result.Ok({brand: 'crush', flavor: 'orange'})
     );
     const badParams = {brand: 'crush', flavor: 'pretzel'};
-    expect(f.findOneValueByParams(badParams, items)).toEqual(
+    expect(findOneValueByParams(badParams, items)).toEqual(
       Result.Error(
         {
           all: [{brand: 'crush', flavor: 'grape'}, {
@@ -483,7 +500,7 @@ describe('helperFunctions', () => {
       )
     );
     const tooGoodParams = {brand: 'crush'};
-    expect(f.findOneValueByParams(tooGoodParams, items)).toEqual(
+    expect(findOneValueByParams(tooGoodParams, items)).toEqual(
       Result.Error(
         {
           all: [{brand: 'crush', flavor: 'grape'}, {
@@ -503,15 +520,15 @@ describe('helperFunctions', () => {
       {brand: 'crush', flavor: 'orange'}
     ];
     const params = {brand: 'crush', flavor: 'orange'};
-    expect(f.findByParams(params, items)).toEqual(
+    expect(findByParams(params, items)).toEqual(
       [{brand: 'crush', flavor: 'orange'}]
     );
     const badParams = {brand: 'crush', flavor: 'pretzel'};
-    expect(f.findByParams(badParams, items)).toEqual(
+    expect(findByParams(badParams, items)).toEqual(
       []
     );
     const tooGoodParams = {brand: 'crush'};
-    expect(f.findByParams(tooGoodParams, items)).toEqual(
+    expect(findByParams(tooGoodParams, items)).toEqual(
       [
         {brand: 'crush', flavor: 'grape'},
         {brand: 'crush', flavor: 'orange'}
@@ -519,7 +536,7 @@ describe('helperFunctions', () => {
     );
     // With objs
     const objs = {a: {foo: 1}, b: {foo: 2}};
-    expect(f.findByParams({foo: 2}, objs)).toEqual({b: {foo: 2}});
+    expect(findByParams({foo: 2}, objs)).toEqual({b: {foo: 2}});
   });
 
   test('findMapped', () => {
@@ -529,13 +546,13 @@ describe('helperFunctions', () => {
   test('alwaysFunc', () => {
     const alwaysIWannaFuncWithYou = R.identity;
     const str = 'and make believe with you';
-    expect(f.alwaysFunc(alwaysIWannaFuncWithYou)('and live in harmony')).toEqual('and live in harmony');
-    expect(f.alwaysFunc(str)(1, 1, 'was', 'a racehorse')).toEqual(str);
+    expect(alwaysFunc(alwaysIWannaFuncWithYou)('and live in harmony')).toEqual('and live in harmony');
+    expect(alwaysFunc(str)(1, 1, 'was', 'a racehorse')).toEqual(str);
   });
 
   test('mapKeysAndValues', () => {
     const obj = {neun: 'und_neinzig', luft: 'balons'};
-    expect(f.mapKeysAndValues((v, k) => [f.capitalize(k), f.camelCase(v)], obj)).toEqual(
+    expect(mapKeysAndValues((v, k) => [capitalize(k), camelCase(v)], obj)).toEqual(
       {Neun: 'undNeinzig', Luft: 'balons'}
     );
   });
@@ -1131,7 +1148,7 @@ describe('helperFunctions', () => {
   });
 
   test('camelCase', () => {
-    expect(f.camelCase('Tough_Mudder_Hubbard')).toEqual('toughMudderHubbard');
+    expect(camelCase('Tough_Mudder_Hubbard')).toEqual('toughMudderHubbard');
   });
 
   test('splitAtInclusive', () => {
