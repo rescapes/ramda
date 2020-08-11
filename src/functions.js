@@ -210,9 +210,9 @@ export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith(
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
-export const mergeDeepWithRecurseArrayItems =  R.curry((fn, left, right) => {
-  return mergeDeepWithKeyRecurseArrayItems(fn, null, left, right)
-})
+export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => {
+  return mergeDeepWithKeyRecurseArrayItems(fn, null, left, right);
+});
 
 /**
  * Merge Deep and also apply the given function to array items with the same index
@@ -298,8 +298,13 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
           if (!l || !r) {
             return l || r;
           }
-          // Create a lookup of l items
-          const lItemsByValue = R.indexBy(li => itemMatchBy(li, key), l || []);
+          // Create a lookup of l items. If the items don't resolve to an id, filter them out to indicate
+          // that they can't be matched by the right side items. This will leave them out of the merged array items,
+          // which is find because the right items should be the same if we want to keep them
+          const lItemsByValue = R.compose(
+            obj => filterWithKeys((v, k) => R.complement(R.isNil)(k), obj),
+            ll => R.indexBy(li => itemMatchBy(li, key), ll)
+          )(l || []);
           // Map each item of r
           return R.addIndex(R.map)(
             (rItem, i) => {

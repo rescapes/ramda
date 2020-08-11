@@ -169,9 +169,9 @@ describe('helperFunctions', () => {
     expect(mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
       itemMatchBy,
       renameSnippy,
-      {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]}}
-    )).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7}});
+      {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}, noids: [{pasta: 'elbow'}], noid: {sneeze: 'guard'}},
+      {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]}, noids: [{pasta: 'noodle'}, {pasta: 'leg'}], noid: {sneeze: 'free'}}
+    )).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7}, noids: [{pasta: 'noodle'}, {pasta: 'leg'}], noid: {sneeze: 'free'}});
   });
 
   test('mergeDeepWithRecurseArrayItemsByRightHandlNull', () => {
