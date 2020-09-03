@@ -23,6 +23,7 @@
 import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
 import * as Result from 'folktale/result';
+import {reqStrPathThrowing} from './throwingFunctions';
 
 // https://stackoverflow.com/questions/17843691/javascript-regex-to-match-a-regex
 const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\/((?:g(?:im?|mi?)?|i(?:gm?|mg?)?|m(?:gi?|ig?)?)?)/;
@@ -1432,4 +1433,30 @@ export const eqStrPath = R.curry((stringPath, obj1, obj2) => {
  */
 export const eqStrPathsAll = R.curry(
   (strPaths, obj1, obj2) => R.all(prop => eqStrPath(prop, obj1, obj2), strPaths)
+);
+
+/**
+ * Like eqStrPathsAll but also takes an object that allows overriding the comparison method
+ * by strPath
+ * @param [{String}] strPaths Paths of props separated by dots, e.g. 'foo.bar.0.woo' where 0 is an index of an array
+ * @param {Object} customEqualsObj Keyed by strPaths that need overridden comparison, valued by an equality
+ * predicate that takes the same args as eqStrPath: strPath, obj1, obj2
+ * @param {Object|Array} obj1 The object to compare to obj2 at the propStr
+ * @param {Object|Array} obj2 The object to compare to obj1 at the propStr
+ * @returns {Boolean} True or false
+ */
+export const eqStrPathsAllCustomizable = R.curry(
+  (strPaths, customEqualsObj, obj1, obj2) => {
+    return R.all(
+      stringPath => {
+        return strPathOr(
+          // Default
+          eqStrPath,
+          stringPath,
+          customEqualsObj
+        )(stringPath, obj1, obj2);
+      },
+      strPaths
+    );
+  }
 );

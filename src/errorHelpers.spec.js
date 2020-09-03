@@ -12,21 +12,18 @@ import * as R from 'ramda';
 import {stringifyError, wrapError} from './errorHelpers';
 
 describe('errorHelpers', () => {
-
   test('wrapError', () => {
     try {
-      throw {message: 'Why would an error not be an error?', and: {have: {a: {bunch: {of: 'context'}}}}}
-    }
-    catch(obj) {
+      throw {message: 'Why would an error not be an error?', and: {have: {a: {bunch: {of: 'context'}}}}}; // eslint-disable-line no-throw-literal
+    } catch(obj) {
       expect(wrapError(obj).message).toBe('{\n' +
         '  message: \'Why would an error not be an error?\',\n' +
         '  and: {\n' +
         '    have: { a: { bunch: { of: \'context\' } } }\n' +
         '  }\n' +
-        '}')
+        '}');
     }
-
-  })
+  });
   test('stringifyError', () => {
     expect(
       R.keys(JSON.parse(R.replace(/\n/g, ' ', stringifyError(new Error('testing')))))

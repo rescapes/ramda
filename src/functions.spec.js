@@ -53,7 +53,7 @@ import {
   splitAtInclusive, strPath, strPathOr, strPathOrNullOk,
   toArrayIfNot, transformKeys,
   unflattenObj,
-  unflattenObjNoArrays, applyDeepWithKeyWithRecurseArraysAndMapObjs
+  unflattenObjNoArrays, applyDeepWithKeyWithRecurseArraysAndMapObjs, eqStrPathsAllCustomizable
 } from './functions';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
@@ -169,9 +169,24 @@ describe('helperFunctions', () => {
     expect(mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
       itemMatchBy,
       renameSnippy,
-      {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}, noids: [{pasta: 'elbow'}], noid: {sneeze: 'guard'}},
-      {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]}, noids: [{pasta: 'noodle'}, {pasta: 'leg'}], noid: {sneeze: 'free'}}
-    )).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7}, noids: [{pasta: 'noodle'}, {pasta: 'leg'}], noid: {sneeze: 'free'}});
+      {
+        foo: 1,
+        bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7},
+        noids: [{pasta: 'elbow'}],
+        noid: {sneeze: 'guard'}
+      },
+      {
+        foo: 4,
+        bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]},
+        noids: [{pasta: 'noodle'}, {pasta: 'leg'}],
+        noid: {sneeze: 'free'}
+      }
+    )).toEqual({
+      foo: 4,
+      bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7},
+      noids: [{pasta: 'noodle'}, {pasta: 'leg'}],
+      noid: {sneeze: 'free'}
+    });
   });
 
   test('mergeDeepWithRecurseArrayItemsByRightHandlNull', () => {
@@ -1191,6 +1206,21 @@ describe('helperFunctions', () => {
       c: 'hubabalu'
     })).toEqual(false);
   });
+
+  test('eqStrPathsAllCustomizable', () => {
+    expect(eqStrPathsAllCustomizable(
+      ['a.goat', 'b', 'c'],
+      {
+        c: (sPath, obj1, obj2) => {
+          // custom equality test
+          return R.equals(R.prop(sPath, obj1), R.length(R.prop(strPath, obj2)));
+        }
+      },
+      {a: {goat: 1}, b: 2, c: 3},
+      {a: {goat: 1}, b: 2, c: 'hub'}
+    )).toEqual(true);
+  });
+
 
   test('toArrayIfNot', () => {
     const eh = ['eh'];

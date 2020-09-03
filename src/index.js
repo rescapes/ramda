@@ -81,6 +81,7 @@ export {
   splitAtInclusive,
   eqStrPath,
   eqStrPathsAll,
+  eqStrPathsAllCustomizable,
   toArrayIfNot,
   isObject
 } from './functions';

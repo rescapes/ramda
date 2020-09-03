@@ -107,7 +107,9 @@ export const reqPathThrowing = R.curry((pathList, obj) =>
  * @return {function(*=)}
  */
 export const reqStrPathThrowing = R.curry(
-  (str, props) => reqPathThrowing(keyStringToLensPath(str), props)
+  (str, props) => {
+    return reqPathThrowing(keyStringToLensPath(str), props);
+  }
 );
 
 /**
