@@ -302,8 +302,8 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
           // that they can't be matched by the right side items. This will leave them out of the merged array items,
           // which is find because the right items should be the same if we want to keep them
           const lItemsByValue = R.compose(
-            obj => filterWithKeys((v, k) => R.complement(R.isNil)(k), obj),
-            ll => R.indexBy(li => itemMatchBy(li, key), ll)
+            obj => filterWithKeys((v, k) => R.complement(R.equals)('__NULL__')(k), obj),
+            ll => R.indexBy(li => itemMatchBy(li, key) || '__NULL__', ll)
           )(l || []);
           // Map each item of r
           return R.addIndex(R.map)(

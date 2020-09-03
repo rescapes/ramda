@@ -9,9 +9,24 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 import * as R from 'ramda';
-import {stringifyError} from './errorHelpers';
+import {stringifyError, wrapError} from './errorHelpers';
 
 describe('errorHelpers', () => {
+
+  test('wrapError', () => {
+    try {
+      throw {message: 'Why would an error not be an error?', and: {have: {a: {bunch: {of: 'context'}}}}}
+    }
+    catch(obj) {
+      expect(wrapError(obj).message).toBe('{\n' +
+        '  message: \'Why would an error not be an error?\',\n' +
+        '  and: {\n' +
+        '    have: { a: { bunch: { of: \'context\' } } }\n' +
+        '  }\n' +
+        '}')
+    }
+
+  })
   test('stringifyError', () => {
     expect(
       R.keys(JSON.parse(R.replace(/\n/g, ' ', stringifyError(new Error('testing')))))
