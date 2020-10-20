@@ -12,7 +12,9 @@
 import * as R from 'ramda';
 import {
   alwaysFunc,
-  applyDeep, camelCase, capitalize,
+  applyDeep,
+  camelCase,
+  capitalize,
   chainObjToValues,
   compact,
   compactEmpty,
@@ -21,27 +23,43 @@ import {
   emptyToNull,
   eqStrPath,
   eqStrPathsAll,
-  filterObjToValues, filterWithKeys, findByParams,
-  findMapped, findOne, findOneValueByParams,
+  filterObjToValues,
+  filterWithKeys,
+  findByParams,
+  findMapped,
+  findOne,
+  findOneValueByParams,
   flattenObj,
   flattenObjUntil,
-  fromPairsDeep, hasStrPath,
+  fromPairsDeep,
+  hasStrPath,
   idOrIdFromObj,
   isObject,
-  keyStringToLensPath, mapDefault, mapDefaultAndPrefixOthers, mapKeys,
-  mapKeysAndValues, mapKeysForLens,
+  keyStringToLensPath,
+  mapDefault,
+  mapDefaultAndPrefixOthers,
+  mapKeys,
+  mapKeysAndValues,
+  mapKeysForLens,
   mapObjToValues,
   mapProp,
-  mapPropValueAsIndex, mapToObjValue, mergeAllWithKey,
-  mergeDeep, mergeDeepAll,
+  mapPropValueAsIndex,
+  mapToObjValue,
+  mergeAllWithKey,
+  mergeDeep,
+  mergeDeepAll,
   mergeDeepWith,
   mergeDeepWithConcatArrays,
-  mergeDeepWithRecurseArrayItems, mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs,
+  mergeDeepWithRecurseArrayItems,
+  mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs,
   mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight,
-  mergeDeepWithRecurseArrayItemsByRight, moveToKeys,
+  mergeDeepWithRecurseArrayItemsByRight,
+  moveToKeys,
   omitDeep,
   omitDeepBy,
-  omitDeepPaths, onlyOne, onlyOneValue,
+  omitDeepPaths,
+  onlyOne,
+  onlyOneValue,
   orEmpty,
   overDeep,
   pickDeepPaths,
@@ -49,11 +67,22 @@ import {
   renameKey,
   replaceValuesAtDepth,
   replaceValuesAtDepthAndStringify,
-  replaceValuesWithCountAtDepth, reqPath, reqPathPropEq, reqStrPath,
-  splitAtInclusive, strPath, strPathOr, strPathOrNullOk,
-  toArrayIfNot, transformKeys,
+  replaceValuesWithCountAtDepth,
+  reqPath,
+  reqPathPropEq,
+  reqStrPath,
+  splitAtInclusive,
+  strPath,
+  strPathOr,
+  strPathOrNullOk,
+  toArrayIfNot,
+  transformKeys,
   unflattenObj,
-  unflattenObjNoArrays, applyDeepWithKeyWithRecurseArraysAndMapObjs, eqStrPathsAllCustomizable
+  unflattenObjNoArrays,
+  applyDeepWithKeyWithRecurseArraysAndMapObjs,
+  eqStrPathsAllCustomizable,
+  strPathsOr,
+  strPathsOrNullOk
 } from './functions';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
@@ -285,6 +314,10 @@ describe('helperFunctions', () => {
     expect(strPathOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
   });
 
+  test('strPathsOr', () => {
+    expect(strPathsOr(1, ['tan.khaki.pants', 'tan.khaki.blazer'], {tan: {khaki: {pants: false}}})).toEqual([false, 1]);
+  });
+
   test('strPathOrNullOk', () => {
     expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: null}}})).toEqual(null);
     expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: 0}}})).toEqual(0);
@@ -292,6 +325,10 @@ describe('helperFunctions', () => {
     expect(strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
     expect(strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: 'cabbage'}})).toEqual(1);
   });
+
+  test('strPathsOrNullOk', () => {
+    expect(strPathsOrNullOk(1, ['tan.khaki.pants', 'tan.khaki.blazer', 'tan.khaki.kite'], {tan: {khaki: {pants: null, kite: 'charlie'}}})).toEqual([null, 1, 'charlie']);
+  })
 
   test('hasStrPath', () => {
     expect(hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
@@ -1213,7 +1250,10 @@ describe('helperFunctions', () => {
       {
         c: (sPath, obj1, obj2) => {
           // custom equality test
-          return R.equals(R.prop(sPath, obj1), R.length(R.prop(strPath, obj2)));
+          return R.equals(
+            R.prop(sPath, obj1),
+            R.length(R.prop(sPath, obj2))
+          );
         }
       },
       {a: {goat: 1}, b: 2, c: 3},

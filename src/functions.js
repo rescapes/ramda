@@ -23,7 +23,6 @@
 import * as R from 'ramda';
 import * as Rm from 'ramda-maybe';
 import * as Result from 'folktale/result';
-import {reqStrPathThrowing} from './throwingFunctions';
 
 // https://stackoverflow.com/questions/17843691/javascript-regex-to-match-a-regex
 const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\/((?:g(?:im?|mi?)?|i(?:gm?|mg?)?|m(?:gi?|ig?)?)?)/;
@@ -583,6 +582,21 @@ export const strPathOr = R.curry((defaultValue, str, props) => {
   )(result);
 });
 
+/***
+ * strPathOrNullOk for a list of strPaths
+ * @param {Object} defaultValue. Default value if value is null undefined.
+ * @param {[String]} strPaths dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {[Object]} The mapped values or defaultValue where the value is not truthy
+ */
+export const strPathsOr = R.curry((defaultValue, strPaths, props) => {
+  return R.map(
+    strPath => strPathOr(defaultValue, strPath, props),
+    strPaths
+  );
+})
+
+
 /**
  * Like strPathOr but just looks for the full path to lead to a defined value, it doesn't have to be truthy
  * @param {Object} defaultValue. Default value if value is null undefined.
@@ -605,6 +619,21 @@ export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
     }
   )(result);
 });
+
+/***
+ * strPathOrNullOk for a list of strPaths. THe value at each strPath is returned if the path is defined and the
+ * value is not undefined
+ * @param {Object} defaultValue. Default value if value is null undefined.
+ * @param {[String]} strPaths dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {[Object]} The mapped values or defaultValue where the value is only used for undefined values
+ */
+export const strPathsOrNullOk = R.curry((defaultValue, strPaths, props) => {
+  return R.map(
+    strPath => strPathOrNullOk(defaultValue, strPath, props),
+    strPaths
+  );
+})
 
 /**
  * Returns true if the given string path is non-null
