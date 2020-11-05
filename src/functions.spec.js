@@ -11,8 +11,8 @@
 
 import * as R from 'ramda';
 import {
+  _mergeDeepWithRecurseArrayItemsByRight,
   alwaysFunc,
-  applyDeep,
   camelCase,
   capitalize,
   chainObjToValues,
@@ -23,8 +23,8 @@ import {
   emptyToNull,
   eqStrPath,
   eqStrPathsAll,
+  eqStrPathsAllCustomizable,
   filterObjToValues,
-  filterWithKeys,
   findByParams,
   findMapped,
   findOne,
@@ -50,8 +50,8 @@ import {
   mergeDeepAll,
   mergeDeepWith,
   mergeDeepWithConcatArrays,
-  mergeDeepWithRecurseArrayItems,
   mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs,
+  mergeDeepWithRecurseArrayItems,
   mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight,
   mergeDeepWithRecurseArrayItemsByRight,
   moveToKeys,
@@ -75,17 +75,31 @@ import {
   strPath,
   strPathOr,
   strPathOrNullOk,
+  strPathsOr,
+  strPathsOrNullOk,
   toArrayIfNot,
   transformKeys,
   unflattenObj,
-  unflattenObjNoArrays,
-  applyDeepWithKeyWithRecurseArraysAndMapObjs,
-  eqStrPathsAllCustomizable,
-  strPathsOr,
-  strPathsOrNullOk
+  unflattenObjNoArrays
 } from './functions';
 import * as Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
+
+const recurseMe = {
+  the: {
+    frog: {
+      to: {
+        'catch': null
+      }
+    }
+  }
+};
+recurseMe.the.frog.to.catch = recurseMe;
+const recursive = {
+  she: {
+    swallowed: recurseMe
+  }
+};
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
@@ -130,90 +144,94 @@ describe('helperFunctions', () => {
   });
 
   test('Should deep merge objects', () => {
-    expect(mergeDeep(
-      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, 6]}}
-    )).toEqual({foo: 4, bar: {bizz: [5, 6], buzz: 7}});
+    expect(R.omit(['recursive'], mergeDeep(
+      {foo: 1, recursive, bar: {bizz: [2, 3], buzz: 7}},
+      {foo: 4, recursive, bar: {bizz: [5, 6]}}
+    ))).toEqual({foo: 4, bar: {bizz: [5, 6], buzz: 7}});
   });
 
   test('Should deep merge objects with a function', () => {
-    expect(mergeDeepWith(
+    expect(omitDeepPaths(['bar.recursive'], mergeDeepWith(
       (l, r) => R.when(
         R.is(Number),
         R.add(l)
       )(r),
-      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, 6]}}
-    )).toEqual({foo: 5, bar: {bizz: [5, 6], buzz: 7}});
+      {foo: 1, bar: {bizz: [2, 3], recursive, buzz: 7}},
+      {foo: 4, bar: {bizz: [5, 6], recursive}}
+    ))).toEqual({foo: 5, bar: {bizz: [5, 6], buzz: 7}});
   });
 
   test('Should deep merge objects and concat arrays of matching keys', () => {
-    expect(mergeDeepWithConcatArrays(
-      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, 6]}}
-    )).toEqual({foo: 4, bar: {bizz: [2, 3, 5, 6], buzz: 7}});
+    expect(omitDeepPaths(['bar.recursive'], mergeDeepWithConcatArrays(
+      {foo: 1, bar: {bizz: [2, 3], recursive, buzz: 7}},
+      {foo: 4, bar: {bizz: [5, 6], recursive}}
+    ))).toEqual({foo: 4, bar: {bizz: [2, 3, 5, 6], buzz: 7}});
   });
 
   test('mergeDeepWithRecurseArrayItems', () => {
-    expect(mergeDeepWithRecurseArrayItems(
+    expect(omitDeep(['recursive'], mergeDeepWithRecurseArrayItems(
       (k, l, r) => {
         return R.when(
           R.is(Number),
           R.add(l)
         )(r);
       },
-      {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
-    )).toEqual({foo: 5, bar: {bizz: [7, {brewer: 19}], buzz: 7}});
+      {foo: 1, bar: {bizz: [2, {brewer: 9, recursive}], buzz: 7}},
+      {foo: 4, bar: {bizz: [5, {brewer: 10, recursive}]}}
+    ))).toEqual({foo: 5, bar: {bizz: [7, {brewer: 19}], buzz: 7}});
   });
 
 
   test('mergeDeepWithRecurseArrayItemsByRight', () => {
-    expect(mergeDeepWithRecurseArrayItemsByRight(
+    expect(omitDeep(['recursive'], mergeDeepWithRecurseArrayItemsByRight(
       (v, k) => R.when(isObject, R.propOr(v, 'id'))(v),
       {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]}}
-    )).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snippy: 1}], buzz: 7}});
+      {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1, recursive}]}}
+    ))).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snippy: 1}], buzz: 7}});
   });
 
   test('mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight', () => {
     const itemMatchBy = (v, k) => R.when(isObject, R.propOr(v, 'id'))(v);
-    const renameSnippy = (left, right) => {
+    const renameSnippy = (left, right, seen = []) => {
       // Recurse on each item usual, but rename snippy to snappy
       const rename = renameKey(R.lensPath([]), 'snippy', 'snappy');
       return R.mergeWithKey(
         (kk, ll, rr) => {
-          return mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
+          // Calling the internal function here so we can pass kk and seen
+          return _mergeDeepWithRecurseArrayItemsByRight(
             itemMatchBy,
             renameSnippy,
             ll,
             rr,
-            kk
+            kk,
+            seen
           );
         },
         rename(left),
         rename(right)
       );
     };
-    expect(mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
-      itemMatchBy,
-      renameSnippy,
-      {
-        foo: 1,
-        bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7},
-        noids: [{pasta: 'elbow'}],
-        noid: {sneeze: 'guard'}
-      },
-      {
-        foo: 4,
-        bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]},
-        noids: [{pasta: 'noodle'}, {pasta: 'leg'}],
-        noid: {sneeze: 'free'}
-      }
-    )).toEqual({
+    expect(
+        omitDeep(['recursive'],
+          mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
+            itemMatchBy,
+            renameSnippy,
+            {
+              foo: 1,
+              bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7},
+              noids: [{pasta: 'elbow'}, {recursive}],
+              noid: {sneeze: 'guard'}
+            },
+            {
+              foo: 4,
+              bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]},
+              noids: [{pasta: 'noodle'}, {pasta: 'leg'}, {recursive}],
+              noid: {sneeze: 'free'}
+            }
+          ))).toEqual({
       foo: 4,
       bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7},
-      noids: [{pasta: 'noodle'}, {pasta: 'leg'}],
+      noids: [{pasta: 'noodle'}, {pasta: 'leg'}, {}],
       noid: {sneeze: 'free'}
     });
   });
@@ -327,8 +345,15 @@ describe('helperFunctions', () => {
   });
 
   test('strPathsOrNullOk', () => {
-    expect(strPathsOrNullOk(1, ['tan.khaki.pants', 'tan.khaki.blazer', 'tan.khaki.kite'], {tan: {khaki: {pants: null, kite: 'charlie'}}})).toEqual([null, 1, 'charlie']);
-  })
+    expect(strPathsOrNullOk(1, ['tan.khaki.pants', 'tan.khaki.blazer', 'tan.khaki.kite'], {
+      tan: {
+        khaki: {
+          pants: null,
+          kite: 'charlie'
+        }
+      }
+    })).toEqual([null, 1, 'charlie']);
+  });
 
   test('hasStrPath', () => {
     expect(hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
@@ -821,14 +846,16 @@ describe('helperFunctions', () => {
     expect(res.peanut.almond.butter).toEqual('ALMOND Butter');
   });
 
-  test('mitDeepBy', () => {
+  test('omitDeepBy', () => {
     const whatTheFunc = () => {
       return 'what the func';
     };
+
     const res = omitDeepBy(
       (k, v) => R.startsWith('_')(k),
       {
         peanut: {
+          recursive,
           almond: {
             cashew: {
               _brazilNut: {},
@@ -849,7 +876,7 @@ describe('helperFunctions', () => {
         }
       }
     );
-    expect(res).toEqual({
+    expect(omitDeepPaths(['peanut.recursive'], res)).toEqual({
       peanut: {
         almond: {
           cashew: {
@@ -1068,35 +1095,43 @@ describe('helperFunctions', () => {
   });
 
   test('omitDeepPaths', () => {
-    expect(omitDeepPaths(
-      ['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'],
-      {
-        foo: {
-          bunny: {
-            humorous: 'stuff'
-          }
-        },
-        boo: {
-          funny: {
-            foo: {
-              sunny: [
-                8,
-                [10,
-                  'more',
-                  'miles',
-                  'to',
-                  {
-                    go: 'teo',
-                    wo: 1
-                  }
-                ], 9
-              ]
-            },
-            soo: 3
+    expect(
+      R.compose(
+        // This is here to remove the remaining recursive object so comparison works
+        res => omitDeepPaths(['boo.recursive'], res),
+        // Omit these paths
+        x => omitDeepPaths(['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'], x)
+      )(
+        {
+          foo: {
+            bunny: {
+              humorous: 'stuff',
+              recursive
+            }
+          },
+          boo: {
+            recursive,
+            funny: {
+              foo: {
+                sunny: [
+                  8,
+                  [10,
+                    'more',
+                    'miles',
+                    'to',
+                    {
+                      go: 'teo',
+                      wo: 1
+                    }
+                  ], 9
+                ]
+              },
+              soo: 3
+            }
           }
         }
-      }
-    )).toEqual(
+      )
+    ).toEqual(
       {
         foo: {},
         boo: {

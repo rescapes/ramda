@@ -142,19 +142,26 @@ export const idOrIdFromObj = R.when(
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-export const mergeDeep = R.mergeWith((l, r) => {
-  // If either (hopefully both) items are arrays or not both objects
-  // accept the right value
-  return (
-    // If either is a function take the last
-    (R.is(Function, l) || R.is(Function, r)) ||
-    // If either is an array take the last
-    (l && l.concat && Array.isArray(l)) ||
-    (r && r.concat && Array.isArray(r))) ||
-  !(R.is(Object, l) && R.is(Object, r)) ?
-    r :
-    mergeDeep(l, r); // tail recursive
-});
+export const mergeDeep = (left, right, seen = []) => {
+  return R.mergeWith((l, r) => {
+    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+      // Never recurse on an instance that has been seen
+      return l;
+    }
+    // If either (hopefully both) items are arrays or not both objects
+    // accept the right value
+    return (
+      // If either is a function take the last
+      (R.is(Function, l) || R.is(Function, r)) ||
+      // If either is an array take the last
+      (l && l.concat && Array.isArray(l)) ||
+      (r && r.concat && Array.isArray(r))) ||
+    !(R.is(Object, l) && R.is(Object, r)) ?
+      r :
+      mergeDeep(l, r, R.concat(seen, cacheObjs));
+  })(left, right);
+};
 
 /**
  * mergeDeep any number of objects
@@ -172,18 +179,25 @@ export const mergeDeepAll = R.reduce(mergeDeep, {});
  * @returns {Object} The deep-merged objeck
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
-  // If either (hopefully both) items are arrays or not both objects
-  // accept the right value
-  return (
-    (l && l.concat && Array.isArray(l)) ||
-    (r && r.concat && Array.isArray(r))
-  ) ||
-  !(R.all(isObject))([l, r]) ||
-  R.any(R.is(Function))([l, r]) ?
-    fn(l, r) :
-    mergeDeepWith(fn, l, r); // tail recursive
-})(left, right));
+export const mergeDeepWith = (fn, left, right, seen = []) => {
+  return R.mergeWith((l, r) => {
+    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+      // Never recurse on an instance that has been seen
+      return l;
+    }
+    // If either (hopefully both) items are arrays or not both objects
+    // accept the right value
+    return (
+      (l && l.concat && Array.isArray(l)) ||
+      (r && r.concat && Array.isArray(r))
+    ) ||
+    !(R.all(isObject))([l, r]) ||
+    R.any(R.is(Function))([l, r]) ?
+      fn(l, r) :
+      mergeDeepWith(fn, l, r, R.concat(seen, cacheObjs));
+  })(left, right);
+};
 
 /**
  * Merge Deep that concats arrays of matching keys
@@ -192,15 +206,22 @@ export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => 
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith((l, r) => {
-  return R.cond(
-    [
-      [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
-      [R.complement(R.all)(isObject), R.last],
-      [R.T, R.apply(mergeDeepWithConcatArrays)] // tail recursive
-    ]
-  )([l, r]);
-})(left, right));
+export const mergeDeepWithConcatArrays = (left, right, seen = []) => {
+  return mergeDeepWith((l, r) => {
+    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+      // Never recurse on an instance that has been seen
+      return l;
+    }
+    return R.cond(
+      [
+        [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
+        [R.complement(R.all)(isObject), R.last],
+        [R.T, ([l, r]) => mergeDeepWithConcatArrays(l, r, R.concat(seen, cacheObjs))]
+      ]
+    )([l, r]);
+  }, left, right, seen);
+};
 
 /**
  * Merge Deep and also apply the given function to array items with the same index
@@ -223,26 +244,40 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => {
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
-export const mergeDeepWithKeyRecurseArrayItems = R.curry((fn, key, left, right) => R.cond(
-  [
-    // Arrays
-    [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
-      ([l, r]) => {
-        return R.addIndex(R.zipWith)((a, b, i) => mergeDeepWithKeyRecurseArrayItems(fn, i, a, b), l, r);
-      }
-    ],
-    // Primitives
-    [R.complement(R.all)(isObject),
-      ([l, r]) => {
-        return fn(key, l, r);
-      }],
-    // Objects
-    [R.T, ([l, r]) => {
-      return R.mergeWithKey(mergeDeepWithKeyRecurseArrayItems(fn), l, r);
-    }]
-  ]
-  )([left, right])
-);
+export const mergeDeepWithKeyRecurseArrayItems = (fn, key, left, right, seen = []) => {
+  const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [left, right]));
+  if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+    // Never recurse on an instance that has been seen
+    return left;
+  }
+  const _seen = R.concat(seen, cacheObjs);
+  return R.cond(
+    [
+      // Arrays
+      [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
+        ([l, r]) => {
+          return R.addIndex(R.zipWith)(
+            (a, b, i) => {
+              return mergeDeepWithKeyRecurseArrayItems(fn, i, a, b, _seen);
+            },
+            l, r
+          );
+        }
+      ],
+      // Primitives
+      [R.complement(R.all)(isObject),
+        ([l, r]) => {
+          return fn(key, l, r);
+        }],
+      // Objects
+      [R.T, ([l, r]) => {
+        return R.mergeWithKey((k, ll, rr) => {
+          return mergeDeepWithKeyRecurseArrayItems(fn, k, ll, rr, _seen);
+        }, l, r);
+      }]
+    ]
+  )([left, right]);
+};
 
 /**
  * Like mergeDeepWithRecurseArrayItems but merges array items with a function itemMatchBy that determines
@@ -273,8 +308,10 @@ export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left,
  * item => R.when(isObject, R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
  * @params {Function} itemMatchBy Expects the left and right object that need to be merged
- * @params {Function} mergeObject Expects left and right when they are objects. mergeObject typically recurses
- * with mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight on each item of left and right after doing something
+ * @params {Function} mergeObject Expects left, right, seen when left are right are objects.
+ * seen is an internal parameter to pass to _mergeDeepWithRecurseArrayItemsByRight
+ * mergeObject typically recurses
+ * with _mergeDeepWithRecurseArrayItemsByRight on each item of left and right after doing something
  * special. This function was designed with the idea of being used in Apollo InMemory Cache Type Policy merge functions
  * to continue calling Apollowing merge function on objects, which in tern delegates back to this function
  * @params {Object} left the 'left' side object to merge
@@ -286,7 +323,7 @@ export const mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight = R.curry((it
   return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, mergeObject, left, right, null);
 });
 
-export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject, left, right, key) => {
+export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject, left, right, key, seen = []) => {
   return R.cond(
     [
       // Arrays
@@ -315,13 +352,15 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
               return R.when(
                 () => hasMatchingLItem,
                 () => {
+                  const rItemInLItems = R.prop(rItemValue, lItemsByValue);
                   // Pass the index as a key
                   return _mergeDeepWithRecurseArrayItemsByRight(
                     itemMatchBy,
                     mergeObject,
-                    R.prop(rItemValue, lItemsByValue),
+                    rItemInLItems,
                     rItem,
-                    i
+                    i,
+                    seen
                   );
                 }
               )(rItem);
@@ -339,14 +378,21 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
       // Objects and nulls
       [R.T,
         ([l, r]) => {
-          return mergeObject ? mergeObject(l, r) : R.mergeWithKey(
+          const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+          if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+            // Never recurse on an instance that has been seen
+            return l;
+          }
+          const _seen = R.concat(seen, cacheObjs)
+          return mergeObject ? mergeObject(l, r, _seen) : R.mergeWithKey(
             (kk, ll, rr) => {
               return _mergeDeepWithRecurseArrayItemsByRight(
                 itemMatchBy,
                 mergeObject,
                 ll,
                 rr,
-                kk
+                kk,
+                _seen
               );
             },
             l || {},
@@ -389,7 +435,7 @@ export const mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, appl
  * of ob * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
  * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
  * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @params {Object} right the 'right' side object to merge
  * @returns {Object} The deep-merged object
  * @sig applyDeepWithKeyWithRecurseArraysAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
  */
@@ -397,7 +443,7 @@ export const applyDeepWithKeyWithRecurseArraysAndMapObjs = R.curry((fn, applyObj
   mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
 );
 
-const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => {
+const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right, seen = []) => {
     return R.cond(
       [
         // Arrays
@@ -417,7 +463,9 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
                     ),
                     res => applyObj(key, res)
                   )(v),
-                  ([kk, ll, rr]) => _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr)
+                  ([kk, ll, rr]) => {
+                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr, seen)
+                  }
                 )([key, l, r])
               )
             )(lr);
@@ -448,7 +496,17 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
                     res => applyObj(k, res)
                   )(v),
                   // First recurse on l and r
-                  ([kk, ll, rr]) => R.apply(_mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj), [kk, ll, rr])
+                  ([kk, ll, rr]) => {
+                    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [ll, rr]));
+                    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+                      // Never recurse on an instance that has been seen
+                      return ll;
+                    }
+                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr,
+                      // Build up our seen objects to prevent infinite recursion
+                      R.concat(seen, cacheObjs)
+                    );
+                  }
                 )([k, l, r])
               ),
               lr
@@ -582,7 +640,7 @@ export const strPathOr = R.curry((defaultValue, str, props) => {
   )(result);
 });
 
-/***
+/**
  * strPathOrNullOk for a list of strPaths
  * @param {Object} defaultValue. Default value if value is null undefined.
  * @param {[String]} strPaths dot-separated prop path
@@ -591,10 +649,10 @@ export const strPathOr = R.curry((defaultValue, str, props) => {
  */
 export const strPathsOr = R.curry((defaultValue, strPaths, props) => {
   return R.map(
-    strPath => strPathOr(defaultValue, strPath, props),
+    _strPath => strPathOr(defaultValue, _strPath, props),
     strPaths
   );
-})
+});
 
 
 /**
@@ -620,7 +678,7 @@ export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
   )(result);
 });
 
-/***
+/**
  * strPathOrNullOk for a list of strPaths. THe value at each strPath is returned if the path is defined and the
  * value is not undefined
  * @param {Object} defaultValue. Default value if value is null undefined.
@@ -630,10 +688,10 @@ export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
  */
 export const strPathsOrNullOk = R.curry((defaultValue, strPaths, props) => {
   return R.map(
-    strPath => strPathOrNullOk(defaultValue, strPath, props),
+    _strPath => strPathOrNullOk(defaultValue, _strPath, props),
     strPaths
   );
-})
+});
 
 /**
  * Returns true if the given string path is non-null
@@ -1315,40 +1373,55 @@ const _omitDeepPathsEliminateItemPredicate = paths => R.any(R.compose(R.equals(0
  * Omit matching paths in a a structure. For instance omitDeepPaths(['a.b.c', 'a.0.1']) will omit keys
  * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
  */
-export const omitDeepPaths = R.curry((pathSet, obj) => R.cond([
-
-    // Arrays
-    [o => Array.isArray(o),
-      list => {
-        // Recurse on each array item that doesn't match the paths.
-        // We pass the key without the index
-        // If any path matches the path to the value we return the item and the matching paths
-        const survivingItems = compact(R.addIndex(R.map)(
-          (item, index) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, item, index),
-          list
-        ));
-        return R.map(({paths, item}) => omitDeepPaths(paths, item), survivingItems);
-      }
-    ],
-    // Primitives always pass.
-    [R.complement(isObject), primitive => primitive],
-    // Objects
-    [R.T,
-      o => {
-        // Recurse on each object value that doesn't match the paths.
-        const survivingItems = compact(R.mapObjIndexed(
-          // If any path matches the path to the value we return the value and the matching paths
-          // If no path matches it we know the value shouldn't be omitted so we don't recurse on it below
-          (value, key) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, value, key),
-          o
-        ));
-        // Only recurse on items from the object that are still eligible for omitting
-        return R.map(({paths, item}) => omitDeepPaths(paths, item), survivingItems);
-      }
+export const omitDeepPaths = (pathSet, obj, seen = []) => {
+  return R.cond([
+      // Arrays
+      [o => Array.isArray(o),
+        list => {
+          // Recurse on each array item that doesn't match the paths.
+          // We pass the key without the index
+          // If any path matches the path to the value we return the item and the matching paths
+          const survivingItems = compact(R.addIndex(R.map)(
+            (item, index) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, item, index),
+            list
+          ));
+          return R.map(({paths, item}) => {
+              return omitDeepPaths(paths, item, seen);
+            },
+            survivingItems);
+        }
+      ],
+      // Primitives always pass.
+      [R.complement(isObject), primitive => primitive],
+      // Leave the func alone
+      [R.is(Function), func => func],
+      // Objects
+      [R.T,
+        o => {
+          // Recurse on each object value that doesn't match the paths.
+          const survivingItems = compact(R.mapObjIndexed(
+            // If any path matches the path to the value we return the value and the matching paths
+            // If no path matches it we know the value shouldn't be omitted so we don't recurse on it below
+            (value, key) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, value, key),
+            o
+          ));
+          // Only recurse on items from the object that are still eligible for omitting
+          return R.map(
+            ({paths, item}) => {
+              const cacheObjs = R.filter(R.either(Array.isArray, isObject), [item]);
+              if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+                // Never recurse on an instance that has been seen
+                return item;
+              }
+              return omitDeepPaths(paths, item, R.concat(seen, cacheObjs));
+            },
+            survivingItems
+          );
+        }
+      ]
     ]
-  ]
-  )(obj)
-);
+  )(obj);
+};
 
 // This eliminate predicate returns true if no path is left matching the item's path so the item should not
 // be picked. It also returns true if the there are paths with length greater than 0
