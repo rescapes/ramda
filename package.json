@@ -1,6 +1,6 @@
 {
   "name": "rescape-ramda",
-  "version": "1.6.159",
+  "version": "1.6.160",
   "description": "Functions to augment Ramda and Folktale",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -40,18 +40,8 @@
     "util": "^0.12.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.12.3",
-    "@babel/plugin-proposal-object-rest-spread": "^7.12.1",
-    "@babel/plugin-transform-runtime": "^7.12.1",
-    "@babel/polyfill": "^7.12.1",
-    "@babel/preset-env": "^7.12.1",
-    "@babel/runtime": "^7.12.5",
     "@jest/globals": "^26.6.2",
     "@types/jest": "^26.0.15",
-    "babel-eslint": "^10.1.0",
-    "babel-jest": "^26.6.3",
-    "babel-plugin-transform-es2015-modules-commonjs-simple": "^6.7.4",
-    "babelrc-rollup": "^3.0.0",
     "cross-env": "^7.0.2",
     "eslint": "^7.13.0",
     "eslint-loader": "^4.0.2",
@@ -106,30 +96,5 @@
       "json",
       "node"
     ]
-  },
-  "babel": {
-    "sourceMaps": true,
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "env": {
-      "test": {
-        "plugins": [
-          [
-            "transform-es2015-modules-commonjs-simple",
-            {
-              "noMangle": true
-            }
-          ],
-          [
-            "@babel/plugin-transform-runtime",
-            {
-              "helpers": true,
-              "regenerator": true
-            }
-          ]
-        ]
-      }
-    }
   }
 }
