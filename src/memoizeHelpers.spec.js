@@ -10,7 +10,7 @@
  */
 
 import {memoized, memoizedWith} from './memoizeHelpers';
-import * as R from 'ramda';
+import R from 'ramda';
 import NamedTupleMap from 'namedtuplemap';
 
 describe('memoizeHelpers', () => {

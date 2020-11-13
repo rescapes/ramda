@@ -21,8 +21,8 @@ import {
   onlyOneValueThrowing,
   findOneValueByParamsThrowing
 } from './throwingFunctions';
-import * as Result from 'folktale/result';
-import * as R from 'ramda';
+import Result from 'folktale/result';
+import R from 'ramda';
 
 describe('throwingFunctions', () => {
   test('throwIfResultError', () => {

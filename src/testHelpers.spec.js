@@ -10,8 +10,10 @@
  */
 
 import {expectTask, resultToPromise} from './testHelpers';
-import {task} from 'folktale/concurrency/task';
-import * as Result from 'folktale/result';
+import T from 'folktale/concurrency/task';
+import Result from 'folktale/result';
+
+const {task} = T;
 
 describe('testHelpers', () => {
   test('expectTask', () => {

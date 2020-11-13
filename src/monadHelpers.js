@@ -9,14 +9,16 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {fromPromised, of, rejected, task, waitAll} from 'folktale/concurrency/task';
-import * as R from 'ramda';
-import * as Result from 'folktale/result';
+import T from 'folktale/concurrency/task';
+import R from 'ramda';
+import Result from 'folktale/result';
 import {reqStrPathThrowing} from './throwingFunctions';
-import {Just} from 'folktale/maybe';
+import Maybe from 'folktale/maybe';
 import {stringifyError} from './errorHelpers';
 import {compact, isObject, toArrayIfNot} from './functions';
 import {inspect} from 'util';
+const {Just} = Maybe
+const  {fromPromised, of, rejected, task, waitAll} = T
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution

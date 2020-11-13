@@ -9,10 +9,11 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {fromPromised, of, rejected, task, waitAll} from 'folktale/concurrency/task';
+import T from 'folktale/concurrency/task';
 import {
   chainExceptMapDeepestMDeep,
-  chainMDeep, composeWithChain,
+  chainMDeep,
+  composeWithChain,
   composeWithChainMDeep,
   composeWithMapExceptChainDeepestMDeep,
   composeWithMapMDeep,
@@ -21,7 +22,9 @@ import {
   defaultRunToResultConfig,
   lift1stOf2ForMDeepMonad,
   mapExceptChainDeepestMDeep,
-  mapMDeep, mapMonadByConfig,
+  mapMDeep,
+  mapMonadByConfig,
+  mapOrObjToNamedResponseAndInputs,
   mapResultMonadWithOtherInputs,
   mapResultTaskWithOtherInputs,
   mapToMergedResponseAndInputs,
@@ -31,14 +34,16 @@ import {
   mapToNamedResponseAndInputsMDeep,
   mapToPath,
   mapToResponseAndInputs,
-  mapWithArgToPath, mapOrObjToNamedResponseAndInputs,
+  mapWithArgToPath,
   objOfMLevelDeepListOfMonadsToListWithPairs,
   objOfMLevelDeepMonadsToListWithPairs,
   pairsOfMLevelDeepListOfMonadsToListWithPairs,
-  promiseToTask, resultTasksToResultObjTask,
+  promiseToTask,
+  resultTasksToResultObjTask,
   resultToTask,
   resultToTaskNeedingResult,
-  resultToTaskWithResult, retryTask,
+  resultToTaskWithResult,
+  retryTask,
   sequenceBucketed,
   taskToPromise,
   taskToResultTask,
@@ -54,12 +59,12 @@ import {
   traverseReduceWhileBucketedTasks,
   waitAllBucketed
 } from './monadHelpers';
-import * as R from 'ramda';
-import * as Result from 'folktale/result';
-import * as Maybe from 'folktale/maybe';
+import R from 'ramda';
+import Result from 'folktale/result';
+import Maybe from 'folktale/maybe';
 import * as f from './functions';
-import {reqStrPathThrowing} from './throwingFunctions';
-import {strPathOr} from './functions';
+
+const {fromPromised, of, rejected, task, waitAll} = T
 
 
 describe('monadHelpers', () => {

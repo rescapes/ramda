@@ -1,6 +1,6 @@
 // Original source: https://gist.github.com/plukevdh/dec4b41d5b7d67f83be630afecee499e
 
-import * as R from 'ramda';
+import R from 'ramda';
 import {objectDiff, prettyPrintObjectDiff} from './diffHelpers';
 
 const lhs = {

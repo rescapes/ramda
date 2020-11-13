@@ -20,9 +20,9 @@
 * state is to show an error message, retryTask I/O, etc.
 */
 
-import * as R from 'ramda';
-import * as Rm from 'ramda-maybe';
-import * as Result from 'folktale/result';
+import R from 'ramda';
+import Rm from 'ramda-maybe';
+import Result from 'folktale/result';
 
 // https://stackoverflow.com/questions/17843691/javascript-regex-to-match-a-regex
 const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\/((?:g(?:im?|mi?)?|i(?:gm?|mg?)?|m(?:gi?|ig?)?)?)/;
