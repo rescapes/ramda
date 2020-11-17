@@ -1,6 +1,6 @@
 {
-  "name": "rescape-ramda",
-  "version": "1.6.161",
+  "name": "@rescapes/rescape-ramda",
+  "version": "1.6.162",
   "description": "Functions to augment Ramda and Folktale",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -12,7 +12,10 @@
     "lib",
     "src"
   ],
-  "repository": "git@github.com:calocan/rescape-ramda.git",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:rescapes/rescape-ramda.git"
+  },
   "scripts": {
     "clean": "rimraf lib dist es coverage",
     "lint": "eslint src",
