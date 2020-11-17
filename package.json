@@ -1,6 +1,6 @@
 {
-  "name": "@rescapes/rescape-ramda",
-  "version": "1.6.162",
+  "name": "@rescapes/ramda",
+  "version": "1.6.163",
   "description": "Functions to augment Ramda and Folktale",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -14,7 +14,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git@github.com:rescapes/rescape-ramda.git"
+    "url": "git@github.com:rescapes/ramda.git"
   },
   "scripts": {
     "clean": "rimraf lib dist es coverage",
@@ -28,7 +28,7 @@
     "docs:prepare": "gitbook install",
     "docs:build": "yarn run docs:prepare && gitbook build -g reactjs/redux && cp logo/apple-touch-icon.png _book/gitbook/images/apple-touch-icon-precomposed-152.png && cp logo/favicon.ico _book/gitbook/images",
     "docs:watch": "yarn run docs:prepare && gitbook serve",
-    "docs:publish": "yarn run docs:clean && yarn run docs:build && cp CNAME _book && cd _book && git init && git commit --allow-empty -m 'update book' && git checkout -b gh-pages && touch .nojekyll && git add . && git commit -am 'update book' && git push git@github.com:calocan/rescape-ramda.git gh-pages --force",
+    "docs:publish": "yarn run docs:clean && yarn run docs:build && cp CNAME _book && cd _book && git init && git commit --allow-empty -m 'update book' && git checkout -b gh-pages && touch .nojekyll && git add . && git commit -am 'update book' && git push git@github.com:calocan/@rescapes/ramda.git gh-pages --force",
     "build-publish-patch": "yarn run build && yarn run publish-patch",
     "build-publish-minor": "yarn run build && yarn run publish-minor",
     "publish-patch": "yarn version --patch && yarn publish --non-interactive",
