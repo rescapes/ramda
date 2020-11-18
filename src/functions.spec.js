@@ -81,15 +81,15 @@ import {
   transformKeys,
   unflattenObj,
   unflattenObjNoArrays
-} from './functions';
+} from './functions.js';
 import Result from 'folktale/result';
-import {reqStrPathThrowing} from './throwingFunctions';
+import {reqStrPathThrowing} from './throwingFunctions.js';
 
 const recurseMe = {
   the: {
     frog: {
       to: {
-        'catch': null
+        catch: null
       }
     }
   }

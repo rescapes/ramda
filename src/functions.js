@@ -136,9 +136,9 @@ export const idOrIdFromObj = R.when(
 /**
  * Deep merge values that are objects but not arrays
  * based on https://github.com/ramda/ramda/pull/1088
- * @params {Object} l the 'left' side object to merge
- * @params {Object} r the 'right' side object to merge
- * @type {Immutable.Map<string, V>|__Cursor.Cursor|List<T>|Map<K, V>|*}
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {[String]} seen For recursion only
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
@@ -165,7 +165,7 @@ export const mergeDeep = (left, right, seen = []) => {
 
 /**
  * mergeDeep any number of objects
- * @params {[Object]} objs Array of objects to reduce
+ * @param {[Object]} objs Array of objects to reduce
  * @returns {Object} The deep-merged objects
  */
 export const mergeDeepAll = R.reduce(mergeDeep, {});
@@ -173,9 +173,10 @@ export const mergeDeepAll = R.reduce(mergeDeep, {});
 /**
  * Deep merge values with a custom function that are objects
  * based on https://github.com/ramda/ramda/pull/1088
- * @params {Function} fn The merge function left l, right r:: l -> r -> a
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Function} fn The merge function left l, right r:: l -> r -> a
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
+ * @param {[String]} seen For recursion only
  * @returns {Object} The deep-merged objeck
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
@@ -201,8 +202,9 @@ export const mergeDeepWith = (fn, left, right, seen = []) => {
 
 /**
  * Merge Deep that concats arrays of matching keys
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
+ * @param {[String]} seen For recursion only
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
@@ -217,7 +219,7 @@ export const mergeDeepWithConcatArrays = (left, right, seen = []) => {
       [
         [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
         [R.complement(R.all)(isObject), R.last],
-        [R.T, ([l, r]) => mergeDeepWithConcatArrays(l, r, R.concat(seen, cacheObjs))]
+        [R.T, ([ll, rr]) => mergeDeepWithConcatArrays(ll, rr, R.concat(seen, cacheObjs))]
       ]
     )([l, r]);
   }, left, right, seen);
@@ -225,9 +227,9 @@ export const mergeDeepWithConcatArrays = (left, right, seen = []) => {
 
 /**
  * Merge Deep and also apply the given function to array items with the same index
- * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to merge
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
@@ -237,10 +239,11 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => {
 
 /**
  * Merge Deep and also apply the given function to array items with the same index
- * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
- * @params {Object} key Used for recursions
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Object} key Used for recursions
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
+ * @param {[String]} seen For recursion only
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
@@ -284,14 +287,14 @@ export const mergeDeepWithKeyRecurseArrayItems = (fn, key, left, right, seen = [
  * if an item from each array of left and right represents the same objects. The right object's array
  * items are returned but any left object item matching by itemMatchBy is deep merged with the matching right item.
  * There is no merge function for primitives, r is always returned
- * @params {Function} fn The item matching function, Arrays deep items in left and right. Called with the
+ * @param {Function} fn The item matching function, Arrays deep items in left and right. Called with the
  * item and current key/index
  * are merged. For example
  *   item => R.when(isObject, R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to merge
- * @params {String} [key] Optional key or index of the parent object/array item
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {String} [key] Optional key or index of the parent object/array item
  * @returns {Object} The deep-merged object
  */
 export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left, right) => {
@@ -302,27 +305,43 @@ export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left,
  * Like mergeDeepWithRecurseArrayItemsByRight but takes mergeObject to merge objects, rather than just taking the
  * right value. Primitives still resolve to the right value. the mergeObject function should handle internal array
  * merging by recursing on this function or similar
- * @params {Function} fn The item matching function, Arrays deep items in left and right. Called with the
+ * @param {Function} fn The item matching function, Arrays deep items in left and right. Called with the
  * item and current key/index
  * are merged. For example
  * item => R.when(isObject, R.propOr(v, 'id'))(item)
  * would match on id if item is an object and has an id
- * @params {Function} itemMatchBy Expects the left and right object that need to be merged
- * @params {Function} mergeObject Expects left, right, seen when left are right are objects.
+ * @param {Function} itemMatchBy Expects the left and right object that need to be merged
+ * @param {Function} mergeObject Expects left, right, seen when left are right are objects.
  * seen is an internal parameter to pass to _mergeDeepWithRecurseArrayItemsByRight
  * mergeObject typically recurses
  * with _mergeDeepWithRecurseArrayItemsByRight on each item of left and right after doing something
  * special. This function was designed with the idea of being used in Apollo InMemory Cache Type Policy merge functions
  * to continue calling Apollowing merge function on objects, which in tern delegates back to this function
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to merge
- * @params {String} [key] Optional key or index of the parent object/array item
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {String} [key] Optional key or index of the parent object/array item
  * @returns {Object} The deep-merged object
  */
 export const mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight = R.curry((itemMatchBy, mergeObject, left, right) => {
   return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, mergeObject, left, right, null);
 });
 
+/**
+ * Internal version omergeDeepWithRecurseArrayItemsByAndMergeObjectByRight
+ * @param {Function} itemMatchBy Expects the left and right object that need to be merged
+ * @param {Function} mergeObject Expects left, right, seen when left are right are objects.
+ * seen is an internal parameter to pass to _mergeDeepWithRecurseArrayItemsByRight
+ * mergeObject typically recurses
+ * with _mergeDeepWithRecurseArrayItemsByRight on each item of left and right after doing something
+ * special. This function was designed with the idea of being used in Apollo InMemory Cache Type Policy merge functions
+ * to continue calling Apollowing merge function on objects, which in tern delegates back to this function
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {String} [key] Optional key or index of the parent object/array item
+ * @param {[String]} seen For recursion only
+ * @returns {Object} The deep-merged object
+ */
+/* eslint-disable max-params */
 export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject, left, right, key, seen = []) => {
   return R.cond(
     [
@@ -383,7 +402,7 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
             // Never recurse on an instance that has been seen
             return l;
           }
-          const _seen = R.concat(seen, cacheObjs)
+          const _seen = R.concat(seen, cacheObjs);
           return mergeObject ? mergeObject(l, r, _seen) : R.mergeWithKey(
             (kk, ll, rr) => {
               return _mergeDeepWithRecurseArrayItemsByRight(
@@ -407,10 +426,10 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
 
 /**
  * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key
- * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
  * where k is the current k of the object
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
@@ -419,10 +438,10 @@ export const applyDeep = R.curry((fn, obj) => mergeDeepWithRecurseArrayItems(fn,
 /**
  * Merge Deep and also apply the given function to array items with the same index.
  * This adds another function that maps the object results to something else after the objects are recursed upon
- * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
- * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
@@ -432,10 +451,9 @@ export const mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, appl
 
 /**
  * Same as mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but sends the same left and right value so fn is called on every key
- * of ob * @params {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
- * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to merge
+ * of ob * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @param {Object} obj The left and right side to merge (always the same)
  * @returns {Object} The deep-merged object
  * @sig applyDeepWithKeyWithRecurseArraysAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
  */
@@ -443,6 +461,15 @@ export const applyDeepWithKeyWithRecurseArraysAndMapObjs = R.curry((fn, applyObj
   mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
 );
 
+/**
+ * Internal version of mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs
+ * @param {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @returns {Object} The deep-merged object
+ * @private
+ */
+/* eslint-disable max-params */
 const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right, seen = []) => {
     return R.cond(
       [
@@ -464,7 +491,7 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
                     res => applyObj(key, res)
                   )(v),
                   ([kk, ll, rr]) => {
-                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr, seen)
+                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr, seen);
                   }
                 )([key, l, r])
               )
@@ -775,8 +802,8 @@ export const mapDefaultAndPrefixOthers = (defaultName, prefix, module) =>
  * Maps an object with a function that returns pairs and create and object therefrom
  * Like R.mapObjIndexed, the function's first argument is the value of each item, and the seconds is the key if
  * iterating over objects
- * @params {Functor} f The mapping function
- * @params {Container} container Anything that can be mapped
+ * @param {Functor} f The mapping function
+ * @param {Container} container Anything that can be mapped
  * @returns {Object} The mapped pairs made into key values
  * @sig mapKeysAndValues :: Functor F = (a -> [b,c]) -> F -> <k,v>
  */
@@ -940,18 +967,18 @@ export const mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v 
 
 
 /**
- * Finds an item that matches all the given props in params
- * @param {Object} params object key values to match
+ * Finds an item that matches all the given props in param
+ * @param {Object} param object key values to match
  * @param {Object|Array} items Object or Array that can produce values to search
  * @returns {Result} An Result.Ok containing the value or an Result.Error if no value is found
  */
-export const findOneValueByParams = (params, items) => {
+export const findOneValueByParams = (param, items) => {
   return findOne(
     // Compare all the eqProps against each item
     R.allPass(
-      // Create a eqProps for each prop of params
-      R.map(prop => R.eqProps(prop, params),
-        R.keys(params)
+      // Create a eqProps for each prop of param
+      R.map(prop => R.eqProps(prop, param),
+        R.keys(param)
       )
     ),
     R.values(items)
@@ -960,17 +987,17 @@ export const findOneValueByParams = (params, items) => {
 
 /**
  * Returns the items matching all param key values
- * @param {Object} params Key values to match to items
+ * @param {Object} param Key values to match to items
  * @param {Object|Array} items Object with values of objects or array of objects that can produce values to search
  * @returns {[Object]} items that pass
  */
-export const findByParams = (params, items) => {
+export const findByParams = (param, items) => {
   return R.filter(
     // Compare all the eqProps against each item
     R.allPass(
-      // Create a eqProps for each prop of params
-      R.map(prop => R.eqProps(prop, params),
-        R.keys(params)
+      // Create a eqProps for each prop of param
+      R.map(prop => R.eqProps(prop, param),
+        R.keys(param)
       )
     ),
     items
@@ -1372,6 +1399,10 @@ const _omitDeepPathsEliminateItemPredicate = paths => R.any(R.compose(R.equals(0
 /**
  * Omit matching paths in a a structure. For instance omitDeepPaths(['a.b.c', 'a.0.1']) will omit keys
  * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
+ * @param {[String]} pathSet paths
+ * @param {Object} obj Object to process
+ * @param {[String]} seen Recursive use only
+ * @returns {Object} The object with the omitted paths
  */
 export const omitDeepPaths = (pathSet, obj, seen = []) => {
   return R.cond([

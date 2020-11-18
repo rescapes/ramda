@@ -58,13 +58,13 @@ import {
   traverseReduceWhileBucketed,
   traverseReduceWhileBucketedTasks,
   waitAllBucketed
-} from './monadHelpers';
+} from './monadHelpers.js';
 import R from 'ramda';
 import Result from 'folktale/result';
 import Maybe from 'folktale/maybe';
-import * as f from './functions';
+import * as f from './functions.js';
 
-const {fromPromised, of, rejected, task, waitAll} = T
+const {fromPromised, of, rejected, task, waitAll} = T;
 
 
 describe('monadHelpers', () => {

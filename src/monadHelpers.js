@@ -12,13 +12,13 @@
 import T from 'folktale/concurrency/task';
 import R from 'ramda';
 import Result from 'folktale/result';
-import {reqStrPathThrowing} from './throwingFunctions';
+import {reqStrPathThrowing} from './throwingFunctions.js';
 import Maybe from 'folktale/maybe';
-import {stringifyError} from './errorHelpers';
-import {compact, isObject, toArrayIfNot} from './functions';
+import {stringifyError} from './errorHelpers.js';
+import {compact, isObject, toArrayIfNot} from './functions.js';
 import {inspect} from 'util';
-const {Just} = Maybe
-const  {fromPromised, of, rejected, task, waitAll} = T
+const {Just} = Maybe;
+const {fromPromised, of, rejected, task, waitAll} = T;
 
 /**
  * Default handler for Task rejections when an error is unexpected and should halt execution

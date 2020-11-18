@@ -10,7 +10,7 @@
  */
 import R from 'ramda';
 import NamedTupleMap from 'namedtuplemap';
-import {flattenObj} from './functions';
+import {flattenObj} from './functions.js';
 
 /**
  *
