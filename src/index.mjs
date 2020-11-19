@@ -9,7 +9,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {mapToMergedResponseAndInputs, mapToMergedResponseAndInputsMDeep} from './monadHelpers';
+import {mapToMergedResponseAndInputs, mapToMergedResponseAndInputsMDeep} from './monadHelpers.js';
 
 export {
   reqStrPath,
@@ -86,7 +86,7 @@ export {
   eqStrPathsAllCustomizable,
   toArrayIfNot,
   isObject
-} from './functions';
+} from './functions.js';
 export {
   throwIfSingleResultError,
   mappedThrowIfResultError,
@@ -98,7 +98,7 @@ export {
   reqPathPropEqThrowing,
   reqPathThrowing,
   reqStrPathThrowing
-} from './throwingFunctions';
+} from './throwingFunctions.js';
 export {
   defaultRunConfig,
   defaultRunToResultConfig,
@@ -150,8 +150,8 @@ export {
   composeWithMapMDeep,
   retryTask,
   mapMonadByConfig
-} from './monadHelpers';
-export {memoized, memoizedWith} from './memoizeHelpers';
-export {objectDiff, prettyPrintObjectDiff} from './diffHelpers';
-export {stringifyError} from './errorHelpers';
-export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers';
+} from './monadHelpers.js';
+export {memoized, memoizedWith} from './memoizeHelpers.js';
+export {objectDiff, prettyPrintObjectDiff} from './diffHelpers.js';
+export {stringifyError} from './errorHelpers.js';
+export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers.js';
