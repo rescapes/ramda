@@ -13,7 +13,7 @@ const config = {
   ],
   plugins: []
 };
-const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/maybe', 'folktale/result'];
+const externals = ['symbol-observable', 'folktale/concurrency/task/index.js', 'folktale/maybe/index.js', 'folktale/result/index.js'];
 
 const configs = R.map(c => {
   const x = R.merge(config, c);
