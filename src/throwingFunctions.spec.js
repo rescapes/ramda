@@ -21,7 +21,7 @@ import {
   onlyOneValueThrowing,
   findOneValueByParamsThrowing
 } from './throwingFunctions.js';
-import Result from 'folktale/result';
+import Result from 'folktale/result/index.js';
 import R from 'ramda';
 
 describe('throwingFunctions', () => {

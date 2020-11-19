@@ -9,7 +9,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import T from 'folktale/concurrency/task';
+import T from 'folktale/concurrency/task/index.js';
 import {
   chainExceptMapDeepestMDeep,
   chainMDeep,
@@ -60,8 +60,8 @@ import {
   waitAllBucketed
 } from './monadHelpers.js';
 import R from 'ramda';
-import Result from 'folktale/result';
-import Maybe from 'folktale/maybe';
+import Result from 'folktale/result/index.js';
+import Maybe from 'folktale/maybe/index.js';
 import * as f from './functions.js';
 
 const {fromPromised, of, rejected, task, waitAll} = T;

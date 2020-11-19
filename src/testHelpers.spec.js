@@ -10,8 +10,8 @@
  */
 
 import {expectTask, resultToPromise} from './testHelpers.js';
-import T from 'folktale/concurrency/task';
-import Result from 'folktale/result';
+import T from 'folktale/concurrency/task/index.js';
+import Result from 'folktale/result/index.js';
 
 const {task} = T;
 

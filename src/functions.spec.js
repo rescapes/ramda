@@ -82,7 +82,7 @@ import {
   unflattenObj,
   unflattenObjNoArrays
 } from './functions.js';
-import Result from 'folktale/result';
+import Result from 'folktale/result/index.js';
 import {reqStrPathThrowing} from './throwingFunctions.js';
 
 const recurseMe = {
