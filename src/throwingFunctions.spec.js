@@ -22,7 +22,7 @@ import {
   findOneValueByParamsThrowing
 } from './throwingFunctions.js';
 import Result from 'folktale/result/index.js';
-import R from 'ramda';
+import * as R from 'ramda';
 
 describe('throwingFunctions', () => {
   test('throwIfResultError', () => {

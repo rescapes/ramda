@@ -20,7 +20,7 @@
 * state is to show an error message, retryTask I/O, etc.
 */
 
-import R from 'ramda';
+import * as R from 'ramda';
 import Rm from 'ramda-maybe';
 import Result from 'folktale/result/index.js';
 

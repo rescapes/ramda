@@ -1,6 +1,6 @@
 // Original source
 // https://gist.github.com/plukevdh/dec4b41d5b7d67f83be630afecee499e
-import R from 'ramda';
+import * as R from 'ramda';
 
 const isObject = R.compose(R.equals('Object'), R.type);
 const allAreObjectsOrLists = R.compose(R.either(R.all(isObject), R.all(Array.isArray)), R.values);

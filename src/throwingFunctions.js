@@ -12,7 +12,7 @@
  */
 import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue, keyStringToLensPath} from './functions.js';
 import Result from 'folktale/result/index.js';
-import R from 'ramda';
+import * as R from 'ramda';
 import {inspect} from 'util';
 
 /**

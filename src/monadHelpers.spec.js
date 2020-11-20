@@ -59,7 +59,7 @@ import {
   traverseReduceWhileBucketedTasks,
   waitAllBucketed
 } from './monadHelpers.js';
-import R from 'ramda';
+import * as R from 'ramda';
 import Result from 'folktale/result/index.js';
 import Maybe from 'folktale/maybe/index.js';
 import * as f from './functions.js';
