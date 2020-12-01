@@ -10,109 +10,250 @@
  */
 
 import * as R from 'ramda';
-import * as f from './functions';
-import {Just} from 'folktale/maybe';
-import * as Result from 'folktale/result';
+import {
+  _mergeDeepWithRecurseArrayItemsByRight,
+  alwaysFunc,
+  camelCase,
+  capitalize,
+  chainObjToValues,
+  compact,
+  compactEmpty,
+  compactJoin,
+  duplicateKey,
+  emptyToNull,
+  eqStrPath,
+  eqStrPathsAll,
+  eqStrPathsAllCustomizable,
+  filterObjToValues,
+  findByParams,
+  findMapped,
+  findOne,
+  findOneValueByParams,
+  flattenObj,
+  flattenObjUntil,
+  fromPairsDeep,
+  hasStrPath,
+  idOrIdFromObj,
+  isObject,
+  keyStringToLensPath,
+  mapDefault,
+  mapDefaultAndPrefixOthers,
+  mapKeys,
+  mapKeysAndValues,
+  mapKeysForLens,
+  mapObjToValues,
+  mapProp,
+  mapPropValueAsIndex,
+  mapToObjValue,
+  mergeAllWithKey,
+  mergeDeep,
+  mergeDeepAll,
+  mergeDeepWith,
+  mergeDeepWithConcatArrays,
+  mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs,
+  mergeDeepWithRecurseArrayItems,
+  mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight,
+  mergeDeepWithRecurseArrayItemsByRight,
+  moveToKeys,
+  omitDeep,
+  omitDeepBy,
+  omitDeepPaths,
+  onlyOne,
+  onlyOneValue,
+  orEmpty,
+  overDeep,
+  pickDeepPaths,
+  removeDuplicateObjectsByProp,
+  renameKey,
+  replaceValuesAtDepth,
+  replaceValuesAtDepthAndStringify,
+  replaceValuesWithCountAtDepth,
+  reqPath,
+  reqPathPropEq,
+  reqStrPath,
+  splitAtInclusive,
+  strPath,
+  strPathOr,
+  strPathOrNullOk,
+  strPathsOr,
+  strPathsOrNullOk,
+  toArrayIfNot,
+  transformKeys,
+  unflattenObj,
+  unflattenObjNoArrays
+} from './functions.js';
+import Result from 'folktale/result/index.js';
+import {reqStrPathThrowing} from './throwingFunctions.js';
 
-import {of} from 'folktale/concurrency/task';
-import {fromPairsDeep} from './functions';
-import {replaceValuesAtDepth} from './functions';
-import {replaceValuesAtDepthAndStringify} from './functions';
-import {replaceValuesWithCountAtDepth} from './functions';
-import {mapObjToValues} from './functions';
-import {chainObjToValues} from './functions';
-import {flattenObj} from './functions';
-import {unflattenObj} from './functions';
-import {filterObjToValues} from './functions';
-import {overDeep} from './functions';
-import {keyStringToLensPath} from './functions';
-import {mapKeysAndValues} from './functions';
-import {omitDeep} from './functions';
-import {mergeDeepWithRecurseArrayItems} from './functions';
-import {omitDeepPaths} from './functions';
-import {pickDeepPaths} from './functions';
-import {splitAtInclusive} from './functions';
+const recurseMe = {
+  the: {
+    frog: {
+      to: {
+        catch: null
+      }
+    }
+  }
+};
+recurseMe.the.frog.to.catch = recurseMe;
+const recursive = {
+  she: {
+    swallowed: recurseMe
+  }
+};
 
 describe('helperFunctions', () => {
   test('Should be empty', () => {
-    expect(f.orEmpty(null)).toEqual('');
+    expect(orEmpty(null)).toEqual('');
   });
 
   test('Should filter out null and undef values', () => {
-    expect(f.compact([1, null, 2])).toEqual([1, 2]);
+    expect(compact([1, null, 2])).toEqual([1, 2]);
   });
 
   test('Should filter out null and empty values', () => {
-    expect(f.compactEmpty(['', null, []])).toEqual([]);
+    expect(compactEmpty(['', null, []])).toEqual([]);
   });
 
   test('emptyToNull', () => {
-    expect(f.emptyToNull('')).toEqual(null);
+    expect(emptyToNull('')).toEqual(null);
   });
 
   test('compactJoin should compact and join', () => {
-    expect(f.compactJoin('-', ['', 'a', null, 'b'])).toEqual('a-b');
-    expect(f.compactJoin('-', ['', null])).toEqual(null);
+    expect(compactJoin('-', ['', 'a', null, 'b'])).toEqual('a-b');
+    expect(compactJoin('-', ['', null])).toEqual(null);
   });
 
   test('Should map bars', () => {
-    expect(f.mapProp('bar')([{bar: 1}, {bar: 2}])).toEqual([1, 2]);
+    expect(mapProp('bar')([{bar: 1}, {bar: 2}])).toEqual([1, 2]);
   });
 
   test('Should map prop as key', () => {
-    expect(f.mapPropValueAsIndex('bar')([{bar: 1}, {bar: 2}])).toEqual(R.indexBy(R.prop('bar'), [{bar: 1}, {bar: 2}]));
+    expect(mapPropValueAsIndex('bar')([{bar: 1}, {bar: 2}])).toEqual(R.indexBy(R.prop('bar'), [{bar: 1}, {bar: 2}]));
   });
 
   test('Should remove duplicate objects with same prop key', () => {
-    expect(f.removeDuplicateObjectsByProp('bar')([{bar: 1, foo: 2}, {bar: 1, foo: 2}, {bar: 2}])).toEqual([{
+    expect(removeDuplicateObjectsByProp('bar')([{bar: 1, foo: 2}, {bar: 1, foo: 2}, {bar: 2}])).toEqual([{
       bar: 1,
       foo: 2
     }, {bar: 2}]);
   });
 
   test('Should return an id from an object or the identify from a value', () => {
-    expect(f.idOrIdFromObj('foo')).toEqual('foo');
-    expect(f.idOrIdFromObj({id: 'foo'})).toEqual('foo');
+    expect(idOrIdFromObj('foo')).toEqual('foo');
+    expect(idOrIdFromObj({id: 'foo'})).toEqual('foo');
   });
 
   test('Should deep merge objects', () => {
-    expect(f.mergeDeep(
-      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, 6]}}
-    )).toEqual({foo: 4, bar: {bizz: [5, 6], buzz: 7}});
+    expect(R.omit(['recursive'], mergeDeep(
+      {foo: 1, recursive, bar: {bizz: [2, 3], buzz: 7}},
+      {foo: 4, recursive, bar: {bizz: [5, 6]}}
+    ))).toEqual({foo: 4, bar: {bizz: [5, 6], buzz: 7}});
   });
 
   test('Should deep merge objects with a function', () => {
-    expect(f.mergeDeepWith(
+    expect(omitDeepPaths(['bar.recursive'], mergeDeepWith(
       (l, r) => R.when(
         R.is(Number),
         R.add(l)
       )(r),
-      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, 6]}}
-    )).toEqual({foo: 5, bar: {bizz: [5, 6], buzz: 7}});
+      {foo: 1, bar: {bizz: [2, 3], recursive, buzz: 7}},
+      {foo: 4, bar: {bizz: [5, 6], recursive}}
+    ))).toEqual({foo: 5, bar: {bizz: [5, 6], buzz: 7}});
   });
 
   test('Should deep merge objects and concat arrays of matching keys', () => {
-    expect(f.mergeDeepWithConcatArrays(
-      {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, 6]}}
-    )).toEqual({foo: 4, bar: {bizz: [2, 3, 5, 6], buzz: 7}});
+    expect(omitDeepPaths(['bar.recursive'], mergeDeepWithConcatArrays(
+      {foo: 1, bar: {bizz: [2, 3], recursive, buzz: 7}},
+      {foo: 4, bar: {bizz: [5, 6], recursive}}
+    ))).toEqual({foo: 4, bar: {bizz: [2, 3, 5, 6], buzz: 7}});
   });
 
   test('mergeDeepWithRecurseArrayItems', () => {
-    expect(f.mergeDeepWithRecurseArrayItems(
-      (l, r) => R.when(
-        R.is(Number),
-        R.add(l)
-      )(r),
-      {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
-    )).toEqual({foo: 5, bar: {bizz: [7, {brewer: 19}], buzz: 7}});
+    expect(omitDeep(['recursive'], mergeDeepWithRecurseArrayItems(
+      (k, l, r) => {
+        return R.when(
+          R.is(Number),
+          R.add(l)
+        )(r);
+      },
+      {foo: 1, bar: {bizz: [2, {brewer: 9, recursive}], buzz: 7}},
+      {foo: 4, bar: {bizz: [5, {brewer: 10, recursive}]}}
+    ))).toEqual({foo: 5, bar: {bizz: [7, {brewer: 19}], buzz: 7}});
+  });
+
+
+  test('mergeDeepWithRecurseArrayItemsByRight', () => {
+    expect(omitDeep(['recursive'], mergeDeepWithRecurseArrayItemsByRight(
+      (v, k) => R.when(isObject, R.propOr(v, 'id'))(v),
+      {foo: 1, bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7}},
+      {foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1, recursive}]}}
+    ))).toEqual({foo: 4, bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snippy: 1}], buzz: 7}});
+  });
+
+  test('mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight', () => {
+    const itemMatchBy = (v, k) => R.when(isObject, R.propOr(v, 'id'))(v);
+    const renameSnippy = (left, right, seen = []) => {
+      // Recurse on each item usual, but rename snippy to snappy
+      const rename = renameKey(R.lensPath([]), 'snippy', 'snappy');
+      return R.mergeWithKey(
+        (kk, ll, rr) => {
+          // Calling the internal function here so we can pass kk and seen
+          return _mergeDeepWithRecurseArrayItemsByRight(
+            itemMatchBy,
+            renameSnippy,
+            ll,
+            rr,
+            kk,
+            seen
+          );
+        },
+        rename(left),
+        rename(right)
+      );
+    };
+    expect(
+        omitDeep(['recursive'],
+          mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
+            itemMatchBy,
+            renameSnippy,
+            {
+              foo: 1,
+              bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7},
+              noids: [{pasta: 'elbow'}, {recursive}],
+              noid: {sneeze: 'guard'}
+            },
+            {
+              foo: 4,
+              bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]},
+              noids: [{pasta: 'noodle'}, {pasta: 'leg'}, {recursive}],
+              noid: {sneeze: 'free'}
+            }
+          ))).toEqual({
+      foo: 4,
+      bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7},
+      noids: [{pasta: 'noodle'}, {pasta: 'leg'}, {}],
+      noid: {sneeze: 'free'}
+    });
+  });
+
+  test('mergeDeepWithRecurseArrayItemsByRightHandlNull', () => {
+    expect(mergeDeepWithRecurseArrayItemsByRight(
+      () => {
+      },
+      {fever: 1},
+      null
+    )).toEqual({fever: 1});
+
+    expect(mergeDeepWithRecurseArrayItemsByRight(
+      () => {
+      },
+      [1],
+      null
+    )).toEqual([1]);
   });
 
   test('mergeDeepWithRecurseArrayItemsAndMapObjs', () => {
-    expect(f.mergeDeepWithRecurseArrayItemsAndMapObjs(
+    expect(mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(
       (l, r) => R.when(
         R.is(Number),
         R.add(l)
@@ -120,11 +261,11 @@ describe('helperFunctions', () => {
       (key, obj) => R.merge({key: R.toUpper(key.toString())}, obj),
       {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
-    )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19}], buzz: 7}});
+    )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19, key: 'BIZZ'}], buzz: 7}});
   });
 
   test('Should merge deep all objects', () => {
-    expect(f.mergeDeepAll([
+    expect(mergeDeepAll([
       {foo: 1, bar: {bizz: [2, 3], buzz: 7}},
       {foo: 4, bar: {bizz: [5, 6]}},
       {foo: 4, bar: {cat: [5, 6], pterodactyl: 'time is running out!'}}
@@ -134,19 +275,19 @@ describe('helperFunctions', () => {
   });
 
   test('Should capitalize first letter', () => {
-    expect(f.capitalize('good grief')).toEqual('Good grief');
+    expect(capitalize('good grief')).toEqual('Good grief');
   });
 
   test('Required path', () => {
-    expect(f.reqPath(['a'], {a: 1}).value).toBe(1);
-    expect(f.reqPath(['a', 'b'], {a: {c: 1}}).value).toEqual({
+    expect(reqPath(['a'], {a: 1}).value).toBe(1);
+    expect(reqPath(['a', 'b'], {a: {c: 1}}).value).toEqual({
       resolved: ['a'],
       path: ['a', 'b']
     });
   });
 
   test('reqStrPath', () => {
-    expect(f.reqStrPath('foo.bar.goo', {
+    expect(reqStrPath('foo.bar.goo', {
       foo: {
         bar: {
           goo: 1
@@ -154,7 +295,7 @@ describe('helperFunctions', () => {
       }
     })).toEqual(Result.Ok(1));
 
-    expect(f.reqStrPath('foo.bar.goo', {
+    expect(reqStrPath('foo.bar.goo', {
       foo: {
         car: {
           goo: 1
@@ -169,7 +310,7 @@ describe('helperFunctions', () => {
   });
 
   test('strPath', () => {
-    expect(f.strPath('foo.bar.goo', {
+    expect(strPath('foo.bar.goo', {
       foo: {
         bar: {
           goo: 1
@@ -177,7 +318,7 @@ describe('helperFunctions', () => {
       }
     })).toEqual(1);
 
-    expect(typeof f.strPath('foo.bar.goo', {
+    expect(typeof strPath('foo.bar.goo', {
       foo: {
         car: {
           goo: 1
@@ -187,18 +328,41 @@ describe('helperFunctions', () => {
   });
 
   test('strPathOr', () => {
-    expect(f.strPathOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
-    expect(f.strPathOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+    expect(strPathOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(strPathOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+  });
+
+  test('strPathsOr', () => {
+    expect(strPathsOr(1, ['tan.khaki.pants', 'tan.khaki.blazer'], {tan: {khaki: {pants: false}}})).toEqual([false, 1]);
+  });
+
+  test('strPathOrNullOk', () => {
+    expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: null}}})).toEqual(null);
+    expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: 0}}})).toEqual(0);
+    expect(strPathOrNullOk(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+    expect(strPathOrNullOk(1, 'tan.khaki.blazer', {tan: {khaki: 'cabbage'}})).toEqual(1);
+  });
+
+  test('strPathsOrNullOk', () => {
+    expect(strPathsOrNullOk(1, ['tan.khaki.pants', 'tan.khaki.blazer', 'tan.khaki.kite'], {
+      tan: {
+        khaki: {
+          pants: null,
+          kite: 'charlie'
+        }
+      }
+    })).toEqual([null, 1, 'charlie']);
   });
 
   test('hasStrPath', () => {
-    expect(f.hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
-    expect(f.hasStrPath('tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(hasStrPath('tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(true);
+    expect(hasStrPath('tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(false);
   });
 
   test('Required path prop equals', () => {
-    expect(f.reqPathPropEq(['a'], 1, {a: 1}).value).toBe(true);
-    expect(f.reqPathPropEq(['a', 'b'], 1, {a: {c: 1}}).value).toEqual({
+    expect(reqPathPropEq(['a'], 1, {a: 1}).value).toBe(true);
+    expect(reqPathPropEq(['a', 'b'], 1, {a: {c: 1}}).value).toEqual({
       resolved: ['a'],
       path: ['a', 'b']
     });
@@ -206,7 +370,7 @@ describe('helperFunctions', () => {
 
   test('Should merge all with key', () => {
     expect(
-      f.mergeAllWithKey(
+      mergeAllWithKey(
         (k, l, r) => k === 'a' ? R.concat(l, r) : r,
         [{a: [1], b: 2}, {a: [2], c: 3}, {a: [3]}]
       )).toEqual({a: [1, 2, 3], b: 2, c: 3});
@@ -214,13 +378,13 @@ describe('helperFunctions', () => {
 
   test('Should reqPath of object', () => {
     expect(
-      f.reqPath(['a', 'b', 1, 'c'], {a: {b: [null, {c: 2}]}})
+      reqPath(['a', 'b', 1, 'c'], {a: {b: [null, {c: 2}]}})
     ).toEqual(Result.Ok(2));
   });
 
   test('mapKeys', () => {
-    expect(f.mapKeys(
-      key => `${f.capitalize(key)} Taco`,
+    expect(mapKeys(
+      key => `${capitalize(key)} Taco`,
       {fish: 'good', puppy: 'bad'})
     ).toEqual(
       {['Fish Taco']: 'good', ['Puppy Taco']: 'bad'}
@@ -228,9 +392,9 @@ describe('helperFunctions', () => {
   });
 
   test('mapKeysForLens', () => {
-    expect(f.mapKeysForLens(
+    expect(mapKeysForLens(
       R.lensPath(['x', 1, 'y']),
-      key => `${f.capitalize(key)} Taco`,
+      key => `${capitalize(key)} Taco`,
       {x: [null, {y: {fish: 'good', puppy: 'bad'}}]}
       )
     ).toEqual(
@@ -239,20 +403,20 @@ describe('helperFunctions', () => {
   });
 
   test('mapDefault should rename the default import', () => {
-    expect(f.mapDefault('friend', {default: 'foo', other: 'boo'})).toEqual(
+    expect(mapDefault('friend', {default: 'foo', other: 'boo'})).toEqual(
       {friend: 'foo', other: 'boo'}
     );
   });
 
   test('mapDefaultAndPrefixOthers should rename the default and prefix others', () => {
-    expect(f.mapDefaultAndPrefixOthers('friend', 'prefix', {default: 'foo', other: 'boo'})).toEqual(
+    expect(mapDefaultAndPrefixOthers('friend', 'prefix', {default: 'foo', other: 'boo'})).toEqual(
       {friend: 'foo', prefixOther: 'boo'}
     );
   });
 
   test('transformKeys', () => {
-    expect(f.transformKeys(
-      f.camelCase,
+    expect(transformKeys(
+      camelCase,
       {
         who_made_me_with_slugs: 'the snail',
         'what-kind-of-camel-Races': 'a dromedary'
@@ -267,7 +431,7 @@ describe('helperFunctions', () => {
 
   test('renameKey', () => {
     expect(
-      f.renameKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
+      renameKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
       {x: {y: {'and per se': {cactus: 'blossoms'}}}}
     );
@@ -275,7 +439,7 @@ describe('helperFunctions', () => {
 
   test('duplicateKey', () => {
     expect(
-      f.duplicateKey(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
+      duplicateKey(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
       {
         x: {
@@ -288,11 +452,23 @@ describe('helperFunctions', () => {
         }
       }
     );
+    expect(
+      duplicateKey(R.lensPath(['x', 'y']), 'z', 'and per se', {x: {y: {z: {cactus: 'blossoms'}}}})
+    ).toEqual(
+      {
+        x: {
+          y: {
+            z: {cactus: 'blossoms'},
+            'and per se': {cactus: 'blossoms'}
+          }
+        }
+      }
+    );
   });
 
   test('moveToKeys', () => {
     expect(
-      f.moveToKeys(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
+      moveToKeys(R.lensPath(['x', 'y']), 'z', ['and per se', 'a per se', 'o per se'], {x: {y: {z: {cactus: 'blossoms'}}}})
     ).toEqual(
       {
         x: {
@@ -309,71 +485,71 @@ describe('helperFunctions', () => {
   test('findOne', () => {
     // Works with objects
     expect(
-      f.findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
+      findOne(R.equals('Eli Whitney'), {a: 1, b: 'Eli Whitney'})
     ).toEqual(
       Result.Ok({b: 'Eli Whitney'})
     );
 
     // Works with arrays
     expect(
-      f.findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
+      findOne(R.equals('Eli Whitney'), [1, 'Eli Whitney'])
     ).toEqual(
       Result.Ok(['Eli Whitney'])
     );
 
     // None
     expect(
-      f.findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
+      findOne(R.equals('Eli Whitney'), {a: 1, b: 2})
     ).toEqual(
       Result.Error({all: {a: 1, b: 2}, matching: {}})
     );
 
     // Too many
     expect(
-      f.findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
+      findOne(R.equals('Eli Whitney'), {a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
       Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('onlyOne', () => {
-    expect(f.onlyOne({a: 'Eli Whitney'})).toEqual(Result.Ok({a: 'Eli Whitney'}));
+    expect(onlyOne({a: 'Eli Whitney'})).toEqual(Result.Ok({a: 'Eli Whitney'}));
 
     // None
     expect(
-      f.onlyOne({})
+      onlyOne({})
     ).toEqual(
       Result.Error({all: {}, matching: {}})
     );
 
     // Too many
     expect(
-      f.onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
+      onlyOne({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
       Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('onlyOneValue', () => {
-    expect(f.onlyOneValue({a: 'Eli Whitney'})).toEqual(Result.Ok('Eli Whitney'));
+    expect(onlyOneValue({a: 'Eli Whitney'})).toEqual(Result.Ok('Eli Whitney'));
 
     // None
     expect(
-      f.onlyOneValue({})
+      onlyOneValue({})
     ).toEqual(
       Result.Error({all: {}, matching: {}})
     );
 
     // Too many
     expect(
-      f.onlyOneValue({a: 'Eli Whitney', b: 'Eli Whitney'})
+      onlyOneValue({a: 'Eli Whitney', b: 'Eli Whitney'})
     ).toEqual(
       Result.Error({all: {a: 'Eli Whitney', b: 'Eli Whitney'}, matching: {a: 'Eli Whitney', b: 'Eli Whitney'}})
     );
   });
 
   test('mapToObjValue', () => {
-    expect(f.mapToObjValue(R.compose(f.camelCase, R.toLower), ['MY', 'SHOES_FIT'])).toEqual({
+    expect(mapToObjValue(R.compose(camelCase, R.toLower), ['MY', 'SHOES_FIT'])).toEqual({
       MY: 'my',
       SHOES_FIT: 'shoesFit'
     });
@@ -386,11 +562,11 @@ describe('helperFunctions', () => {
       {brand: 'crush', flavor: 'orange'}
     ];
     const params = {brand: 'crush', flavor: 'orange'};
-    expect(f.findOneValueByParams(params, items)).toEqual(
+    expect(findOneValueByParams(params, items)).toEqual(
       Result.Ok({brand: 'crush', flavor: 'orange'})
     );
     const badParams = {brand: 'crush', flavor: 'pretzel'};
-    expect(f.findOneValueByParams(badParams, items)).toEqual(
+    expect(findOneValueByParams(badParams, items)).toEqual(
       Result.Error(
         {
           all: [{brand: 'crush', flavor: 'grape'}, {
@@ -401,7 +577,7 @@ describe('helperFunctions', () => {
       )
     );
     const tooGoodParams = {brand: 'crush'};
-    expect(f.findOneValueByParams(tooGoodParams, items)).toEqual(
+    expect(findOneValueByParams(tooGoodParams, items)).toEqual(
       Result.Error(
         {
           all: [{brand: 'crush', flavor: 'grape'}, {
@@ -421,15 +597,15 @@ describe('helperFunctions', () => {
       {brand: 'crush', flavor: 'orange'}
     ];
     const params = {brand: 'crush', flavor: 'orange'};
-    expect(f.findByParams(params, items)).toEqual(
+    expect(findByParams(params, items)).toEqual(
       [{brand: 'crush', flavor: 'orange'}]
     );
     const badParams = {brand: 'crush', flavor: 'pretzel'};
-    expect(f.findByParams(badParams, items)).toEqual(
+    expect(findByParams(badParams, items)).toEqual(
       []
     );
     const tooGoodParams = {brand: 'crush'};
-    expect(f.findByParams(tooGoodParams, items)).toEqual(
+    expect(findByParams(tooGoodParams, items)).toEqual(
       [
         {brand: 'crush', flavor: 'grape'},
         {brand: 'crush', flavor: 'orange'}
@@ -437,19 +613,23 @@ describe('helperFunctions', () => {
     );
     // With objs
     const objs = {a: {foo: 1}, b: {foo: 2}};
-    expect(f.findByParams({foo: 2}, objs)).toEqual({b: {foo: 2}});
+    expect(findByParams({foo: 2}, objs)).toEqual({b: {foo: 2}});
+  });
+
+  test('findMapped', () => {
+    expect(findMapped(R.prop('fri'), [{a: 1}, {b: 2}, {fri: 0}, {fi: 'willy'}, {fra: 4}])).toEqual(0);
   });
 
   test('alwaysFunc', () => {
     const alwaysIWannaFuncWithYou = R.identity;
     const str = 'and make believe with you';
-    expect(f.alwaysFunc(alwaysIWannaFuncWithYou)('and live in harmony')).toEqual('and live in harmony');
-    expect(f.alwaysFunc(str)(1, 1, 'was', 'a racehorse')).toEqual(str);
+    expect(alwaysFunc(alwaysIWannaFuncWithYou)('and live in harmony')).toEqual('and live in harmony');
+    expect(alwaysFunc(str)(1, 1, 'was', 'a racehorse')).toEqual(str);
   });
 
   test('mapKeysAndValues', () => {
     const obj = {neun: 'und_neinzig', luft: 'balons'};
-    expect(f.mapKeysAndValues((v, k) => [f.capitalize(k), f.camelCase(v)], obj)).toEqual(
+    expect(mapKeysAndValues((v, k) => [capitalize(k), camelCase(v)], obj)).toEqual(
       {Neun: 'undNeinzig', Luft: 'balons'}
     );
   });
@@ -504,6 +684,21 @@ describe('helperFunctions', () => {
         }
       ]
     );
+    /*
+    TODO does not work
+    expect(fromPairsDeep([[
+      "Kenya__Nairobi",
+      [
+        "2231585",
+        {
+          x: { o: 1 },
+          "location": {
+            "id": 2231585
+          }
+        }
+      ]
+    ])).toEqual(1)
+     */
   });
 
   test('replaceValuesAtDepth', () => {
@@ -526,7 +721,7 @@ describe('helperFunctions', () => {
 
     // Test replacement function that takes length of objects and leaves primitives alone
     expect(
-      replaceValuesAtDepth(3, R.when(R.is(Object), R.compose(R.length, R.keys)), {
+      replaceValuesAtDepth(3, R.when(isObject, R.compose(R.length, R.keys)), {
         a: {
           A: {
             å: [1, 2, 3],
@@ -579,6 +774,20 @@ describe('helperFunctions', () => {
     expect(flattenObj([1, 2, 3])).toEqual({0: 1, 1: 2, 2: 3});
   });
 
+  test('flattenObjUntil', () => {
+    expect(flattenObjUntil(R.propOr(false, 'cow'),
+      {a: 1, b: {johnny: 'b good', c: {cow: {pie: true}}, sam: [1, 2, 3]}}
+    )).toEqual(
+      {a: 1, 'b.johnny': 'b good', 'b.c': {cow: {pie: true}}, 'b.sam.0': 1, 'b.sam.1': 2, 'b.sam.2': 3}
+    );
+
+    expect(flattenObjUntil(Array.isArray,
+      {a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}}
+    )).toEqual(
+      {a: 1, 'b.johnny': 'b good', 'b.sam': [1, 2, 3]}
+    );
+  });
+
   test('unflattenObj', () => {
     const pancake = R.compose(unflattenObj, flattenObj);
     const x = [
@@ -595,6 +804,24 @@ describe('helperFunctions', () => {
       {a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}}
     );
   });
+
+  test('unflattenObjNoArrays', () => {
+    const pancake = R.compose(unflattenObjNoArrays, flattenObj);
+    const x = [
+      {
+        id: '2226274',
+        country: 'Norway'
+      }
+    ];
+    expect(pancake(x)).toEqual({0: x[0]});
+
+    expect(pancake({a: 1})).toEqual({a: 1});
+    expect(pancake({a: 1, b: {johnny: 'b good'}})).toEqual({a: 1, b: {johnny: 'b good'}});
+    expect(pancake({a: 1, b: {johnny: 'b good', sam: [1, 2, 3]}})).toEqual(
+      {a: 1, b: {johnny: 'b good', sam: {0: 1, 1: 2, 2: 3}}}
+    );
+  });
+
 
   test('overDeep', () => {
     const res = overDeep(
@@ -619,22 +846,90 @@ describe('helperFunctions', () => {
     expect(res.peanut.almond.butter).toEqual('ALMOND Butter');
   });
 
+  test('omitDeepBy', () => {
+    const whatTheFunc = () => {
+      return 'what the func';
+    };
+
+    const res = omitDeepBy(
+      (k, v) => R.startsWith('_')(k),
+      {
+        peanut: {
+          recursive,
+          almond: {
+            cashew: {
+              _brazilNut: {},
+              pecan: [
+                {are: {the: {_best: true}}}
+              ]
+            },
+            _filbert: [
+              {
+                walnut: {}
+              }
+            ]
+          }
+        },
+        funkyNut: {
+          wingnut: 'yes',
+          cornnut: whatTheFunc
+        }
+      }
+    );
+    expect(omitDeepPaths(['peanut.recursive'], res)).toEqual({
+      peanut: {
+        almond: {
+          cashew: {
+            pecan: [
+              {are: {the: {}}}
+            ]
+          }
+        }
+      },
+      funkyNut: {
+        wingnut: 'yes',
+        cornnut: whatTheFunc
+      }
+    });
+    const res2 = omitDeepBy(
+      (k, v) => R.startsWith('_')(k),
+      {
+        _peanut: {
+          almond: {
+            cashew: {
+              _brazilNut: {}
+            },
+            _filbert: [
+              {
+                walnut: {},
+                pecan: {}
+              }
+            ]
+          }
+        }
+      }
+    );
+    expect(res2).toEqual({});
+  });
+
+  test('omitDeepByNullsStayNull', () => {
+    const obj = {
+      viewport: {
+        latitude: null,
+        longitude: null,
+        zoom: 1
+      }
+    };
+    expect(omitDeepBy(R.startsWith('_'), obj)).toEqual(
+      obj
+    );
+  });
+
   test('keyStringToLensPath', () => {
     expect(keyStringToLensPath('foo.bar.0.wopper')).toEqual(['foo', 'bar', 0, 'wopper']);
   });
 
   test('omitDeep', () => {
-    /*
-    expect(omitDeep(
-      ['foo'],
-      {foo: {bunny: 1}, boo: {funny: {foo: {sunny: 1}, soo: 3}}}
-    )).toEqual({
-      boo: {
-        funny: {soo: 3}
-      }
-    });
-    */
-
     const tricky = {
       urlObjSpots: [],
       location: {},
@@ -718,36 +1013,125 @@ describe('helperFunctions', () => {
     );
   });
 
-  test('omitDeepPaths', () => {
-    expect(omitDeepPaths(
-      ['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'],
-      {
-        foo: {
-          bunny: {
-            humorous: 'stuff'
-          }
-        },
-        boo: {
-          funny: {
-            foo: {
-              sunny: [
-                8,
-                [10,
-                  'more',
-                  'miles',
-                  'to',
-                  {
-                    go: 'teo',
-                    wo: 1
-                  }
-                ], 9
-              ]
+  test('omitDeepNull', () => {
+    const json = {
+      data: {
+        regions: [
+          {
+            __typename: 'RegionType',
+            id: 1,
+            deleted: null,
+            key: 'MyBuddy',
+            name: 'My Buddy',
+            createdAt: '2019-01-01T10:11:44.051507+00:00',
+            updatedAt: '2020-03-31T10:44:47.012902+00:00',
+            geojson: {
+              __typename: 'FeatureCollectionDataType',
+              type: 'FeatureCollection',
+              features: [
+                {
+                  __typename: 'FeatureDataType',
+                  type: 'Feature',
+                  id: null,
+                  geometry: {
+                    __typename: 'FeatureGeometryDataType',
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [
+                          49.5294835476,
+                          2.51357303225
+                        ],
+                        [
+                          51.4750237087,
+                          2.51357303225
+                        ],
+                        [
+                          51.4750237087,
+                          6.15665815596
+                        ],
+                        [
+                          49.5294835476,
+                          6.15665815596
+                        ],
+                        [
+                          49.5294835476,
+                          2.51357303225
+                        ]
+                      ]
+                    ]
+                  },
+                  properties: null
+                }
+              ],
+              generator: null,
+              copyright: null
             },
-            soo: 3
+            data: {
+              __typename: 'RegionDataType',
+              locations: {
+                __typename: 'RegionsLocationDataType',
+                params: null
+              },
+              mapbox: {
+                __typename: 'MapboxDataType',
+                viewport: {
+                  __typename: 'ViewportDataType',
+                  latitude: null,
+                  longitude: null,
+                  zoom: 10
+                }
+              }
+            }
+          }
+        ]
+      },
+      loading: false,
+      networkStatus: 7,
+      stale: false
+    };
+    expect(omitDeep(['createdAt', 'updatedAt'], json).data.regions[0].createdAt).toEqual(undefined); // eslint-disable-line no-undefined
+    expect(omitDeep(['createdAt', 'updatedAt'], json).data.regions[0].deleted).toEqual(null);
+  });
+
+  test('omitDeepPaths', () => {
+    expect(
+      R.compose(
+        // This is here to remove the remaining recursive object so comparison works
+        res => omitDeepPaths(['boo.recursive'], res),
+        // Omit these paths
+        x => omitDeepPaths(['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'], x)
+      )(
+        {
+          foo: {
+            bunny: {
+              humorous: 'stuff',
+              recursive
+            }
+          },
+          boo: {
+            recursive,
+            funny: {
+              foo: {
+                sunny: [
+                  8,
+                  [10,
+                    'more',
+                    'miles',
+                    'to',
+                    {
+                      go: 'teo',
+                      wo: 1
+                    }
+                  ], 9
+                ]
+              },
+              soo: 3
+            }
           }
         }
-      }
-    )).toEqual(
+      )
+    ).toEqual(
       {
         foo: {},
         boo: {
@@ -771,20 +1155,87 @@ describe('helperFunctions', () => {
     );
   });
 
+  test('omitDeepBug', () => {
+    const buggy = {
+      geojson: {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            id: 'node/248124950',
+            geometry: {
+              type: 'Point',
+              coordinates: [
+                -115.0646702,
+                49.5161346
+              ]
+            },
+            properties: {
+              id: 248124950,
+              meta: {},
+              tags: {},
+              type: 'node',
+              relations: []
+            },
+            __typename: {}
+          }
+        ]
+      }
+    };
+    expect(R.propOr('great', '__typename', reqStrPathThrowing('geojson.features.0', omitDeep(['__typename'], buggy)))).toEqual('great');
+  });
+
   test('pickDeepPaths', () => {
     expect(pickDeepPaths(
-      ['foo.bunny', 'boo.funny.foo.sunny.2', 'boo.funny.foo.sunny.1.4.go'],
+      ['foo.bunny',
+        'boo.funny.foo.sunny.2',
+        'boo.funny.foo.sunny.1.4.go',
+        'coo.moo.*.cow./[1|6]/.*.forever'
+      ],
       {
         foo: {bunny: {humorous: 'stuff'}},
-        boo: {funny: {foo: {sunny: [8, [10, 'more', 'miles', 'to', {go: 'teo', wo: 1}], 9]}, soo: 3}}
+        boo: {funny: {foo: {sunny: [8, [10, 'more', 'miles', 'to', {go: 'teo', wo: 1}], 9]}, soo: 3}},
+        coo: {
+          moo: [
+            1,
+            2,
+            {
+              cow: [
+                'come',
+                {me: {forever: 'hers'}, never: 'mine'},
+                'baby',
+                'say',
+                {me: {forever: 'his'}, never: 'mine'},
+                'love',
+                {me: {forever: 'yours'}, never: 'mine'}
+              ]
+            },
+            4
+          ]
+        }
       }
     )).toEqual(
-      {foo: {bunny: {humorous: 'stuff'}}, boo: {funny: {foo: {sunny: [[{go: 'teo'}], 9]}}}}
+      {
+        foo:
+          {
+            bunny: {humorous: 'stuff'}
+          },
+        boo: {
+          funny: {
+            foo: {
+              sunny: [[{go: 'teo'}], 9]
+            }
+          }
+        },
+        coo: {
+          moo: [{cow: [{me: {forever: 'hers'}}, {me: {forever: 'yours'}}]}]
+        }
+      }
     );
   });
 
   test('camelCase', () => {
-    expect(f.camelCase('Tough_Mudder_Hubbard')).toEqual('toughMudderHubbard');
+    expect(camelCase('Tough_Mudder_Hubbard')).toEqual('toughMudderHubbard');
   });
 
   test('splitAtInclusive', () => {
@@ -800,5 +1251,55 @@ describe('helperFunctions', () => {
     expect(splitAtInclusive(1, 'murderforajarofredrum')).toEqual(
       ['mu', 'urderforajarofredrum']
     );
+  });
+
+  test('eqStrPath', () => {
+    expect(eqStrPath('bubble.gum.0.soup',
+      {bubble: {gum: [{soup: 'banana'}]}},
+      {bubble: {gum: [{soup: 'banana'}]}}
+    )).toEqual(true);
+    expect(eqStrPath('bubble.gum.soup',
+      {bubble: {gum: {soup: 'banana'}}},
+      {bubble: {gum: {soup: 'goat'}}}
+    )).toEqual(false);
+  });
+
+  test('eqStrPathsAll', () => {
+    expect(eqStrPathsAll(['a', 'b'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(true);
+    expect(eqStrPathsAll(['a', 'b', 'c'], {a: 1, b: 2, c: 3}, {a: 1, b: 2, c: 'hubabalu'})).toEqual(false);
+    expect(eqStrPathsAll(['a.goat', 'b'], {a: {goat: 1}, b: 2, c: 3}, {
+      a: {goat: 1},
+      b: 2,
+      c: 'hubabalu'
+    })).toEqual(true);
+    expect(eqStrPathsAll(['a', 'b.pumpkin', 'c'], {a: 1, b: {pumpkin: null}, c: 3}, {
+      a: 1,
+      b: {pumpkin: null},
+      c: 'hubabalu'
+    })).toEqual(false);
+  });
+
+  test('eqStrPathsAllCustomizable', () => {
+    expect(eqStrPathsAllCustomizable(
+      ['a.goat', 'b', 'c'],
+      {
+        c: (sPath, obj1, obj2) => {
+          // custom equality test
+          return R.equals(
+            R.prop(sPath, obj1),
+            R.length(R.prop(sPath, obj2))
+          );
+        }
+      },
+      {a: {goat: 1}, b: 2, c: 3},
+      {a: {goat: 1}, b: 2, c: 'hub'}
+    )).toEqual(true);
+  });
+
+
+  test('toArrayIfNot', () => {
+    const eh = ['eh'];
+    expect(toArrayIfNot(eh)).toBe(eh);
+    expect(toArrayIfNot('eh')).toEqual(eh);
   });
 });

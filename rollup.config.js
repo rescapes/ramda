@@ -1,21 +1,19 @@
 import nodeResolve from 'rollup-plugin-node-resolve';
 import babel from 'rollup-plugin-babel';
-import replace from 'rollup-plugin-replace';
-import {terser} from 'rollup-plugin-terser';
 import commonjs from 'rollup-plugin-commonjs';
 import pkg from './package.json';
 import * as R from 'ramda';
 
 const config = {
   input: [
-    'src/index.js',
+    'src/index.mjs',
     'src/functions.js',
     'src/throwingFunctions.js',
     'src/monadHelpers.js'
   ],
   plugins: []
 };
-const externals = ['symbol-observable', 'folktale/concurrency/task', 'folktale/maybe', 'folktale/result'];
+const externals = ['symbol-observable', 'folktale/concurrency/task/index.js', 'folktale/maybe/index.js', 'folktale/result/index.js'];
 
 const configs = R.map(c => {
   const x = R.merge(config, c);
@@ -60,9 +58,10 @@ const configs = R.map(c => {
     plugins: R.concat(config.plugins, [
       nodeResolve({}), babel()
     ])
-  },
+  }
 
   // ES for Browsers
+  /*
   {
     output: {
       dir: 'esm',
@@ -92,5 +91,6 @@ const configs = R.map(c => {
       })
     ])
   }
+   */
 ]);
 export default configs;

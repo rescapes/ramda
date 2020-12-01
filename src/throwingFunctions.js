@@ -10,8 +10,8 @@
  *
  * Functions that the trowing versions from functions.js
  */
-import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue, keyStringToLensPath} from './functions';
-import * as Result from 'folktale/result';
+import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue, keyStringToLensPath} from './functions.js';
+import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 import {inspect} from 'util';
 
@@ -51,15 +51,23 @@ export const throwIfSingleResultError = R.curry((message, result) =>
  * an array it maps each value. If not it maps the single value
  * @returns {Result.Ok} Throws the mapped values or returns Result.Ok. Error values are '; ' separated
  */
-export const mappedThrowIfResultError = R.curry((func, result) =>
-  result.mapError(
-    // Throw if Result.Error
-    leftValue => {
-      throw new Error(R.join('; ', R.map(func, leftValue)));
-    }).map(
-    // Return the Result.Ok value
-    R.identity
-  )
+export const mappedThrowIfResultError = R.curry((func, result) => {
+    return result.mapError(
+      // Throw if Result.Error
+      error => {
+        throw new Error(
+          R.join('; ', R.map(
+            e => {
+              return func(e);
+            },
+            error)
+          )
+        );
+      }).map(
+      // Return the Result.Ok value
+      R.identity
+    );
+  }
 );
 
 /**
@@ -99,7 +107,9 @@ export const reqPathThrowing = R.curry((pathList, obj) =>
  * @return {function(*=)}
  */
 export const reqStrPathThrowing = R.curry(
-  (str, props) => reqPathThrowing(keyStringToLensPath(str), props)
+  (str, props) => {
+    return reqPathThrowing(keyStringToLensPath(str), props);
+  }
 );
 
 /**

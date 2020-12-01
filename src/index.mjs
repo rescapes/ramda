@@ -9,6 +9,8 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import {mapToMergedResponseAndInputs, mapToMergedResponseAndInputsMDeep} from './monadHelpers.js';
+
 export {
   reqStrPath,
   camelCase,
@@ -20,6 +22,9 @@ export {
   emptyToNull,
   filterWithKeys,
   findOne,
+  findByParams,
+  findOneValueByParams,
+  findMapped,
   mapKeysAndValues,
   hasStrPath,
   idOrIdFromObj,
@@ -36,21 +41,25 @@ export {
   mergeDeepAll,
   mergeDeepWith,
   mergeDeepWithConcatArrays,
-  mergeDeepWithRecurseArrayItemsAndMapObjs,
+  mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs,
   mergeDeepWithRecurseArrayItems,
+  mergeDeepWithRecurseArrayItemsByRight,
+  mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight,
   moveToKeys,
   onlyOne,
   onlyOneValue,
   orEmpty,
   alwaysFunc,
   strPathOr,
+  strPathsOr,
+  strPathOrNullOk,
+  strPathsOrNullOk,
   removeDuplicateObjectsByProp,
   renameKey,
   reqPath,
   reqPathPropEq,
   strPath,
   transformKeys,
-  findOneValueByParams,
   mapObjToValues,
   chainObjToValues,
   fromPairsDeep,
@@ -59,18 +68,25 @@ export {
   replaceValuesWithCountAtDepth,
   replaceValuesWithCountAtDepthAndStringify,
   flattenObj,
+  flattenObjUntil,
+  unflattenObjNoArrays,
   unflattenObj,
   filterObjToValues,
   overDeep,
-  findByParams,
   keyStringToLensPath,
   omitDeep,
   omitDeepPaths,
+  omitDeepBy,
   pickDeepPaths,
   applyDeep,
-  applyDeepAndMapObjs,
-  splitAtInclusive
-} from './functions';
+  applyDeepWithKeyWithRecurseArraysAndMapObjs,
+  splitAtInclusive,
+  eqStrPath,
+  eqStrPathsAll,
+  eqStrPathsAllCustomizable,
+  toArrayIfNot,
+  isObject
+} from './functions.js';
 export {
   throwIfSingleResultError,
   mappedThrowIfResultError,
@@ -82,7 +98,7 @@ export {
   reqPathPropEqThrowing,
   reqPathThrowing,
   reqStrPathThrowing
-} from './throwingFunctions';
+} from './throwingFunctions.js';
 export {
   defaultRunConfig,
   defaultRunToResultConfig,
@@ -98,18 +114,44 @@ export {
   traverseReduce,
   traverseReduceDeep,
   traverseReduceWhile,
+  traverseReduceWhileBucketed,
+  traverseReduceWhileBucketedTasks,
+  traverseReduceError,
+  traverseReduceResultError,
   mapMDeep,
   traverseReduceDeepResults,
+  resultTasksToResultObjTask,
+  resultsToResultObj,
   chainMDeep,
+  mapExceptChainDeepestMDeep,
+  chainExceptMapDeepestMDeep,
   doMDeep,
+  doMDeepExceptDeepest,
   mapToResponseAndInputs,
+  mapToMergedResponseAndInputs,
+  mapToMergedResponseAndInputsMDeep,
   mapToNamedResponseAndInputs,
+  mapToNamedResponseAndInputsMDeep,
   mapToPath,
   mapWithArgToPath,
   mapToNamedPathAndInputs,
   mapResultMonadWithOtherInputs,
   toNamedResponseAndInputs,
+  mapOrObjToNamedResponseAndInputs,
+  toMergedResponseAndInputs,
   mapResultTaskWithOtherInputs,
-  taskToResultTask
-} from './monadHelpers';
-export {memoized, memoizedWith} from './memoizeHelpers';
+  taskToResultTask,
+  waitAllBucketed,
+  sequenceBucketed,
+  composeWithChain,
+  composeWithChainMDeep,
+  composeWithMapExceptChainDeepestMDeep,
+  composeWithMap,
+  composeWithMapMDeep,
+  retryTask,
+  mapMonadByConfig
+} from './monadHelpers.js';
+export {memoized, memoizedWith} from './memoizeHelpers.js';
+export {objectDiff, prettyPrintObjectDiff} from './diffHelpers.js';
+export {stringifyError} from './errorHelpers.js';
+export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers.js';

@@ -9,36 +9,62 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {of, rejected, fromPromised, task, waitAll} from 'folktale/concurrency/task';
+import T from 'folktale/concurrency/task/index.js';
 import {
+  chainExceptMapDeepestMDeep,
+  chainMDeep,
+  composeWithChain,
+  composeWithChainMDeep,
+  composeWithMapExceptChainDeepestMDeep,
+  composeWithMapMDeep,
+  defaultOnRejected,
   defaultRunConfig,
+  defaultRunToResultConfig,
   lift1stOf2ForMDeepMonad,
+  mapExceptChainDeepestMDeep,
+  mapMDeep,
+  mapMonadByConfig,
+  mapOrObjToNamedResponseAndInputs,
+  mapResultMonadWithOtherInputs,
+  mapResultTaskWithOtherInputs,
+  mapToMergedResponseAndInputs,
+  mapToMergedResponseAndInputsMDeep,
+  mapToNamedPathAndInputs,
+  mapToNamedResponseAndInputs,
+  mapToNamedResponseAndInputsMDeep,
+  mapToPath,
+  mapToResponseAndInputs,
+  mapWithArgToPath,
   objOfMLevelDeepListOfMonadsToListWithPairs,
   objOfMLevelDeepMonadsToListWithPairs,
   pairsOfMLevelDeepListOfMonadsToListWithPairs,
   promiseToTask,
+  resultTasksToResultObjTask,
   resultToTask,
-  taskToPromise,
-  defaultRunToResultConfig,
-  traverseReduce,
-  traverseReduceWhile,
-  traverseReduceDeep,
   resultToTaskNeedingResult,
-  mapMDeep,
   resultToTaskWithResult,
+  retryTask,
+  sequenceBucketed,
+  taskToPromise,
+  taskToResultTask,
+  toMergedResponseAndInputs,
+  toNamedResponseAndInputs,
+  traverseReduce,
+  traverseReduceDeep,
   traverseReduceDeepResults,
-  chainMDeep,
-  mapToResponseAndInputs,
-  mapToNamedPathAndInputs,
-  mapToNamedResponseAndInputs,
-  defaultOnRejected,
-  mapResultMonadWithOtherInputs,
-  mapResultTaskWithOtherInputs, mapWithArgToPath, mapToPath, taskToResultTask, toNamedResponseAndInputs
-} from './monadHelpers';
+  traverseReduceError,
+  traverseReduceResultError,
+  traverseReduceWhile,
+  traverseReduceWhileBucketed,
+  traverseReduceWhileBucketedTasks,
+  waitAllBucketed
+} from './monadHelpers.js';
 import * as R from 'ramda';
-import * as Result from 'folktale/result';
-import * as Maybe from 'folktale/maybe';
-import * as f from './functions';
+import Result from 'folktale/result/index.js';
+import Maybe from 'folktale/maybe/index.js';
+import * as f from './functions.js';
+
+const {fromPromised, of, rejected, task, waitAll} = T;
 
 
 describe('monadHelpers', () => {
@@ -64,8 +90,8 @@ describe('monadHelpers', () => {
           throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
         },
         onRejected: (errs, error) => {
-          // Wrap the default defaultOnRejected with an expect.toThrow
-          expect(() => defaultOnRejected(errs, error)).toThrow();
+          expect(R.length(errs)).toEqual(2);
+          expect(error).toBeTruthy();
         }
       }, errors, done)
     );
@@ -135,17 +161,59 @@ describe('monadHelpers', () => {
   });
 
   test('defaultRunConfig Throws', () => {
+    const errors = [];
     expect(
       () => task(resolver => {
         throw new Error('Oh noo!!!');
       }).run().listen(
         defaultRunConfig({
           onResolved: resolve => {
-            throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
+            throw new Error('Should not have resolved!');
           }
+        }, errors, () => {
         })
       )
     ).toThrow();
+  });
+
+  test('defaultRunConfig Throws on Assertion', done => {
+    const errors = [];
+    of({cool: true}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          throw new Error('Success! Crazy assertion failure'); // eslint-disable-line no-throw-literal
+        },
+        onRejected: (errs, error) => {
+          // Normally this would just be called
+          defaultOnRejected(errs, error);
+          // Call done to make jest happy. Normally we'd call done with errors
+          done();
+        }
+      }, errors, () => {
+      })
+    );
+  });
+
+  test('defaultRunConfig assertion failure', done => {
+    const errors = [];
+    expect.assertions(2);
+    expect(
+      () => {
+        return of({cool: true}).run().listen(
+          defaultRunConfig({
+            onResolved: resolve => {
+              expect(true).toEqual(false);
+            },
+            _whenDone: (error, dne) => {
+              // Jest would normally print this itself
+              console.log('We expected this assertion error ...'); // eslint-disable-line no-console
+              console.log(error); // eslint-disable-line no-console
+              // To make this test pass
+              dne();
+            }
+          }, errors, done)
+        );
+      }).toThrow();
   });
 
   test('defaultRunToResultConfig Resolved', done => {
@@ -161,19 +229,24 @@ describe('monadHelpers', () => {
 
   test('defaultRunToResultConfig Throws', done => {
     let errors = [];
-    expect(
-      () => task(resolver => {
-        // Result.Error should result in defaultOnRejected being called, which throws
-        errors.push(new Error('Expect this warning about some bad Result'));
-        resolver.resolve(Result.Error('Oh noo!!!'));
-      }).run().listen(
-        defaultRunToResultConfig({
-          onResolved: resolve => {
-            throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
-          }
-        }, errors, done)
-      )
-    ).toThrow();
+    task(resolver => {
+      // Result.Error should result in defaultOnRejected being called, which throws
+      errors.push(new Error('Expect this warning about some bad Result'));
+      resolver.resolve(Result.Error('Oh noo!!!'));
+    }).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          throw ('Should not have resolved!'); // eslint-disable-line no-throw-literal
+        },
+        onRejected: (errs, error) => {
+          // This would normally be called
+          defaultOnRejected(errs, error);
+          // Make the test pass
+          done();
+        }
+      }, errors, () => {
+      })
+    );
   });
 
 
@@ -226,7 +299,9 @@ describe('monadHelpers', () => {
         resolver => resolver.resolve('donut')
       )
     ).run().listen(defaultRunToResultConfig({
-        onResolved: v => expect(v).toEqual('donut')
+        onResolved: v => {
+          expect(v).toEqual('donut');
+        }
       }, errors, done)
     );
   });
@@ -642,8 +717,12 @@ describe('monadHelpers', () => {
   test('traverseReduceResultWhile', done => {
     const initialResult = initialValue(Result.of);
     traverseReduceWhile(
-      // Predicate should be false when we have a b accumulated
-      (accumulated, applicative) => R.not(R.prop('b', accumulated)),
+      {
+        // Predicate should be false when we have a b accumulated
+        predicate: (accumulated, applicative) => {
+          return R.not(R.prop('b', accumulated));
+        }
+      },
       merge,
       initialResult,
       objOfApplicativesToApplicative(Result.of, {
@@ -687,6 +766,150 @@ describe('monadHelpers', () => {
     });
   });
 
+  test('traverseReduceWhileWithMaxCalls', done => {
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    const t = traverseReduceWhile(
+      {
+        predicate: ({value: {letters: lettas}}, x) => R.length(lettas),
+        accumulateAfterPredicateFail: false,
+        mappingFunction: R.chain,
+        monadConstructor: of
+      },
+      ({value: {letters: lettas, allLetters}}, x) => {
+        // Consume two at a time
+        return of(Result.Ok(
+          {
+            letters: R.slice(2, Infinity, lettas),
+            allLetters: R.concat(allLetters, R.slice(0, 2, lettas))
+          }
+        ));
+      },
+      of(Result.Ok({letters, allLetters: []})),
+      // Just need to call a maximum of letters to process them all
+      R.times(of, R.length(letters))
+    );
+    t.run().listen(defaultRunToResultConfig({
+      onResolved: obj => {
+        expect(obj).toEqual({
+          letters: [],
+          allLetters: ['a', 'b', 'c', 'd']
+        });
+      }
+    }, errors, done));
+  });
+
+  test('traverseReduceWhileAvoidStackOverloadJust', () => {
+    expect.assertions(1);
+    const count = 1111;
+    const justs = traverseReduceWhileBucketed(
+      // Make sure we accumulate up to b but don't run c
+      {
+        // Never quit early
+        predicate: () => true
+      },
+      (acc, value) => {
+        return R.concat(acc, [value.toString()]);
+      },
+      Maybe.Just([]),
+      R.times(t => Maybe.Just(t), count)
+    );
+    expect(justs).toEqual(
+      traverseReduce(
+        (acc, v) => R.concat(acc, [v]),
+        Maybe.Just([]),
+        R.times(t => Maybe.Just(t.toString()), count)
+      )
+    );
+  });
+
+  test('traverseReduceWhileAvoidStackOverloadTask', done => {
+    expect.assertions(1);
+    const count = 5000;
+
+    const tsk = traverseReduceWhileBucketedTasks(
+      // Make sure we accumulate up to b but don't run c
+      {
+        // Quit early
+        predicate: (values, value) => {
+          return value !== Math.floor(count / 2);
+        },
+        // Gives the code a blank monad to start from if the predicate returns false
+        monadConstructor: of
+      },
+      (acc, value) => {
+        // console.debug(`${value} (trace length: ${stackTrace.get().length})`);
+        return R.concat(acc, [value.toString()]);
+      },
+      of([]),
+      R.times(t => of(t), count)
+    );
+    const errors = [];
+    tsk.run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual(
+            R.times(t => t.toString(), Math.floor(count / 2))
+          );
+        }
+      }, errors, done)
+    );
+  }, 111111);
+
+  test('traverseReduceWhileBucketedTaskRamdaVersionProblem', done => {
+    const theThings = R.times(i => ({i}), 60);
+    const tsk = traverseReduceWhileBucketedTasks(
+      {
+        accumulateAfterPredicateFail: false,
+        predicate: (result, x) => {
+          const {value: {things}} = result;
+          return R.length(things);
+        },
+        // Chain to chain the results of each task. R.map would embed them within each other
+        mappingFunction: R.chain
+      },
+      // Ignore x, which just indicates the index of the reduction. We reduce until we run out of partialBlocks
+      ({value: {things, goods, bads}}, x) => {
+        return R.map(
+          // partialBlocks are those remaining to be processed
+          // block is the completed block that was created with one or more partial blocks
+          // Result.Ok -> Result.Ok, Result.Error -> Result.Ok
+          result => result.matchWith({
+            Ok: ({value: {things: th, good}}) => {
+              return Result.Ok({
+                things: th,
+                goods: R.concat(goods, [good]),
+                bads
+              });
+            },
+            Error: ({value: {bad}}) => {
+              // Something went wrong processing a partial block
+              // error is {nodes, ways}, so we can eliminate the partialBlock matching it
+              // TODO error should contain information about the error
+              return Result.Ok({
+                things: R.difference(things, [bad]),
+                goods,
+                bads: R.concat(bads, [bad])
+              });
+            }
+          }),
+          of(Result.Ok({things: R.tail(things), good: R.head(things), bad: null}))
+        );
+      },
+      of(Result.Ok({things: theThings, goods: [], bads: []})),
+      R.times(of, R.length(theThings))
+    );
+    const errors = [];
+    tsk.run().listen(
+      defaultRunToResultConfig({
+        onResolved: ({goods, bads}) => {
+          expect(goods).toEqual(
+            theThings
+          );
+        }
+      }, errors, done)
+    );
+  }, 111111);
 
   test('lift1stOf2ForMDeepMonad', () => {
     // a -> Result a
@@ -833,6 +1056,21 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapMDeepWithError', () => {
+    const tsk = mapMDeep(
+      2,
+      no => of(Result.Ok('no')),
+      of(Result.Error('hmm'))
+    );
+    tsk.run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errors, reject) => {
+          expect(reject).toEqual('hmm');
+        }
+      })
+    );
+  });
+
   test('chainMDeep', done => {
     // Level 1 chain on array behaves like map, so we don't actually need to wrap it in Array.of here
     // I'm not sure why R.chain(R.identity, [2]) => [2] instead of 2,
@@ -860,6 +1098,137 @@ describe('monadHelpers', () => {
           )
       })
     );
+  });
+
+  test('chainDeepError', done => {
+    const errors = [];
+    // Same here, but we couldn't unwrap a task
+    chainMDeep(2,
+      a => {
+        // Does not run
+        return of(Result.Ok('b'));
+      },
+      of(Result.Error('a'))
+    ).run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errs, value) => {
+          expect(value).toEqual('a');
+          // Manually call to prevent our test from failing
+          done();
+        }
+      }, errors, () => {
+      })
+    );
+  });
+
+  test('composeWithChainMDeep', () => {
+    const maybes = composeWithChainMDeep(2, [
+      // Extract word from each Maybe Just
+      v => Maybe.Just(R.when(R.contains('T'), x => R.concat(x, '!'))(v)),
+      // Chain, so we return a Maybe.Just for each word
+      v => Maybe.Just(`(${v})`),
+      // Creates a Just with an array. This 2-level monad can be processed on array item at a time
+      v => Maybe.Just(R.split(' ', v))
+    ])('Maybe Tonight');
+    // We get a list of Maybes back, so we must sequence to convert to a single Maybe
+    expect(R.sequence(Maybe.Just, maybes).value).toEqual(['(Maybe)', '(Tonight)!']);
+  });
+
+  test('composeWithChainMDeep and result tasks', done => {
+    const errors = [];
+    const tsk = composeWithChainMDeep(2, [
+      start => of(Result.Ok(R.concat(start, ' in'))),
+      start => of(Result.Ok(R.concat(start, ' foot'))),
+      start => of(Result.Ok(R.concat(start, ' right'))),
+      start => of(Result.Ok(R.concat(start, ' your'))),
+      start => of(Result.Ok(R.concat(start, ' put')))
+    ])('You');
+    tsk.run().listen(defaultRunToResultConfig({
+      onResolved: lyrics => {
+        expect(lyrics).toEqual('You put your right foot in');
+      }
+    }, errors, done));
+  });
+
+  test('composeWithChain', done => {
+    const errors = [];
+    const tsk = composeWithChain([
+      start => of(R.concat(start, ' in')),
+      start => of(R.concat(start, ' foot')),
+      start => of(R.concat(start, ' right')),
+      start => of(R.concat(start, ' your')),
+      start => of(R.concat(start, ' put'))
+    ])('You');
+    tsk.run().listen(defaultRunConfig({
+      onResolved: lyrics => {
+        expect(lyrics).toEqual('You put your right foot in');
+      }
+    }, errors, done));
+  });
+
+  test('mapToNamedResponseAndInputsMDeepError', done => {
+    const errors = [];
+
+    const tsk = composeWithChainMDeep(2, [
+      steamy => of(Result.Error(steamy)),
+      ({a, b, c}) => of(Result.Error('steamy'))
+    ]);
+    tsk({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errs, error) => {
+          // The mapping didn't occur because of a Result.Error
+          expect(error).toEqual(error);
+        }
+      }, errors, done)
+    );
+  });
+
+
+  test('composeWithMapChainLastMDeep', done => {
+    const errors = [];
+    const tsk = composeWithMapExceptChainDeepestMDeep(3, [
+      start => Maybe.Just(R.concat(start, ' in')),
+      start => Maybe.Just(R.concat(start, ' foot')),
+      start => Maybe.Just(R.concat(start, ' right')),
+      // Subsequent ones return just the deepest monad
+      start => Maybe.Just(R.concat(start, ' your')),
+      // The first function must return the m-deep wrapped monad
+      // The function used by composeWith will first map the task and then chain the Result
+      start => of(Result.Ok(Maybe.Just(R.concat(start, ' put'))))
+    ])('You');
+    tsk.run().listen(defaultRunToResultConfig({
+      onResolved: justLyrics => {
+        expect(justLyrics).toEqual(Maybe.Just('You put your right foot in'));
+      }
+    }, errors, done));
+  });
+
+  test('composeWithMapChainLastMDeepLogic', done => {
+    const errors = [];
+    expect.assertions(2);
+    const tsk = composeWithMapExceptChainDeepestMDeep(2, [
+      // Subsequent function will only process Result.Ok
+      deliciousFruitOnly => Result.Ok(R.concat('still ', deliciousFruitOnly)),
+      // Subsequent function returns the deepest monad
+      testFruit => R.ifElse(
+        R.contains('apple'),
+        ff => Result.Ok(R.concat('delicious ', ff)),
+        ff => Result.Error(R.concat('disgusting ', ff))
+      )(testFruit),
+      // Initial function returns 2-levels deep
+      fruit => of(Result.Ok(R.concat('test ', fruit)))
+    ]);
+    tsk('apple').run().listen(defaultRunToResultConfig({
+      onResolved: fruit => {
+        expect(fruit).toEqual('still delicious test apple');
+      }
+    }, errors, () => {
+    }));
+    tsk('kumquat').run().listen(defaultRunToResultConfig({
+      onRejected: (errs, fruit) => {
+        expect(fruit).toEqual('disgusting test kumquat');
+      }
+    }, errors, done));
   });
 
   test('objOfMLevelDeepMonadsToListWithPairs', () => {
@@ -892,15 +1261,17 @@ describe('monadHelpers', () => {
   test('objOfMLevelDeepListOfMonadsToListWithPairs', () => {
     const level1Constructor = R.compose(Maybe.Just);
     // Map each array item to the constructor
-    const objOfLevel1Monads = R.map(R.map(level1Constructor), {b: [1, 2], c: [3, 4], d: [4, 5]});
+    const objOfLevel1Monads = mapMDeep(2, level1Constructor, {b: [1, 2], c: [3, 4], d: [4, 5]});
 
+    // The objs are converted to pairs within the single-level monad
     expect(objOfMLevelDeepListOfMonadsToListWithPairs(1, level1Constructor, objOfLevel1Monads)).toEqual(
       R.map(level1Constructor, [['b', [1, 2]], ['c', [3, 4]], ['d', [4, 5]]])
     );
 
     const level2Constructor = R.compose(Result.Ok, Maybe.Just);
-    const objOfLevel2Monads = R.map(R.map(level2Constructor), {b: [1, 2], c: [3, 4], d: [4, 5]});
+    const objOfLevel2Monads = mapMDeep(2, level2Constructor, {b: [1, 2], c: [3, 4], d: [4, 5]});
 
+    // The objs are converted to pairs within the two-level monad
     expect(objOfMLevelDeepListOfMonadsToListWithPairs(2, level2Constructor, objOfLevel2Monads)).toEqual(
       R.map(level2Constructor, [['b', [1, 2]], ['c', [3, 4]], ['d', [4, 5]]])
     );
@@ -1042,6 +1413,26 @@ describe('monadHelpers', () => {
     expect(resultOfMaybeOfListOfPairs).toEqual(resultMaybeConstructor([['a', 1], ['b', 2]]));
   });
 
+  test('ComposeK with arrays', () => {
+    const lyrics = R.composeK(
+      lyric => R.when(R.equals('me'), R.flip(R.concat)('!'))(lyric),
+      lyric => R.when(R.equals('a'), R.toUpper)(lyric),
+      lyric => R.when(R.equals('angry'), R.toUpper)(lyric),
+      lyric => R.split(' ', lyric)
+    )('a is for angry, which is what you are at me');
+    expect(R.join(' ', lyrics)).toEqual('A is for angry, which is what you are at me!');
+  });
+
+  test('Using composeWith(chain) instead of composeK', () => {
+    const maybe = R.composeWith(
+      // Equivalent to R.chain (just showing the arguments passed)
+      (func, x) => R.chain(func, x)
+    )([
+      v => Maybe.Just(R.concat(v, ' want to know')),
+      v => Maybe.Just(R.concat(v, ' I don\'t really'))
+    ])('Maybe,');
+    expect(maybe.value).toEqual('Maybe, I don\'t really want to know');
+  });
 
   /*
   test('liftObjDeep', () => {
@@ -1051,12 +1442,71 @@ describe('monadHelpers', () => {
   */
 
   test('mapToResponseAndInputs', done => {
+    // Uses a and b for the task, returning an obj that is mapped to value, c is left alone
+    mapToResponseAndInputs(
+      ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', value: {d: 2, f: 2, g: 'was 1 2'}});
+          done();
+        }
+      })
+    );
+  });
+
+  test('mapToResponseAndInputsMDeep', done => {
     R.compose(
       mapToResponseAndInputs(({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'}))
     )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', value: {d: 2, f: 2, g: 'was 1 2'}});
+          done();
+        }
+      })
+    );
+  });
+
+  test('mapToMergedResponseAndInputs', done => {
+    const errors = [];
+    mapToMergedResponseAndInputs(
+      ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
+          done();
+        }
+      }, errors, done)
+    );
+  });
+
+  test('mapToMergedResponseAndInputsMDeep', done => {
+    mapToMergedResponseAndInputsMDeep(2,
+      ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
+          done();
+        }
+      })
+    );
+  });
+  test('mapToMergedResponseAndInputsMDeepWithChainMDeep', done => {
+    composeWithChainMDeep(2, [
+        // Produces another of(Result.Ok({})
+        mapToMergedResponseAndInputsMDeep(2, ({}) => {
+          return of(Result.Ok({h: 'what?'}));
+        }),
+        // Produces an of(Result.Ok({})
+        mapToMergedResponseAndInputsMDeep(2, ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'})))
+      ]
+    )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2', h: 'what?'});
           done();
         }
       })
@@ -1075,13 +1525,87 @@ describe('monadHelpers', () => {
     );
   });
 
+  test('mapToNamedResponseAndInputsMDeep', done => {
+    const errors = [];
+    const tsk = mapToNamedResponseAndInputsMDeep(2, 'foo',
+      ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'}))
+    );
+    tsk({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+        }
+      }, errors, done)
+    );
+  });
+
+  test('mapToNamedResponseAndInputsMDeepWithCompose', done => {
+    const errors = [];
+    const tsk = composeWithMapMDeep(2, [
+      // Now we can use the level 2 monad directly and return another one. The return value will be boo
+      // and merged into the others. coposeWithMapMDeep handles the mapping, so we just use toNamedResponseAndInputs
+      // to merge boo with the other keys
+      toNamedResponseAndInputs('boo',
+        ({a, foo}) => `who ${foo.g}`
+      ),
+      // Create a level 2 deep monad at key foo. The other keys are merged into the level 2 monad
+      mapToNamedResponseAndInputsMDeep(2, 'foo',
+        ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'}))
+      )
+    ]);
+
+    tsk({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
+      defaultRunToResultConfig({
+        onResolved: resolve => {
+          expect(resolve).toEqual(
+            {
+              a: 1,
+              b: 1,
+              c: 'was a racehorse',
+              foo: {d: 2, f: 2, g: 'was 1 2'},
+              boo: 'who was 1 2'
+            }
+          );
+        }
+      }, errors, done)
+    );
+  });
+
   test('toNamedResponseAndInputs', () => {
     const value = toNamedResponseAndInputs(
       'foo',
-      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'}),
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
       ({a: 1, b: 1, c: 'was a racehorse'})
     );
     expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+  });
+
+  test('monadOrObjToNamedResponseAndInputs', () => {
+    const value = mapOrObjToNamedResponseAndInputs(
+      'foo',
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
+      ({a: 1, b: 1, c: 'was a racehorse'})
+    );
+    expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}});
+
+    const monad = mapOrObjToNamedResponseAndInputs(
+      'foo',
+      ({a, b, c}) => Maybe.Just({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
+      ({a: 1, b: 1, c: 'was a racehorse'})
+    );
+    expect(monad).toEqual(Maybe.Just({a: 1, b: 1, c: 'was a racehorse', foo: {d: 2, f: 2, g: 'was 1 2'}}));
+  });
+
+  test('toMergedResponseAndInputs', () => {
+    const value = toMergedResponseAndInputs(
+      ({a, b, c}) => ({d: a + 1, f: b + 1, g: 'was 1 2'})
+    )(
+      ({a: 1, b: 1, c: 'was a racehorse'})
+    );
+    expect(value).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
   });
 
   test('mapToPath', done => {
@@ -1114,12 +1638,10 @@ describe('monadHelpers', () => {
 
   test('mapToNamedPathAndInputs', done => {
     const errors = [];
-    R.compose(
-      mapToNamedPathAndInputs(
-        'billy',
-        'is.1.goat',
-        ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
-      )
+    mapToNamedPathAndInputs(
+      'billy',
+      'is.1.goat',
+      ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
     )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
@@ -1128,6 +1650,37 @@ describe('monadHelpers', () => {
       }, errors, done)
     );
   });
+
+  test('mapToNamedPathAndInputsError', done => {
+    const errs = [];
+    expect.assertions(1);
+    const tsk = composeWithChain([
+      // Forget to return a monad
+      mapToNamedPathAndInputs(
+        'billy',
+        'is.1.goat',
+        ({a, b, c, billy}) => billy
+      ),
+      mapToNamedPathAndInputs(
+        'billy',
+        'is.1.goat',
+        ({a, b, c}) => of({is: [{cow: 'grass'}, {goat: 'can'}]})
+      )
+    ])({a: 1, b: 1, c: 'was a racehorse'});
+
+    try {
+      tsk.run().listen(
+        defaultRunConfig({
+          onResolved: resolve => {
+          }
+        }, errs, done)
+      );
+    } catch (e) {
+      expect(e).toBeTruthy();
+      done();
+    }
+  });
+
 
   test('mapResultMonadWithOtherInputs', done => {
     expect.assertions(6);
@@ -1240,7 +1793,7 @@ describe('monadHelpers', () => {
   });
 
   test('mapResultTaskWithOtherInputs', done => {
-    expect.assertions(3);
+    expect.assertions(5);
     const errors = [];
     mapResultTaskWithOtherInputs(
       {
@@ -1271,6 +1824,21 @@ describe('monadHelpers', () => {
       }, errors, done)
     );
 
+    // Make sure that the monad defaults to Task with a Result.Error for rejected Task
+    mapResultTaskWithOtherInputs(
+      {
+        resultInputKey: 'kidResult',
+        resultOutputKey: 'billyGoatResult'
+      },
+      ({kid}) => rejected('It doesn\'t matter what Billy was')
+    )({a: 1, b: 1, kidResult: Result.Ok('Billy will never be')}).run().listen(
+      defaultRunConfig({
+        onResolved: ({billyGoatResult, ...rest}) => billyGoatResult.mapError(billyGoat => {
+          expect({billyGoat, ...rest}).toEqual({a: 1, b: 1, billyGoat: 'It doesn\'t matter what Billy was'});
+        })
+      }, errors, done)
+    );
+
     // When we don't map keys things still work
     mapResultTaskWithOtherInputs(
       {},
@@ -1282,6 +1850,282 @@ describe('monadHelpers', () => {
         }
       }, errors, done)
     );
+
+    // When we don't map keys things still work
+    mapResultTaskWithOtherInputs(
+      {},
+      ({kid, ...rest}) => rejected('Catastrophe, and I\'m not even a result!')
+    )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(
+      defaultRunToResultConfig({
+        onRejected: (errorz, error) => {
+          expect(error).toEqual('Catastrophe, and I\'m not even a result!');
+        }
+      }, errors, done)
+    );
   });
-});
+
+  test('waitAllBucketed', done => {
+    expect.assertions(1);
+    const errors = [];
+    const tasks = num => R.times(() => of('I\'m a big kid now'), num);
+
+    waitAllBucketed(tasks(100000)).run().listen(defaultRunConfig({
+      onResolved: stuff => {
+        expect(R.length(stuff)).toEqual(100000);
+      }
+    }, errors, done));
+
+    // For huge numbers of tasks increase the buckets size. This causes waitAllBucketed to recurse
+    // and get the bucket size down to 100 (i.e. Order 100 stack calls)
+    // Disabled because it takes a while to run, but it passes
+    /*
+    waitAllBucketed(tasks(1000000), 1000).run().listen(defaultRunConfig({
+      onResolved: stuff => {
+        expect(R.length(stuff)).toEqual(1000000);
+      }
+    }, errors, done));
+    */
+  });
+
+  test('sequenceBucketed', done => {
+    expect.assertions(2);
+    const errors = [];
+    let counter = 0;
+    const tasks = num => R.times(index => {
+      return composeWithMapMDeep(1, [
+        i => {
+          if (i === 0) {
+            // This should run before the counter increases again
+            expect(counter).toEqual(1);
+          }
+          return i;
+        },
+        i => {
+          // We should only run this once before we get to the assertion above
+          counter++;
+          return i;
+        },
+        // This executes immediately for all num
+        i => of(i)
+      ])(index);
+    }, num);
+
+    sequenceBucketed({monadType: of}, tasks(100000)).run().listen(defaultRunConfig({
+      onResolved: stuff => {
+        expect(stuff[99999]).toEqual(99999);
+      }
+    }, errors, done));
+
+    /*
+    Works but takes too long
+    // For huge numbers of tasks increase the buckets size. This causes waitAllBucketed to recurse
+    // and get the bucket size down to 100 (i.e. Order 100 stack calls)
+    // Disabled because it takes a while to run, but it passes
+    sequenceBucketed(tasks(1000000, 1000)).run().listen(defaultRunConfig({
+      onResolved: stuff => {
+        expect(R.length(stuff)).toEqual(1000000);
+      }
+    }, errors, done));
+     */
+  });
+
+  test('traverseReduceError', () => {
+    expect(
+      traverseReduceError(
+        error => error.matchWith({Error: ({value}) => value}),
+        // Concat the strings
+        R.concat,
+        Result.Error(''),
+        [Result.Error('Cowardly'), Result.Error('Scarecrow')]
+      )
+    ).toEqual(Result.Error('CowardlyScarecrow'));
+  });
+
+  test('traverseReduceResultError', () => {
+    expect(
+      traverseReduceResultError(
+        // Concat the strings
+        R.concat,
+        Result.Error(''),
+        [Result.Error('Cowardly'), Result.Error('Scarecrow')]
+      )
+    ).toEqual(Result.Error('CowardlyScarecrow'));
+  });
+
+  test('mapExceptChainDeepestMDeep', () => {
+    expect(mapExceptChainDeepestMDeep(3,
+      // Return a 1-level deep monad since we are chaining at the deepest level only
+      v => {
+        return Result.Error(R.add(1, v));
+      },
+      [[Result.Ok(1), Result.Ok(2)], [Result.Ok(3), Result.Ok(4)]]
+      )
+    ).toEqual(
+      // Since we mapped the two shallow levels we maintain the array structure, but each deepest monad is converted
+      [[Result.Error(2), Result.Error(3)], [Result.Error(4), Result.Error(5)]]
+    );
+  });
+
+  test('chainExceptMapDeepestMDeep', () => {
+    expect(chainExceptMapDeepestMDeep(3,
+      v => {
+        // Return a an object since we map at the deepest level, this will become a Maybe.Just
+        return R.add(1, v);
+      },
+      [[Maybe.Just(1), Maybe.Just(2)],
+        [Maybe.Just(3), Maybe.Just(4)]
+      ]
+      )
+    ).toEqual(
+      // Two-level array is chained, but the deepest level is mapped
+      [Maybe.Just(2), Maybe.Just(3), Maybe.Just(4), Maybe.Just(5)]
+    );
+  });
+
+  test('task cancelling', done => {
+    expect.assertions(1);
+    const taskA = task((resolver) => {
+      resolver.onCancelled(() => {
+      });
+      setTimeout(() => {
+        if (!resolver.isCancelled) {
+          resolver.resolve('taskA');
+        }
+      }, 100);
+    });
+
+    const taskB = task((resolver) => {
+      resolver.onCancelled(() => {
+      });
+      setTimeout(() => {
+        if (!resolver.isCancelled) {
+          resolver.resolve('taskB');
+        }
+      }, 200);
+    });
+
+    const taskC = task((resolver) => {
+      resolver.onCancelled(() => {
+      });
+      setTimeout(() => {
+      }, 300);
+    });
+
+    const exec = taskA.chain(() => taskB).chain(() => taskC).run();
+
+
+    setTimeout(() => {
+      exec.cancel();
+    }, 150);
+
+    const errors = [];
+    exec.listen(defaultRunConfig({
+      onCancelled: () => {
+        expect(true).toBeTruthy();
+      },
+      onResolved: () => {
+        throw new Error('Never');
+      }
+    }, errors, done));
+  });
+
+  test('resultTasksToResultObjTask', done => {
+    const err = [];
+    const count = 100;
+    const resultsTasks = R.times(i => {
+      return of(R.ifElse(index => R.modulo(index, 2), Result.Ok, Result.Error)(i));
+    }, count);
+    resultTasksToResultObjTask(resultsTasks).run().listen(defaultRunConfig({
+      onResolved: ({Ok: oks, Error: errors}) => {
+        expect(R.length(oks)).toEqual(count / 2);
+        expect(R.length(errors)).toEqual(count / 2);
+      }
+    }, err, done));
+  }, 1000);
+
+  test('retry', done => {
+    expect.assertions(2);
+    const errors = [];
+    let runs = 0;
+    const tsk = retryTask(
+      task(
+        r => {
+          runs = runs + 1;
+          if (R.equals(3, runs)) {
+            r.resolve('success');
+          } else {
+            r.reject('fail');
+          }
+        }
+      ),
+      5,
+      errors
+    );
+    tsk.run().listen(defaultRunConfig({
+      onResolved: success => {
+        expect(errors).toEqual(['fail', 'fail']);
+        expect(success).toBe('success');
+      }
+    }, errors, done));
+  });
+
+  test('mapMonadByConfig', done => {
+    const errors = [];
+    const tsk = mapMonadByConfig({
+        // Is it a task?
+        isMonadType: value => R.hasIn('run', value),
+        errorMonad: rejected,
+        name: 'billy'
+      },
+      ({billy}) => of(`${billy} in the low ground`))({billy: 'goat'});
+    tsk.run().listen(defaultRunConfig({
+      onResolved: success => {
+        expect(success).toEqual({billy: 'goat in the low ground'});
+      }
+    }, errors, done));
+  });
+
+  test('mapMonadByConfigError', done => {
+    const errors = [];
+    const tsk = mapMonadByConfig({
+        // Is it a task?
+        isMonadType: value => {
+          // This will run and fail
+          return R.hasIn('run', value);
+        },
+        errorMonad: rejected,
+        name: 'billy'
+      },
+      // Forget to return a task, thus our errorMonad will be called
+      ({billy}) => ({notask: `${billy} in the low ground`})
+    )({billy: 'don\'t cha lose my number'});
+    tsk.run().listen(defaultRunConfig({
+      onRejected: (es, error) => {
+        expect(R.keys(error)).toEqual(['f', 'arg', 'value', 'message']);
+      }
+    }, errors, done));
+  });
+
+  test('mapMonadByConfigWrongMonadError', done => {
+    const errs = [];
+    const tsk = mapMonadByConfig({
+        // Is it a task?
+        isMonadType: value => {
+          // This will run and fail
+          return R.hasIn('run', value);
+        },
+        errorMonad: rejected,
+        name: 'billy'
+      },
+      // Whoops, wrong monad type returned
+      ({billy}) => Result.Ok({notask: `${billy} in the low ground`})
+    )({billy: 'don\'t cha lose my number'});
+    tsk.run().listen(defaultRunConfig({
+      onRejected: (es, error) => {
+        expect(R.keys(error)).toEqual(['f', 'arg', 'value', 'message']);
+      }
+    }, errs, done));
+  });
+})
+;
 

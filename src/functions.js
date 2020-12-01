@@ -17,12 +17,26 @@
 * such as improper function arguments or an invalid path within object.
 * I/O Errors should be handled using Maybe or Result and calling functions should expect them.
 * An I/O Error should always result in a valid state of an application, even if that valid
-* state is to show an error message, retry I/O, etc.
+* state is to show an error message, retryTask I/O, etc.
 */
 
 import * as R from 'ramda';
-import * as Rm from 'ramda-maybe';
-import * as Result from 'folktale/result';
+import Rm from 'ramda-maybe';
+import Result from 'folktale/result/index.js';
+
+// https://stackoverflow.com/questions/17843691/javascript-regex-to-match-a-regex
+const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\/((?:g(?:im?|mi?)?|i(?:gm?|mg?)?|m(?:gi?|ig?)?)?)/;
+
+
+/**
+ * We use this instead of isObject since it's possible to have something that is an object without
+ * a prototype to make it an object type
+ * @param {*} obj value to test
+ * @return {boolean} True if R.is(Object, obj) or is not null and it a typeof 'object'
+ */
+export const isObject = obj => {
+  return R.is(Object, obj) || (obj !== null && typeof obj === 'object');
+};
 
 /**
  * Return an empty string if the given entity is falsy
@@ -122,23 +136,36 @@ export const idOrIdFromObj = R.when(
 /**
  * Deep merge values that are objects but not arrays
  * based on https://github.com/ramda/ramda/pull/1088
- * @params {Object} l the 'left' side object to merge
- * @params {Object} r the 'right' side object to merge
- * @type {Immutable.Map<string, V>|__Cursor.Cursor|List<T>|Map<K, V>|*}
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {[String]} seen For recursion only
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-export const mergeDeep = R.mergeWith((l, r) => {
-  // If either (hopefully both) items are arrays or not both objects
-  // accept the right value
-  return ((l && l.concat && Array.isArray(l)) || (r && r.concat && Array.isArray(r))) || !(R.is(Object, l) && R.is(Object, r)) ?
-    r :
-    mergeDeep(l, r); // tail recursive
-});
+export const mergeDeep = (left, right, seen = []) => {
+  return R.mergeWith((l, r) => {
+    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+      // Never recurse on an instance that has been seen
+      return l;
+    }
+    // If either (hopefully both) items are arrays or not both objects
+    // accept the right value
+    return (
+      // If either is a function take the last
+      (R.is(Function, l) || R.is(Function, r)) ||
+      // If either is an array take the last
+      (l && l.concat && Array.isArray(l)) ||
+      (r && r.concat && Array.isArray(r))) ||
+    !(R.is(Object, l) && R.is(Object, r)) ?
+      r :
+      mergeDeep(l, r, R.concat(seen, cacheObjs));
+  })(left, right);
+};
 
 /**
  * mergeDeep any number of objects
- * @params {[Object]} objs Array of objects to reduce
+ * @param {[Object]} objs Array of objects to reduce
  * @returns {Object} The deep-merged objects
  */
 export const mergeDeepAll = R.reduce(mergeDeep, {});
@@ -146,131 +173,376 @@ export const mergeDeepAll = R.reduce(mergeDeep, {});
 /**
  * Deep merge values with a custom function that are objects
  * based on https://github.com/ramda/ramda/pull/1088
- * @params {Function} fn The merge function left l, right r:: l -> r -> a
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Function} fn The merge function left l, right r:: l -> r -> a
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
+ * @param {[String]} seen For recursion only
  * @returns {Object} The deep-merged objeck
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-export const mergeDeepWith = R.curry((fn, left, right) => R.mergeWith((l, r) => {
-  // If either (hopefully both) items are arrays or not both objects
-  // accept the right value
-  return (
-    (l && l.concat && Array.isArray(l)) ||
-    (r && r.concat && Array.isArray(r))
-  ) ||
-  !(R.all(R.is(Object)))([l, r]) ||
-  R.any(R.is(Function))([l, r]) ?
-    fn(l, r) :
-    mergeDeepWith(fn, l, r); // tail recursive
-})(left, right));
+export const mergeDeepWith = (fn, left, right, seen = []) => {
+  return R.mergeWith((l, r) => {
+    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+      // Never recurse on an instance that has been seen
+      return l;
+    }
+    // If either (hopefully both) items are arrays or not both objects
+    // accept the right value
+    return (
+      (l && l.concat && Array.isArray(l)) ||
+      (r && r.concat && Array.isArray(r))
+    ) ||
+    !(R.all(isObject))([l, r]) ||
+    R.any(R.is(Function))([l, r]) ?
+      fn(l, r) :
+      mergeDeepWith(fn, l, r, R.concat(seen, cacheObjs));
+  })(left, right);
+};
 
 /**
  * Merge Deep that concats arrays of matching keys
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
+ * @param {[String]} seen For recursion only
  * @returns {Object} The deep-merged object
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
-export const mergeDeepWithConcatArrays = R.curry((left, right) => mergeDeepWith((l, r) => {
-  return R.cond(
-    [
-      [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
-      [R.complement(R.all)(R.is(Object)), R.last],
-      [R.T, R.apply(mergeDeepWithConcatArrays)] // tail recursive
-    ]
-  )([l, r]);
-})(left, right));
+export const mergeDeepWithConcatArrays = (left, right, seen = []) => {
+  return mergeDeepWith((l, r) => {
+    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+      // Never recurse on an instance that has been seen
+      return l;
+    }
+    return R.cond(
+      [
+        [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
+        [R.complement(R.all)(isObject), R.last],
+        [R.T, ([ll, rr]) => mergeDeepWithConcatArrays(ll, rr, R.concat(seen, cacheObjs))]
+      ]
+    )([l, r]);
+  }, left, right, seen);
+};
 
 /**
  * Merge Deep and also apply the given function to array items with the same index
- * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
-export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => R.cond(
-  [
-    // Arrays
-    [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
-      R.apply(R.zipWith((a, b) => mergeDeepWithRecurseArrayItems(fn, a, b)))
-    ],
-    // Primitives
-    [R.complement(R.all)(R.is(Object)), R.apply(fn)],
-    // Objects
-    [R.T, R.apply(R.mergeWith(mergeDeepWithRecurseArrayItems(fn)))]
-  ]
-  )([left, right])
-);
+export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => {
+  return mergeDeepWithKeyRecurseArrayItems(fn, null, left, right);
+});
+
+/**
+ * Merge Deep and also apply the given function to array items with the same index
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Object} key Used for recursions
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
+ * @param {[String]} seen For recursion only
+ * @returns {Object} The deep-merged object
+ * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
+ */
+export const mergeDeepWithKeyRecurseArrayItems = (fn, key, left, right, seen = []) => {
+  const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [left, right]));
+  if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+    // Never recurse on an instance that has been seen
+    return left;
+  }
+  const _seen = R.concat(seen, cacheObjs);
+  return R.cond(
+    [
+      // Arrays
+      [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
+        ([l, r]) => {
+          return R.addIndex(R.zipWith)(
+            (a, b, i) => {
+              return mergeDeepWithKeyRecurseArrayItems(fn, i, a, b, _seen);
+            },
+            l, r
+          );
+        }
+      ],
+      // Primitives
+      [R.complement(R.all)(isObject),
+        ([l, r]) => {
+          return fn(key, l, r);
+        }],
+      // Objects
+      [R.T, ([l, r]) => {
+        return R.mergeWithKey((k, ll, rr) => {
+          return mergeDeepWithKeyRecurseArrayItems(fn, k, ll, rr, _seen);
+        }, l, r);
+      }]
+    ]
+  )([left, right]);
+};
+
+/**
+ * Like mergeDeepWithRecurseArrayItems but merges array items with a function itemMatchBy that determines
+ * if an item from each array of left and right represents the same objects. The right object's array
+ * items are returned but any left object item matching by itemMatchBy is deep merged with the matching right item.
+ * There is no merge function for primitives, r is always returned
+ * @param {Function} fn The item matching function, Arrays deep items in left and right. Called with the
+ * item and current key/index
+ * are merged. For example
+ *   item => R.when(isObject, R.propOr(v, 'id'))(item)
+ * would match on id if item is an object and has an id
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {String} [key] Optional key or index of the parent object/array item
+ * @returns {Object} The deep-merged object
+ */
+export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left, right) => {
+  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, null, left, right, null);
+});
+
+/**
+ * Like mergeDeepWithRecurseArrayItemsByRight but takes mergeObject to merge objects, rather than just taking the
+ * right value. Primitives still resolve to the right value. the mergeObject function should handle internal array
+ * merging by recursing on this function or similar
+ * @param {Function} fn The item matching function, Arrays deep items in left and right. Called with the
+ * item and current key/index
+ * are merged. For example
+ * item => R.when(isObject, R.propOr(v, 'id'))(item)
+ * would match on id if item is an object and has an id
+ * @param {Function} itemMatchBy Expects the left and right object that need to be merged
+ * @param {Function} mergeObject Expects left, right, seen when left are right are objects.
+ * seen is an internal parameter to pass to _mergeDeepWithRecurseArrayItemsByRight
+ * mergeObject typically recurses
+ * with _mergeDeepWithRecurseArrayItemsByRight on each item of left and right after doing something
+ * special. This function was designed with the idea of being used in Apollo InMemory Cache Type Policy merge functions
+ * to continue calling Apollowing merge function on objects, which in tern delegates back to this function
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {String} [key] Optional key or index of the parent object/array item
+ * @returns {Object} The deep-merged object
+ */
+export const mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight = R.curry((itemMatchBy, mergeObject, left, right) => {
+  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, mergeObject, left, right, null);
+});
+
+/**
+ * Internal version omergeDeepWithRecurseArrayItemsByAndMergeObjectByRight
+ * @param {Function} itemMatchBy Expects the left and right object that need to be merged
+ * @param {Function} mergeObject Expects left, right, seen when left are right are objects.
+ * seen is an internal parameter to pass to _mergeDeepWithRecurseArrayItemsByRight
+ * mergeObject typically recurses
+ * with _mergeDeepWithRecurseArrayItemsByRight on each item of left and right after doing something
+ * special. This function was designed with the idea of being used in Apollo InMemory Cache Type Policy merge functions
+ * to continue calling Apollowing merge function on objects, which in tern delegates back to this function
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @param {String} [key] Optional key or index of the parent object/array item
+ * @param {[String]} seen For recursion only
+ * @returns {Object} The deep-merged object
+ */
+/* eslint-disable max-params */
+export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject, left, right, key, seen = []) => {
+  return R.cond(
+    [
+      // Arrays
+      [([l, r]) => {
+        return R.any(R.allPass([R.identity, R.prop('concat'), Array.isArray]))([l, r]);
+      },
+        ([l, r]) => {
+          // Null case, return the only array
+          if (!l || !r) {
+            return l || r;
+          }
+          // Create a lookup of l items. If the items don't resolve to an id, filter them out to indicate
+          // that they can't be matched by the right side items. This will leave them out of the merged array items,
+          // which is find because the right items should be the same if we want to keep them
+          const lItemsByValue = R.compose(
+            obj => filterWithKeys((v, k) => R.complement(R.equals)('__NULL__')(k), obj),
+            ll => R.indexBy(li => itemMatchBy(li, key) || '__NULL__', ll)
+          )(l || []);
+          // Map each item of r
+          return R.addIndex(R.map)(
+            (rItem, i) => {
+              // If the lookup of the r item matches one of l items' itemMatchBy value,
+              // recurse with both items. Else just return r
+              const rItemValue = itemMatchBy(rItem, key);
+              const hasMatchingLItem = R.has(rItemValue, lItemsByValue);
+              return R.when(
+                () => hasMatchingLItem,
+                () => {
+                  const rItemInLItems = R.prop(rItemValue, lItemsByValue);
+                  // Pass the index as a key
+                  return _mergeDeepWithRecurseArrayItemsByRight(
+                    itemMatchBy,
+                    mergeObject,
+                    rItemInLItems,
+                    rItem,
+                    i,
+                    seen
+                  );
+                }
+              )(rItem);
+            },
+            r || []
+          );
+        }
+      ],
+      // Primitives. If either is an object skip, it means 1 is null
+      [R.none(isObject),
+        ([l, r]) => {
+          return r;
+        }
+      ],
+      // Objects and nulls
+      [R.T,
+        ([l, r]) => {
+          const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+          if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+            // Never recurse on an instance that has been seen
+            return l;
+          }
+          const _seen = R.concat(seen, cacheObjs);
+          return mergeObject ? mergeObject(l, r, _seen) : R.mergeWithKey(
+            (kk, ll, rr) => {
+              return _mergeDeepWithRecurseArrayItemsByRight(
+                itemMatchBy,
+                mergeObject,
+                ll,
+                rr,
+                kk,
+                _seen
+              );
+            },
+            l || {},
+            r || {}
+          );
+        }
+      ]
+    ]
+  )([left, right]);
+};
+
 
 /**
  * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key
- * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * where k is the current k of the object
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
 export const applyDeep = R.curry((fn, obj) => mergeDeepWithRecurseArrayItems(fn, obj, obj));
 
-
 /**
  * Merge Deep and also apply the given function to array items with the same index.
  * This adds another function that maps the object results to something else after the objects are recursed upon
- * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
- * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to morge
  * @returns {Object} The deep-merged object
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
-export const mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, left, right) =>
-  _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
+export const mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, left, right) =>
+  _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
 );
 
 /**
- * Same as mergeDeepWithRecurseArrayItemsAndMapObjs but sends the same left and right value so fn is called on every key
- * of ob * @params {Function} fn The merge function left l, right r, string k:: l -> r -> k -> a
- * @params {Function} applyObj Function called with the current key and the result of each recursion that is an object.
- * @params {Object} left the 'left' side object to merge
- * @params {Object} right the 'right' side object to morge
+ * Same as mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but sends the same left and right value so fn is called on every key
+ * of ob * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * @param {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @param {Object} obj The left and right side to merge (always the same)
  * @returns {Object} The deep-merged object
- * @sig applyDeepAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
+ * @sig applyDeepWithKeyWithRecurseArraysAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
  */
-export const applyDeepAndMapObjs = R.curry((fn, applyObj, obj) =>
-  mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
+export const applyDeepWithKeyWithRecurseArraysAndMapObjs = R.curry((fn, applyObj, obj) =>
+  mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
 );
 
-const _mergeDeepWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right) => R.cond(
-  [
-    // Arrays
-    [R.all(Array.isArray),
-      // Recurse on each array item. We pass the key without the index
-      R.apply(R.zipWith((l, r) => _mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj, key, l, r)))
-    ],
-    // Primitives
-    [R.complement(R.all)(R.is(Object)), lr => fn(...lr, key)],
-    // Objects
-    [R.T,
-      R.apply(
-        R.mergeWithKey(
-          (k, l, r) => R.compose(
-            // Take key and the result and call the applyObj func, but only if res is an Object
-            v => R.when(
-              // When it's an object and not an array call applyObj
-              // typeof x === 'object' check because sometimes values that are objects are not returning true
-              R.both(R.either(R.is(Object), x => typeof x === 'object'), R.complement(R.is)(Array)),
-              res => applyObj(k, res)
-            )(v),
-            // First recurse on l and r
-            ([kk, ll, rr]) => R.apply(_mergeDeepWithRecurseArrayItemsAndMapObjs(fn, applyObj), [kk, ll, rr])
-          )([k, l, r])
-        )
-      )
-    ]
-  ]
-  )([left, right])
+/**
+ * Internal version of mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs
+ * @param {Function} applyObj Function called with the current key and the result of each recursion that is an object.
+ * @param {Object} left the 'left' side object to merge
+ * @param {Object} right the 'right' side object to merge
+ * @returns {Object} The deep-merged object
+ * @private
+ */
+/* eslint-disable max-params */
+const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right, seen = []) => {
+    return R.cond(
+      [
+        // Arrays
+        [R.all(Array.isArray),
+          // Recurse on each array item. We pass the key without the index
+          lr => {
+            return R.apply(
+              R.zipWith(
+                (l, r) => R.compose(
+                  // For array items, take key and the result and call the applyObj func, but only if res is an Object
+                  v => R.when(
+                    // When it's an object and not an array call applyObj
+                    // typeof x === 'object' check because sometimes values that are objects are not returning true
+                    R.both(
+                      vv => typeof vv === 'object',
+                      R.complement(R.is)(Array)
+                    ),
+                    res => applyObj(key, res)
+                  )(v),
+                  ([kk, ll, rr]) => {
+                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr, seen);
+                  }
+                )([key, l, r])
+              )
+            )(lr);
+          }
+        ],
+        // Primitives: call the function with left and right as the first two args and key as the last
+        [R.complement(R.all)(x => isObject(x)), lr => {
+          return fn(...lr, key);
+        }],
+        // Always leave functions alone.
+        [lr => R.all(R.is(Function), lr), ([l, _]) => {
+          return l;
+        }],
+        // Objects
+        [R.T,
+          lr => {
+            return R.apply(
+              R.mergeWithKey(
+                (k, l, r) => R.compose(
+                  // Take key and the result and call the applyObj func, but only if res is an Object
+                  v => R.when(
+                    // When it's an object and not an array call applyObj
+                    // typeof x === 'object' check because sometimes values that are objects are not returning true
+                    R.both(
+                      x => typeof x === 'object',
+                      R.complement(R.is)(Array)
+                    ),
+                    res => applyObj(k, res)
+                  )(v),
+                  // First recurse on l and r
+                  ([kk, ll, rr]) => {
+                    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [ll, rr]));
+                    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+                      // Never recurse on an instance that has been seen
+                      return ll;
+                    }
+                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr,
+                      // Build up our seen objects to prevent infinite recursion
+                      R.concat(seen, cacheObjs)
+                    );
+                  }
+                )([k, l, r])
+              ),
+              lr
+            );
+          }
+        ]
+      ]
+    )([left, right]);
+  }
 );
 
 
@@ -382,7 +654,7 @@ export const strPath = R.curry((str, props) => {
 
 /**
  * Like strPath but defaults the given value
- * @param {Object} defaultValue. Default value if value is undefined. Falsy does not default
+ * @param {Object} defaultValue. Default value if value is null undefined.
  * @param {String} str dot-separated prop path
  * @param {Object} props Object to resolve the path in
  * @return {function(*=)}
@@ -390,9 +662,62 @@ export const strPath = R.curry((str, props) => {
 export const strPathOr = R.curry((defaultValue, str, props) => {
   const result = R.view(R.lensPath(R.split('.', str)), props);
   return R.when(
-    R.equals(undefined), // eslint-disable-line no-undefined
+    R.isNil,
     R.always(defaultValue)
   )(result);
+});
+
+/**
+ * strPathOrNullOk for a list of strPaths
+ * @param {Object} defaultValue. Default value if value is null undefined.
+ * @param {[String]} strPaths dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {[Object]} The mapped values or defaultValue where the value is not truthy
+ */
+export const strPathsOr = R.curry((defaultValue, strPaths, props) => {
+  return R.map(
+    _strPath => strPathOr(defaultValue, _strPath, props),
+    strPaths
+  );
+});
+
+
+/**
+ * Like strPathOr but just looks for the full path to lead to a defined value, it doesn't have to be truthy
+ * @param {Object} defaultValue. Default value if value is null undefined.
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {function(*=)}
+ */
+export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
+  const segments = R.split('.', str);
+  const result = R.view(R.lensPath(R.init(segments)), props);
+  return R.ifElse(
+    R.isNil,
+    R.always(defaultValue),
+    r => {
+      try {
+        return R.when(v => typeof v === 'undefined', () => defaultValue)(R.prop(R.last(segments), r));
+      } catch {
+        return defaultValue;
+      }
+    }
+  )(result);
+});
+
+/**
+ * strPathOrNullOk for a list of strPaths. THe value at each strPath is returned if the path is defined and the
+ * value is not undefined
+ * @param {Object} defaultValue. Default value if value is null undefined.
+ * @param {[String]} strPaths dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {[Object]} The mapped values or defaultValue where the value is only used for undefined values
+ */
+export const strPathsOrNullOk = R.curry((defaultValue, strPaths, props) => {
+  return R.map(
+    _strPath => strPathOrNullOk(defaultValue, _strPath, props),
+    strPaths
+  );
 });
 
 /**
@@ -477,8 +802,8 @@ export const mapDefaultAndPrefixOthers = (defaultName, prefix, module) =>
  * Maps an object with a function that returns pairs and create and object therefrom
  * Like R.mapObjIndexed, the function's first argument is the value of each item, and the seconds is the key if
  * iterating over objects
- * @params {Functor} f The mapping function
- * @params {Container} container Anything that can be mapped
+ * @param {Functor} f The mapping function
+ * @param {Container} container Anything that can be mapped
  * @returns {Object} The mapped pairs made into key values
  * @sig mapKeysAndValues :: Functor F = (a -> [b,c]) -> F -> <k,v>
  */
@@ -486,18 +811,22 @@ export const mapKeysAndValues = R.curry((f, container) => R.fromPairs(mapObjToVa
 
 /**
  * https://github.com/ramda/ramda/wiki/Cookbook
- * Filter objects with values and keys
+ * Filter objects with values and keys. Null objs return as null
  * @param {Function} pred (value, key) => True|False
  * @param {Object} obj The object to filter
  * @returns {Object} The filtered object
  * @sig filterWithKeys:: (v -> k -> True|False) -> <k,v> -> <k,v>
  */
-export const filterWithKeys = R.curry((pred, obj) => R.pipe(
-  R.toPairs,
-  R.filter(pair => R.apply(pred, R.reverse(pair))),
-  R.fromPairs
-  )(obj)
-);
+export const filterWithKeys = R.curry((pred, obj) => {
+  if (!obj) {
+    return obj;
+  }
+  return R.compose(
+    pairs => R.fromPairs(pairs),
+    R.filter(pair => R.apply(pred, R.reverse(pair))),
+    R.toPairs
+  )(obj);
+});
 
 /**
  * Transforms the keys of the given object with the given func
@@ -516,7 +845,8 @@ export const transformKeys = R.curry((func, obj) =>
 
 /**
  * Renames the key of the object specified by the lens
- * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself
+ * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself.
+ * Use R.lensPath([]) to operate directly on obj
  * @param {String} from Key to rename
  * @param {String} to New name for the key
  * @param {Object} obj Object to traverse with the lens
@@ -529,11 +859,11 @@ export const renameKey = R.curry((lens, from, to, obj) => R.over(
   obj));
 
 /**
- * Duplicates the key of the object specified by the lens and key, to the given list of keys.
+ * Duplicates the key of the object specified by the lens and key, to the given list of keys or single key.
  * A duplicate of the value at key will be added at each of the toKeys using R.clone
  * @param {Function} lens A ramda lens that points to the object containing the key, not the key itself
  * @param {String} key Key to duplicate the value of
- * @param [{String}] toKeys Array of new keys to make. New keys overwrite existing keys
+ * @param {String|[String]} toKeys Array of new keys to make. New keys overwrite existing keys
  * @param {Object} obj Object to traverse with the lens
  */
 export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
@@ -544,13 +874,22 @@ export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
     R.fromPairs(
       R.map(
         toKey => [toKey, R.clone(target[key])],
-        toKeys
+        toArrayIfNot(toKeys)
       )
     )
   ),
   // take the lens of this obj
   obj)
 );
+
+/**
+ * Converts a scalar value (!Array.isArray) to array an array
+ * @param {*|[*]} arrayOrScalar An array or scalar
+ * @returns {[*]} The scalar as an array or the untouched array
+ */
+export const toArrayIfNot = arrayOrScalar => {
+  return R.unless(Array.isArray, Array.of)(arrayOrScalar);
+};
 
 /**
  * Like duplicateKey but removes the original key
@@ -628,18 +967,18 @@ export const mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v 
 
 
 /**
- * Finds an item that matches all the given props in params
- * @param {Object} params object key values to match
+ * Finds an item that matches all the given props in param
+ * @param {Object} param object key values to match
  * @param {Object|Array} items Object or Array that can produce values to search
  * @returns {Result} An Result.Ok containing the value or an Result.Error if no value is found
  */
-export const findOneValueByParams = (params, items) => {
+export const findOneValueByParams = (param, items) => {
   return findOne(
     // Compare all the eqProps against each item
     R.allPass(
-      // Create a eqProps for each prop of params
-      R.map(prop => R.eqProps(prop, params),
-        R.keys(params)
+      // Create a eqProps for each prop of param
+      R.map(prop => R.eqProps(prop, param),
+        R.keys(param)
       )
     ),
     R.values(items)
@@ -648,19 +987,34 @@ export const findOneValueByParams = (params, items) => {
 
 /**
  * Returns the items matching all param key values
- * @param {Object} params Key values to match to items
+ * @param {Object} param Key values to match to items
  * @param {Object|Array} items Object with values of objects or array of objects that can produce values to search
  * @returns {[Object]} items that pass
  */
-export const findByParams = (params, items) => {
+export const findByParams = (param, items) => {
   return R.filter(
     // Compare all the eqProps against each item
     R.allPass(
-      // Create a eqProps for each prop of params
-      R.map(prop => R.eqProps(prop, params),
-        R.keys(params)
+      // Create a eqProps for each prop of param
+      R.map(prop => R.eqProps(prop, param),
+        R.keys(param)
       )
     ),
+    items
+  );
+};
+
+/**
+ * Returns the first mapped item that is not null
+ * @param {Function} f The mapping function
+ * @param {[*]} items The items
+ * @returns {*} The first mapped item value that is not nil
+ */
+export const findMapped = (f, items) => {
+  return R.reduceWhile(
+    R.isNil,
+    (_, i) => f(i),
+    null,
     items
   );
 };
@@ -724,13 +1078,13 @@ export const fromPairsDeep = deepPairs => R.cond(
         ([first]) => R.allPass(
           [
             Array.isArray,
-            R.compose(R.equals(2), R.length),
-            R.compose(R.is(String), R.head)
+            x => R.compose(R.equals(2), R.length)(x),
+            x => R.compose(R.is(String), R.head)(x)
           ])(first),
         // Yes, return an object whose keys are the first element and values are the result of recursing on the second
-        R.compose(R.fromPairs, R.map(([k, v]) => [k, fromPairsDeep(v)])),
+        l => R.compose(R.fromPairs, R.map(([k, v]) => [k, fromPairsDeep(v)]))(l),
         // No, recurse on each array item
-        R.map(v => fromPairsDeep(v))
+        l => R.map(v => fromPairsDeep(v), l)
       )(list)
     ],
     // End case, return the given value unadulterated
@@ -746,14 +1100,14 @@ export const fromPairsDeep = deepPairs => R.cond(
  * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
  * Depth 0 converts {a: {b: {c: 1}}} to '...'
  * @param {String|Function} replaceStringOrFunc String such as '...' or a unary function that replaces the value
- * e.g. R.when(R.is(Object), R.length(R.keys)) will count objects and arrays but leave primitives alone
+ * e.g. R.when(isObject, R.length(R.keys)) will count objects and arrays but leave primitives alone
  * @param {Object} obj Object to process
  * @returns {Object} with the above transformation. Use replaceValuesAtDepthAndStringify to get a string
  */
 export function replaceValuesAtDepth(n, replaceStringOrFunc, obj) {
   return R.ifElse(
     // If we are above level 0 and we have an object
-    R.both(R.always(R.lt(0, n)), R.is(Object)),
+    R.both(R.always(R.lt(0, n)), isObject),
     // Then recurse on each object or array value
     o => R.map(oo => replaceValuesAtDepth(n - 1, replaceStringOrFunc, oo), o),
     // If at level 0 replace the value. If not an object or not at level 0, leave it alone
@@ -769,7 +1123,7 @@ export function replaceValuesAtDepth(n, replaceStringOrFunc, obj) {
  * Depth 1 converts {a: {b: {c: 1}}} to {a: '...'}
  * Depth 0 converts {a: {b: {c: 1}}} to '...'
  * @param {String|Function} replaceString String such as '...' or a unary function that replaces the value
- * e.g. R.when(R.is(Object), R.length(R.keys)) will count objects and arrays but leave primitives alone
+ * e.g. R.when(isObject, R.length(R.keys)) will count objects and arrays but leave primitives alone
  * @param {Object} obj Object to process
  * @returns {String} after the above replacement
  */
@@ -787,7 +1141,7 @@ export const replaceValuesWithCountAtDepth = (n, obj) => {
   return replaceValuesAtDepth(
     n,
     R.when(
-      R.is(Object),
+      isObject,
       o => R.compose(
         // Show arrays and objs different
         R.ifElse(R.always(Array.isArray(o)), c => `[...${c}]`, c => `{...${c}}`),
@@ -814,15 +1168,32 @@ export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
  * @returns {Object} The 1-D version of the object
  */
 export const flattenObj = obj => {
-  return R.fromPairs(_flattenObj(obj));
+  return R.fromPairs(_flattenObj({}, obj));
 };
 
-const _flattenObj = (obj, keys = []) => {
+/**
+ * Flatten objs until the predicate returns false. This is called recursively on each object and array
+ * @param {Function} predicate Expects object, returns true when we should stop flatting on the current object
+ * @param {Object} obj The object to flatten
+ * @return {Object} The flattened object
+ */
+export const flattenObjUntil = (predicate, obj) => {
+  return R.fromPairs(_flattenObj({predicate}, obj));
+};
+
+const _flattenObj = (config, obj, keys = []) => {
+  const predicate = R.propOr(null, 'predicate', config);
   return R.ifElse(
     // If we have an object
-    R.is(Object),
+    o => R.both(
+      isObject,
+      oo => R.when(
+        () => predicate,
+        ooo => R.complement(predicate)(ooo)
+      )(oo)
+    )(o),
     // Then recurse on each object or array value
-    o => chainObjToValues((oo, k) => _flattenObj(oo, R.concat(keys, [k])), o),
+    o => chainObjToValues((oo, k) => _flattenObj(config, oo, R.concat(keys, [k])), o),
     // If not an object return flat pair
     o => [[R.join('.', keys), o]]
   )(obj);
@@ -839,15 +1210,37 @@ export const keyStringToLensPath = keyString => R.map(
 );
 
 /**
+ * Undoes the work of flattenObj. Does not allow number keys to become array indices
+ * @param {Object} obj 1-D object in the form returned by flattenObj
+ * @returns {Object} The original
+ */
+export const unflattenObjNoArrays = obj => {
+  return _unflattenObj({allowArrays: false}, obj);
+};
+
+/**
  * Undoes the work of flattenObj
  * @param {Object} obj 1-D object in the form returned by flattenObj
  * @returns {Object} The original
  */
 export const unflattenObj = obj => {
+  return _unflattenObj({allowArrays: true}, obj);
+};
+
+export const _unflattenObj = (config, obj) => {
   return R.compose(
     R.reduce(
       (accum, [keyString, value]) => {
-        const itemKeyPath = keyStringToLensPath(keyString);
+        // Don't allow indices if allowArrays is false
+        const itemKeyPath = R.map(
+          key => {
+            return R.when(
+              () => R.not(R.prop('allowArrays', config)),
+              k => k.toString()
+            )(key);
+          },
+          keyStringToLensPath(keyString)
+        );
         // Current item lens
         const itemLensPath = R.lensPath(itemKeyPath);
         // All but the last segment gives us the item container len
@@ -859,7 +1252,7 @@ export const unflattenObj = obj => {
           // depending on if our item key is a number or not
           x => R.defaultTo(
             R.ifElse(
-              R.is(Number),
+              v => R.both(() => R.prop('allowArrays', config), R.is(Number))(v),
               R.always([]),
               R.always({})
             )(R.head(itemKeyPath))
@@ -885,8 +1278,8 @@ export const unflattenObj = obj => {
  * points at it from the parent object and the object itself
  * @param {Object} obj The object to process
  */
-export const overDeep = R.curry((func, obj) => mergeDeepWithRecurseArrayItemsAndMapObjs(
-  // We are using a mergeDeepWithRecurseArrayItemsAndMapObjs but we only need the second function
+export const overDeep = R.curry((func, obj) => mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(
+  // We are using a mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but we only need the second function
   (l, r, k) => l,
   func,
   // Use obj twice so that all keys match and get called with the merge function
@@ -900,20 +1293,60 @@ export const overDeep = R.curry((func, obj) => mergeDeepWithRecurseArrayItemsAnd
  * on each dictionary that hasn't been removed by omit_deep at a higher level
  */
 export const omitDeep = R.curry(
-  (omit_keys, obj) => R.compose(
-    o => applyDeepAndMapObjs(
+  (omit_keys, obj) => omitDeepBy(
+    (k, v) => R.includes(k, omit_keys),
+    obj
+  )
+);
+
+/**
+ * Omit by the given function that is called with key and value. You can ignore the value if you only want to test the key
+ * Objects and arrays are recursed and omit_deep is called
+ * on each dictionary that hasn't been removed by omit_deep at a higher level
+ * @param {Function} f Binary function accepting each key, value. Return non-nil to omit and false or nil to keep
+ */
+export const omitDeepBy = R.curry(
+  (f, obj) => R.compose(
+    o => applyDeepWithKeyWithRecurseArraysAndMapObjs(
       // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
-      (l, r, kk) => R.ifElse(k => R.contains(k, omit_keys), R.always({}), R.always(l))(kk),
-      // Removes the keys at any level except the topmost level
-      (key, result) => R.omit(omit_keys, result),
+      // l and r are always the same value
+      (l, r, kk) => R.ifElse(
+        // Reject any function return value that isn't null or false
+        k => R.anyPass([R.isNil, R.equals(false)])(f(k, l)),
+        R.always(l),
+        () => ({})
+      )(kk),
+      // Called as the result of each recursion. Removes the keys at any level except the topmost level
+      (key, result) => filterWithKeys(
+        (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
+        result
+      ),
       o
     ),
-    // Omit at the top level. We have to do this because applyObj of applyDeepAndMapObjs only gets called starting
+    // Omit at the top level. We have to do this because applyObj of applyDeepWithKeyWithRecurseArraysAndMapObjs only gets called starting
     // on the object of each key
-    o => R.omit(omit_keys, o)
+    // Reject any function return value that isn't null or false
+    o => filterWithKeys(
+      (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
+      o
+    )
   )(obj)
 );
 
+/**
+ * Given a predicate for eliminating an item based on paths, return the paths of item that don't pass the predicate.
+ * keyOrIndex is the object key or array index that the item came from. We use it for the eliminateItemPredicate
+ * test. If each paths current first segment matches keyOrIndex or equals '*', we consider that path.
+ * With the considered paths
+ * @param {Function} eliminateItemPredicate Accepts the remaining paths and optional item as a second argument.
+ * Returns true if the item shall be eliminated
+ * @param {[String]} paths Paths to caculate if they match the item
+ * @param {*} item Item to test
+ * @param {String|Number} keyOrIndex The key or index that the item belonged to of an object or array
+ * @return {Object} {item: the item, paths: remaining paths with first segment removed}. Or null if eliminateItemPredicate
+ * returns true
+ * @private
+ */
 const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrIndex) => {
   // Keep paths that match keyOrIndex as the first item. Remove other paths
   // since they can't match item or its descendants
@@ -921,7 +1354,19 @@ const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrInde
     R.compose(
       R.ifElse(
         R.compose(
-          R.equals(keyOrIndex),
+          aKeyOrIndex => {
+            return R.ifElse(
+              // if keyOrIndex is a string and matches the shape of a regex: /.../[gim]
+              possibleRegex => R.both(R.is(String), str => R.test(regexToMatchARegex, str))(possibleRegex),
+              // Construct the regex with one or two, the expression and options (gim)
+              provenRegex => {
+                const args = compactEmpty(R.split('/', provenRegex));
+                return new RegExp(...args).test(keyOrIndex);
+              },
+              // If aKeyOrIndex is '*' or equals keyOrIndex always return true
+              str => R.includes(str, ['*', keyOrIndex])
+            )(aKeyOrIndex);
+          },
           R.head
         ),
         // Matches the keyOrIndex at the head. Return the tail
@@ -938,9 +1383,10 @@ const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrInde
   // If no path is down to zero length return the item and the paths
   // For pick:
   // If no path matches the path to the item return null so we can throw away the item
-  // If any path is not down to zero return the item and the paths
+  // If any path is not down to zero return the item and the paths, unless item is a primitive meaning it can't match
+  // a path
   return R.ifElse(
-    eliminateItemPredicate,
+    tailPaths => eliminateItemPredicate(tailPaths, item),
     R.always(null),
     p => ({item: item, paths: R.map(R.join('.'), p)})
   )(tailPathsStillMatchingItemPath);
@@ -953,48 +1399,81 @@ const _omitDeepPathsEliminateItemPredicate = paths => R.any(R.compose(R.equals(0
 /**
  * Omit matching paths in a a structure. For instance omitDeepPaths(['a.b.c', 'a.0.1']) will omit keys
  * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
+ * @param {[String]} pathSet paths
+ * @param {Object} obj Object to process
+ * @param {[String]} seen Recursive use only
+ * @returns {Object} The object with the omitted paths
  */
-export const omitDeepPaths = R.curry((pathSet, obj) => R.cond([
-
-    // Arrays
-    [o => Array.isArray(o),
-      list => {
-        // Recurse on each array item that doesn't match the paths.
-        // We pass the key without the index
-        // If any path matches the path to the value we return the item and the matching paths
-        const survivingItems = compact(R.addIndex(R.map)(
-          (item, index) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, item, index),
-          list
-        ));
-        return R.map(({paths, item}) => omitDeepPaths(paths, item), survivingItems);
-      }
-    ],
-    // Primitives always pass.
-    [R.complement(R.is(Object)), primitive => primitive],
-    // Objects
-    [R.T,
-      o => {
-        // Recurse on each object value that doesn't match the paths.
-        const survivingItems = compact(R.mapObjIndexed(
-          // If any path matches the path to the value we return the value and the matching paths
-          // If no path matches it we know the value shouldn't be omitted so we don't recurse on it below
-          (value, key) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, value, key),
-          o
-        ));
-        // Only recurse on items from the object that are still eligible for omitting
-        return R.map(({paths, item}) => omitDeepPaths(paths, item), survivingItems);
-      }
+export const omitDeepPaths = (pathSet, obj, seen = []) => {
+  return R.cond([
+      // Arrays
+      [o => Array.isArray(o),
+        list => {
+          // Recurse on each array item that doesn't match the paths.
+          // We pass the key without the index
+          // If any path matches the path to the value we return the item and the matching paths
+          const survivingItems = compact(R.addIndex(R.map)(
+            (item, index) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, item, index),
+            list
+          ));
+          return R.map(({paths, item}) => {
+              return omitDeepPaths(paths, item, seen);
+            },
+            survivingItems);
+        }
+      ],
+      // Primitives always pass.
+      [R.complement(isObject), primitive => primitive],
+      // Leave the func alone
+      [R.is(Function), func => func],
+      // Objects
+      [R.T,
+        o => {
+          // Recurse on each object value that doesn't match the paths.
+          const survivingItems = compact(R.mapObjIndexed(
+            // If any path matches the path to the value we return the value and the matching paths
+            // If no path matches it we know the value shouldn't be omitted so we don't recurse on it below
+            (value, key) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, value, key),
+            o
+          ));
+          // Only recurse on items from the object that are still eligible for omitting
+          return R.map(
+            ({paths, item}) => {
+              const cacheObjs = R.filter(R.either(Array.isArray, isObject), [item]);
+              if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+                // Never recurse on an instance that has been seen
+                return item;
+              }
+              return omitDeepPaths(paths, item, R.concat(seen, cacheObjs));
+            },
+            survivingItems
+          );
+        }
+      ]
     ]
-  ]
-  )(obj)
-);
+  )(obj);
+};
 
 // This eliminate predicate returns true if no path is left matching the item's path so the item should not
-// be picked
-const _pickDeepPathsEliminateItemPredicate = paths => R.compose(R.equals(0), R.length)(paths);
+// be picked. It also returns true if the there are paths with length greater than 0
+// but item is a primitive, meaning it can't match a path
+const _pickDeepPathsEliminateItemPredicate = (paths, item) => {
+  return R.either(
+    R.compose(R.equals(0), R.length),
+    pths => {
+      return R.both(
+        // Item is not an object
+        () => R.complement(R.is)(Object, item),
+        ps => R.any(R.compose(R.lt(0), R.length), ps)
+      )(pths);
+    }
+  )(paths);
+};
 /**
  * Pick matching paths in a a structure. For instance pickDeepPaths(['a.b.c', 'a.0.1']) will pick only keys
- * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}
+ * c in {a: {b: c: ...}}} and 'y' in {a: [['x', 'y']]}.
+ * Use * in the path to capture all array items or keys, e.g. ['a.*.c./1|3/']
+ * to get all items 0 or 3 of c that is in all items of a, whether a is an object or array
  */
 export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
     // Arrays
@@ -1003,24 +1482,30 @@ export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
         // Recurse on each array item that doesn't match the paths. We pass the key without the index
         // We pass the key without the index
         // If any path matches the path to the value we return the item and the matching paths
-        const survivingItems = compact(R.addIndex(R.map)(
-          (item, index) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index),
+        const survivingItemsEachWithRemainingPaths = compact(R.addIndex(R.map)(
+          (item, index) => {
+            return _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index);
+          },
           list
         ));
         return R.map(
           R.ifElse(
-            // If the only path is now empty we have a match with the items path and keep the item.
+            // If the only paths are now empty we have a match with the items path and keep the item.
             // Otherwise we pick recursively
-            ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
-            R.prop('item'),
+            ({paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+            ({item}) => item,
             ({item, paths}) => pickDeepPaths(paths, item)
           ),
-          survivingItems
+          survivingItemsEachWithRemainingPaths
         );
       }
     ],
-    // Primitives always pass.
-    [R.complement(R.is(Object)), primitive => primitive],
+    // Primitives never match because we'd only get here if we have pathSets remaining and no path can match a primitive
+    [R.complement(isObject),
+      () => {
+        throw new Error('pickDeepPaths encountered a value that is not an object or array at the top level. This should never happens and suggests a bug in this function');
+      }
+    ],
     // Objects
     [R.T,
       o => {
@@ -1060,3 +1545,51 @@ export const splitAtInclusive = (index, list) => {
     R.last(pair)
   ];
 };
+
+/**
+ * Whether the objects are equal at the given propStr. Null objects are never equal
+ * @param {String} stringPath Path of props separated by dots
+ * @param {Object|Array} obj1 The object to compare to obj2 at the propStr
+ * @param {Object|Array} obj2 The object to compare to obj1 at the propStr
+ * @returns {Boolean} True or false
+ */
+export const eqStrPath = R.curry((stringPath, obj1, obj2) => {
+  return R.apply(R.equals, R.map(strPathOr(null, stringPath), [obj1, obj2]));
+});
+
+/**
+ * Whether the objects are equal at the given strPaths. Null objects are never equal
+ * @param [{String}] strPaths Paths of props separated by dots
+ * @param {Object|Array} obj1 The object to compare to obj2 at the propStr
+ * @param {Object|Array} obj2 The object to compare to obj1 at the propStr
+ * @returns {Boolean} True or false
+ */
+export const eqStrPathsAll = R.curry(
+  (strPaths, obj1, obj2) => R.all(prop => eqStrPath(prop, obj1, obj2), strPaths)
+);
+
+/**
+ * Like eqStrPathsAll but also takes an object that allows overriding the comparison method
+ * by strPath
+ * @param [{String}] strPaths Paths of props separated by dots, e.g. 'foo.bar.0.woo' where 0 is an index of an array
+ * @param {Object} customEqualsObj Keyed by strPaths that need overridden comparison, valued by an equality
+ * predicate that takes the same args as eqStrPath: strPath, obj1, obj2
+ * @param {Object|Array} obj1 The object to compare to obj2 at the propStr
+ * @param {Object|Array} obj2 The object to compare to obj1 at the propStr
+ * @returns {Boolean} True or false
+ */
+export const eqStrPathsAllCustomizable = R.curry(
+  (strPaths, customEqualsObj, obj1, obj2) => {
+    return R.all(
+      stringPath => {
+        return strPathOr(
+          // Default
+          eqStrPath,
+          stringPath,
+          customEqualsObj
+        )(stringPath, obj1, obj2);
+      },
+      strPaths
+    );
+  }
+);
