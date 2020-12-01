@@ -10,6 +10,7 @@
  */
 
 import {mapToMergedResponseAndInputs, mapToMergedResponseAndInputsMDeep} from './monadHelpers.js';
+import {strPathTruthyOr} from './functions';
 
 export {
   reqStrPath,
@@ -51,6 +52,7 @@ export {
   orEmpty,
   alwaysFunc,
   strPathOr,
+  strPathTruthyOr,
   strPathsOr,
   strPathOrNullOk,
   strPathsOrNullOk,
