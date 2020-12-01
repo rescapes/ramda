@@ -157,3 +157,4 @@ export {memoized, memoizedWith} from './memoizeHelpers.js';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers.js';
 export {stringifyError} from './errorHelpers.js';
 export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers.js';
+export {defaultNode} from './nodeHelpers'
