@@ -11,6 +11,9 @@
 import * as R from 'ramda';
 import NamedTupleMap from 'namedtuplemap';
 import {flattenObj} from './functions.js';
+import T from 'folktale/concurrency/task/index.js';
+
+const {of} = T;
 
 /**
  *
@@ -36,6 +39,38 @@ const memoize = fn => {
   // Give a meaningful displayName to the memoized function
   if (fn.name) {
     memoized.displayName = fn.name + 'Memoized';
+  }
+
+  return memoized;
+};
+
+/**
+ * Like memoize but operates on a function returning a task.
+ * We cache the mapped value of the task if the task with the given arguments hasn't been run.
+ * If it has we simply return the cached result wrapped in task.of
+ * @param fnTask Any-arity function returning a task
+ * @returns {Task} A task that runs and resolves to its result or a task resolving to the result in cache
+ */
+const memoizeTask = fnTask => {
+  const cache = new NamedTupleMap();
+
+  const memoized = R.curry((normalArgs, flatArg) => {
+    if (!cache.has(flatArg)) {
+      return R.map(
+        result => {
+          cache.set(flatArg, result);
+          return result
+        },
+        R.apply(fnTask, normalArgs)
+      )
+    }
+    return of(cache.get(flatArg));
+  });
+
+
+  // Give a meaningful displayName to the memoized function
+  if (fnTask.name) {
+    memoized.displayName = fnTask.name + 'Memoized';
   }
 
   return memoized;
@@ -78,10 +113,31 @@ export const memoizedWith = (argumentFilter, func) => {
   return R.curryN(func.length, (...args) => {
     // Function that flattens the original args and called memoizedFunc with the single flattened arg
     return R.compose(
-      memo(args),
+      flatArgs => memo(args, flatArgs),
       flattenObj,
       // Filter out unneeded parts of the arguments, or does nothing if argumentFilter is ...args => args
       R.apply(argumentFilter)
     )(args);
   });
 };
+
+/**
+ * Memoizes the aync response of task so it doesn't need to be called twice with the same arguments
+ * @param argumentFilter
+ * @param fnTask Task of any arity returning a task
+ * @returns {function(*=): (*)}
+ */
+export const memoizedTaskWith = (argumentFilter, fnTask) => {
+  // memoize(func) returns the memoized function expecting args and the flattened obj
+  const memoTask = memoizeTask(fnTask);
+  // Returns a function expecting the args for fun
+  return R.curryN(fnTask.length, (...args) => {
+    // Function that flattens the original args and called memoizedFunc with the single flattened arg
+    const flatArgs = R.compose(
+      flattenObj,
+      // Filter out unneeded parts of the arguments, or does nothing if argumentFilter is ...args => args
+      R.apply(argumentFilter)
+    )(args);
+    return memoTask(args, flatArgs)
+  });
+}
