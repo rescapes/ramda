@@ -52,6 +52,7 @@ export {
   alwaysFunc,
   strPathOr,
   strPathsOr,
+  pathOr,
   strPathOrNullOk,
   strPathsOrNullOk,
   removeDuplicateObjectsByProp,

@@ -632,6 +632,21 @@ export const reqPath = R.curry((path, obj) => {
 });
 
 /**
+ * Sample as strPathOr, but for a list of paths
+ * @param {Object} defaultValue. Default value if value is null undefined.
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {Object} The resolved value or the defaultValue
+ */
+export const pathOr = R.curry((defaultValue, path, props) => {
+  const result = R.view(R.lensPath(path), props);
+  return R.when(
+    R.isNil,
+    R.always(defaultValue)
+  )(result);
+});
+
+/**
  * Expects a prop path and returns a function expecting props,
  * which resolves the prop indicated by the string. Returns Result.Error if there is not match
  * @param {String} str dot-separated prop path

@@ -62,6 +62,7 @@ import {
   onlyOneValue,
   orEmpty,
   overDeep,
+  pathOr,
   pickDeepPaths,
   removeDuplicateObjectsByProp,
   renameKey,
@@ -212,23 +213,23 @@ describe('helperFunctions', () => {
       );
     };
     expect(
-        omitDeep(['recursive'],
-          mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
-            itemMatchBy,
-            renameSnippy,
-            {
-              foo: 1,
-              bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7},
-              noids: [{pasta: 'elbow'}, {recursive}],
-              noid: {sneeze: 'guard'}
-            },
-            {
-              foo: 4,
-              bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]},
-              noids: [{pasta: 'noodle'}, {pasta: 'leg'}, {recursive}],
-              noid: {sneeze: 'free'}
-            }
-          ))).toEqual({
+      omitDeep(['recursive'],
+        mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight(
+          itemMatchBy,
+          renameSnippy,
+          {
+            foo: 1,
+            bar: {bizz: [{buddy: 2, id: 2, cow: 4}, {brewer: 9}], buzz: 7},
+            noids: [{pasta: 'elbow'}, {recursive}],
+            noid: {sneeze: 'guard'}
+          },
+          {
+            foo: 4,
+            bar: {bizz: [5, {buddy: 10, id: 2, snippy: 1}]},
+            noids: [{pasta: 'noodle'}, {pasta: 'leg'}, {recursive}],
+            noid: {sneeze: 'free'}
+          }
+        ))).toEqual({
       foo: 4,
       bar: {bizz: [5, {buddy: 10, id: 2, cow: 4, snappy: 1}], buzz: 7},
       noids: [{pasta: 'noodle'}, {pasta: 'leg'}, {}],
@@ -330,6 +331,11 @@ describe('helperFunctions', () => {
   test('strPathOr', () => {
     expect(strPathOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(false);
     expect(strPathOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+  });
+
+  test('pathOr', () => {
+    expect(pathOr(1, ['tan', 'khaki', 'pants'], {tan: {khaki: {pants: false}}})).toEqual(false);
+    expect(pathOr(1, ['tan', 'khaki', 'blazer'], {tan: {khaki: {pants: false}}})).toEqual(1);
   });
 
   test('strPathsOr', () => {
