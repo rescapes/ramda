@@ -85,6 +85,7 @@ import {
 } from './functions.js';
 import Result from 'folktale/result/index.js';
 import {reqStrPathThrowing} from './throwingFunctions.js';
+import {strPathTruthyOr} from './functions';
 
 const recurseMe = {
   the: {
@@ -340,6 +341,15 @@ describe('helperFunctions', () => {
 
   test('strPathsOr', () => {
     expect(strPathsOr(1, ['tan.khaki.pants', 'tan.khaki.blazer'], {tan: {khaki: {pants: false}}})).toEqual([false, 1]);
+  });
+
+  test('strPathTruthyOr', () => {
+    expect(strPathTruthyOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: null}}})).toEqual(1);
+    expect(strPathTruthyOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: 0}}})).toEqual(1);
+    expect(strPathTruthyOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: false}}})).toEqual(1);
+    expect(strPathTruthyOr(1, 'tan.khaki.pants', {tan: {khaki: {pants: 'cookie'}}})).toEqual('cookie');
+    expect(strPathTruthyOr(1, 'tan.khaki.blazer', {tan: {khaki: {pants: false}}})).toEqual(1);
+    expect(strPathTruthyOr(1, 'tan.khaki.blazer', {tan: {khaki: 'cabbage'}})).toEqual(1);
   });
 
   test('strPathOrNullOk', () => {

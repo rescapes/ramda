@@ -9,7 +9,8 @@ const config = {
     'src/index.mjs',
     'src/functions.js',
     'src/throwingFunctions.js',
-    'src/monadHelpers.js'
+    'src/monadHelpers.js',
+    'src/nodeHelpers.js'
   ],
   plugins: []
 };

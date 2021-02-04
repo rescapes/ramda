@@ -10,6 +10,7 @@
  */
 
 import {mapToMergedResponseAndInputs, mapToMergedResponseAndInputsMDeep} from './monadHelpers.js';
+import {strPathTruthyOr} from './functions';
 
 export {
   reqStrPath,
@@ -51,6 +52,7 @@ export {
   orEmpty,
   alwaysFunc,
   strPathOr,
+  strPathTruthyOr,
   strPathsOr,
   pathOr,
   strPathOrNullOk,
@@ -152,7 +154,8 @@ export {
   retryTask,
   mapMonadByConfig
 } from './monadHelpers.js';
-export {memoized, memoizedWith} from './memoizeHelpers.js';
+export {memoized, memoizedWith, memoizedTaskWith} from './memoizeHelpers.js';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers.js';
 export {stringifyError} from './errorHelpers.js';
 export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers.js';
+export {defaultNode} from './nodeHelpers'

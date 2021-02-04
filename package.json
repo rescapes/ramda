@@ -1,6 +1,6 @@
 {
   "name": "@rescapes/ramda",
-  "version": "1.6.167",
+  "version": "1.6.169",
   "description": "Functions to augment Ramda and Folktale",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -23,7 +23,7 @@
     "test:watch": "yarn test -- --watch",
     "test:cov": "yarn test -- --coverage",
     "build": "rollup -c",
-    "prepare": "yarn run clean && yarn run lint && yarn test && yarn run build",
+    "prepare": "yarn run clean && yarn test && yarn run build",
     "docs:clean": "rimraf _book",
     "docs:prepare": "gitbook install",
     "docs:build": "yarn run docs:prepare && gitbook build -g reactjs/redux && cp logo/apple-touch-icon.png _book/gitbook/images/apple-touch-icon-precomposed-152.png && cp logo/favicon.ico _book/gitbook/images",

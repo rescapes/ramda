@@ -12,6 +12,12 @@
 import {memoized, memoizedWith} from './memoizeHelpers.js';
 import * as R from 'ramda';
 import NamedTupleMap from 'namedtuplemap';
+import {memoizedTaskWith} from './memoizeHelpers';
+import {composeWithChain, defaultRunConfig, mapToNamedResponseAndInputs} from './monadHelpers';
+import T from 'folktale/concurrency/task/index.js';
+import {map} from 'ramda';
+
+const {of} = T;
 
 describe('memoizeHelpers', () => {
   test('NamedTupleMap', async () => {
@@ -84,5 +90,63 @@ describe('memoizeHelpers', () => {
     const offtheshizzle = {crazy: 889, alot: {of: {stuff: {that: {equals: 6}}}}};
     const mostLater = memoizedFunc(1, 2, offtheshizzle);
     expect(mostLater).toEqual(R.merge(now, {i: 2 + 889, j: 2 + 6}));
+  });
+
+  test('memoizedTaskWith', done => {
+    let i = 0;
+    // The func increments i in order to prove that the function is memoized and only called when arguments change
+    const func = (apple, orange, universe) => {
+      i++;
+      return of({
+        apple,
+        orange,
+        i: i + universe.crazy,
+        j: i + R.or(0, R.view(R.lensPath(['alot', 'of', 'stuff', 'that', 'equals']), universe))
+      });
+    };
+
+    const memoizedFuncTask = memoizedTaskWith(
+      (apple, orange, universe) => [apple, orange, R.omit(['alot'], universe)],
+      func
+    );
+
+    const errors = [];
+    const crazy = {crazy: 888, alot: {of: {stuff: {that: {equals: 5}}}}};
+    composeWithChain([
+      mapToNamedResponseAndInputs('mostLater',
+        ({now, muchLater}) => {
+          expect(muchLater).toEqual(now);
+          // When we change crazy we get a cash miss and everything updates
+          const offtheshizzle = {crazy: 889, alot: {of: {stuff: {that: {equals: 6}}}}};
+          return memoizedFuncTask(1, 2, offtheshizzle);
+        }
+      ),
+      mapToNamedResponseAndInputs('muchLater',
+        ({now, later}) => {
+          expect(later).toEqual(now);
+          // Even though this value would give a different result, we don't consider alot... in the memoize so a cached
+          // result is returned
+          const offthehizzle = {crazy: 888, alot: {of: {stuff: {that: {equals: 6}}}}};
+          return memoizedFuncTask(1, 2, offthehizzle);
+        }
+      ),
+      mapToNamedResponseAndInputs('later',
+        ({now}) => {
+          // j should have the results of even though we didn't use alot...it for the memoize
+          expect(now.j).toEqual(1 + 5);
+          // This should hit the cache and not call the function
+          return memoizedFuncTask(1, 2, crazy);
+        }
+      ),
+      mapToNamedResponseAndInputs('now',
+        ({crazy}) => {
+          // Separate args to make sure currying works
+          return memoizedFuncTask(1)(2)(crazy);
+        })
+    ])({crazy}).run().listen(defaultRunConfig({
+      onResolved: ({now, mostLater}) => {
+        expect(mostLater).toEqual(R.merge(now, {i: 2 + 889, j: 2 + 6}));
+      }
+    }, errors, done));
   });
 });

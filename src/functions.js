@@ -668,7 +668,7 @@ export const strPath = R.curry((str, props) => {
 });
 
 /**
- * Like strPath but defaults the given value
+ * Like strPath but defaults to the given value
  * @param {Object} defaultValue. Default value if value is null undefined.
  * @param {String} str dot-separated prop path
  * @param {Object} props Object to resolve the path in
@@ -678,6 +678,22 @@ export const strPathOr = R.curry((defaultValue, str, props) => {
   const result = R.view(R.lensPath(R.split('.', str)), props);
   return R.when(
     R.isNil,
+    R.always(defaultValue)
+  )(result);
+});
+
+/**
+ * Like strPath but defaults to the given value if not  truthy, meaning
+ * that empty strings also default
+ * @param {Object} defaultValue. Default value if falsy
+ * @param {String} str dot-separated prop path
+ * @param {Object} props Object to resolve the path in
+ * @return {function(*=)}
+ */
+export const strPathTruthyOr = R.curry((defaultValue, str, props) => {
+  const result = R.view(R.lensPath(R.split('.', str)), props);
+  return R.when(
+    R.complement(R.identity),
     R.always(defaultValue)
   )(result);
 });
