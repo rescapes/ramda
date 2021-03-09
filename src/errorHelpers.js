@@ -18,8 +18,15 @@ import {inspect} from 'util';
  * @return {string} The json stringified error
  */
 export const stringifyError = err => {
-  // If the error isn't an Error object, wrap it
-  const wrappedError = wrapError(err);
+  // If any internal error exists use it instead. I think these are always more important than the external
+  // error
+  const internalErrorProp = R.find(prop => R.is(Error, R.prop(prop, err)), Object.getOwnPropertyNames(err));
+  const wrappedError = R.ifElse(
+    () => R.isNil(internalErrorProp),
+    // If the error isn't an Error object, wrap it
+    err => wrapError(err),
+    err => R.prop(internalErrorProp, err)
+  )(err);
 
   const obj = R.fromPairs(R.map(
     key => [key, wrappedError[key]],
@@ -28,7 +35,10 @@ export const stringifyError = err => {
   // Use replace to convert escaped in stack \\n to \n
   return R.replace(/\\n/g, '\n', JSON.stringify(
     // Put message and stack first
-    R.merge(R.pick(['message', 'stack'], obj), R.omit(['message', 'stack'])),
+    R.merge(
+      R.pick(['message', 'stack'], obj),
+      R.omit(['message', 'stack'])
+    ),
     null,
     2
   ));
