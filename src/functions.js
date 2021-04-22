@@ -1578,6 +1578,16 @@ export const splitAtInclusive = (index, list) => {
 };
 
 /**
+ * Whether the dot-separated string path of obj resolves to value or not
+ * @param {String} strPath Path of props separated by dots
+ * @param {*} value The value to check
+ * @param {Object|Array} obj The object or array to check
+ * @returns {Boolean} True or false
+ */
+export const strPathEq = R.curry((strPath, value, obj) => {
+  return R.pathEq(R.split('.', strPath), value, obj)
+});
+/**
  * Whether the objects are equal at the given propStr. Null objects are never equal
  * @param {String} stringPath Path of props separated by dots
  * @param {Object|Array} obj1 The object to compare to obj2 at the propStr

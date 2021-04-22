@@ -84,6 +84,7 @@ export {
   applyDeep,
   applyDeepWithKeyWithRecurseArraysAndMapObjs,
   splitAtInclusive,
+  strPathEq,
   eqStrPath,
   eqStrPathsAll,
   eqStrPathsAllCustomizable,

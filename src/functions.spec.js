@@ -73,7 +73,7 @@ import {
   reqPathPropEq,
   reqStrPath,
   splitAtInclusive,
-  strPath,
+  strPath, strPathEq,
   strPathOr,
   strPathOrNullOk,
   strPathsOr,
@@ -287,6 +287,13 @@ describe('helperFunctions', () => {
       path: ['a', 'b']
     });
   });
+
+  test('strPathEq', () => {
+    expect(strPathEq('jolly.rogers.0.candy', 'red', {jolly: {rogers: [{candy: 'red'}]}})).toBeTruthy()
+    expect(strPathEq('jolly.rogers.0.candy', 'blue', {jolly: {rogers: [{candy: 'red'}]}})).toBeFalsy()
+    expect(strPathEq('0.jolly.rogers.0.candy', 'red', [{jolly: {rogers: [{candy: 'red'}]}}])).toBeTruthy()
+    expect(strPathEq('0.jolly.rogers.0.candy', 'blue', [{jolly: {rogers: [{candy: 'red'}]}}])).toBeFalsy()
+  })
 
   test('reqStrPath', () => {
     expect(reqStrPath('foo.bar.goo', {
