@@ -787,6 +787,8 @@ describe('helperFunctions', () => {
   });
 
   test('flattenObj', () => {
+    const f = () => 'func you'
+    expect(flattenObj({a: 1, f})).toEqual({a: 1, f});
     expect(flattenObj({a: 1})).toEqual({a: 1});
     expect(flattenObj({a: 1, b: {johnny: 'b good'}})).toEqual({a: 1, 'b.johnny': 'b good'});
     expect(flattenObj(

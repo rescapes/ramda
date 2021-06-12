@@ -1214,20 +1214,30 @@ export const flattenObjUntil = (predicate, obj) => {
 
 const _flattenObj = (config, obj, keys = []) => {
   const predicate = R.propOr(null, 'predicate', config);
-  return R.ifElse(
+  return R.cond([
+    [
+      // Leave functions alone
+      o => R.is(Function, o),
+      o => [[R.join('.', keys), o]]
+    ],
     // If we have an object
-    o => R.both(
-      isObject,
-      oo => R.when(
-        () => predicate,
-        ooo => R.complement(predicate)(ooo)
-      )(oo)
-    )(o),
-    // Then recurse on each object or array value
-    o => chainObjToValues((oo, k) => _flattenObj(config, oo, R.concat(keys, [k])), o),
+    [
+      o => R.both(
+        isObject,
+        oo => R.when(
+          () => predicate,
+          ooo => R.complement(predicate)(ooo)
+        )(oo)
+      )(o),
+      // Then recurse on each object or array value
+      o => chainObjToValues((oo, k) => _flattenObj(config, oo, R.concat(keys, [k])), o)
+    ],
     // If not an object return flat pair
-    o => [[R.join('.', keys), o]]
-  )(obj);
+    [
+      R.T,
+      o => [[R.join('.', keys), o]]
+    ]
+  ])(obj);
 };
 
 /**
