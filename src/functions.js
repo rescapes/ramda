@@ -1212,7 +1212,7 @@ export const flattenObjUntil = (predicate, obj) => {
   return R.fromPairs(_flattenObj({predicate}, obj));
 };
 
-const _flattenObj = (config, obj, keys = []) => {
+const _flattenObj = (config, obj, keys = [], seen = []) => {
   const predicate = R.propOr(null, 'predicate', config);
   return R.cond([
     [
@@ -1230,7 +1230,15 @@ const _flattenObj = (config, obj, keys = []) => {
         )(oo)
       )(o),
       // Then recurse on each object or array value
-      o => chainObjToValues((oo, k) => _flattenObj(config, oo, R.concat(keys, [k])), o)
+      o => chainObjToValues((oo, k) => {
+        if ((R.is(Object, oo) || Array.isArray(oo)) && seen.includes(oo)) {
+          // can't continue infinitely
+          return [[R.join('.', keys), o]]
+        }
+        // Mark arrays and objects (references) to prevent recursion
+        const newSeen = (R.is(Object, oo) || Array.isArray(oo)) ? seen.concat(oo) : seen;
+        return _flattenObj(config, oo, R.concat(keys, [k]), newSeen)
+      }, o)
     ],
     // If not an object return flat pair
     [
