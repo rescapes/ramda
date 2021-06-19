@@ -158,7 +158,8 @@ export {
   composeWithMap,
   composeWithMapMDeep,
   retryTask,
-  mapMonadByConfig
+  mapMonadByConfig,
+ isResolvePropPathForAllSets
 } from './monadHelpers.js';
 export {memoized, memoizedWith, memoizedTaskWith} from './memoizeHelpers.js';
 export {objectDiff, prettyPrintObjectDiff} from './diffHelpers.js';
