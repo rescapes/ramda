@@ -23,7 +23,6 @@ export {
   reqPath,
   reqPathPropEq,
   strPath,
-  isResolvePropPathForAllSets,
   reqStrPath,
   strPathOr
 } from './propPathFunctions'
@@ -92,6 +91,7 @@ export {
   toArrayIfNot,
   isObject
 } from './functions.js';
+
 export {
   throwIfSingleResultError,
   mappedThrowIfResultError,
@@ -100,10 +100,14 @@ export {
   findOneValueByParamsThrowing,
   onlyOneThrowing,
   onlyOneValueThrowing,
+} from './throwingFunctions.js';
+
+export {
   reqPathPropEqThrowing,
   reqPathThrowing,
   reqStrPathThrowing
-} from './throwingFunctions.js';
+} from './propPathFunctionsThrowing'
+
 export {
   defaultRunConfig,
   defaultRunToResultConfig,

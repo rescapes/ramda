@@ -9,13 +9,11 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {memoized, memoizedWith} from './memoizeHelpers.js';
+import {memoized, memoizedTaskWith, memoizedWith} from './memoizeHelpers.js';
 import * as R from 'ramda';
 import NamedTupleMap from 'namedtuplemap';
-import {memoizedTaskWith} from './memoizeHelpers';
-import {composeWithChain, defaultRunConfig, mapToNamedResponseAndInputs} from './monadHelpers';
+import {composeWithChain, defaultRunConfig, mapToNamedResponseAndInputs} from './monadHelpers.js';
 import T from 'folktale/concurrency/task/index.js';
-import {map} from 'ramda';
 
 const {of} = T;
 
@@ -149,4 +147,5 @@ describe('memoizeHelpers', () => {
       }
     }, errors, done));
   });
+
 });

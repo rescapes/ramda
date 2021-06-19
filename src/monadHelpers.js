@@ -12,11 +12,13 @@
 import T from 'folktale/concurrency/task/index.js';
 import * as R from 'ramda';
 import Result from 'folktale/result/index.js';
-import {reqStrPathThrowing} from './throwingFunctions.js';
 import Maybe from 'folktale/maybe/index.js';
 import {stringifyError} from './errorHelpers.js';
 import {compact, isObject, toArrayIfNot} from './functions.js';
 import {inspect} from 'util';
+import {strPathOr} from "./propPathFunctions";
+import {reqStrPathThrowing} from "./propPathFunctionsThrowing";
+
 const {Just} = Maybe;
 const {fromPromised, of, rejected, task, waitAll} = T;
 
@@ -1237,10 +1239,14 @@ const _mapResultToOutputKey = (resultOutputKey, remainingInputObj, result) => R.
 const _separateResultInputFromRemaining = (resultInputKey, inputObj) => {
   if (resultInputKey) {
     // Omit resultInputKey since we need to process it separately
+    const value = strPathOr(null, resultInputKey, inputObj);
+    if (!value) {
+      throw Error(`Bad configuration, ${inspect(inputObj, {depth: 5})} lacks ${resultInputKey}`);
+    }
     return {
       remainingInputObj: R.omit([resultInputKey], inputObj),
       // inputObj[resultInputKey] must exist
-      inputResult: reqStrPathThrowing(resultInputKey, inputObj)
+      inputResult: value
     };
   }
   // No resultInputKey, so the the entire input is an inputObj
@@ -1762,3 +1768,25 @@ export const retryTask = (tsk, times, errors) => {
   return _retryTask(times);
 };
 
+
+/**
+ * Returns true if at least one path in each propPathSet resolved to truthy in propSets
+ * E.g. for propSets {foo: {bar: 1}, tomato: {potato: [1,2,3]}}
+ * propPathSets [['foo.bar'], ['tomato.potato.2', 'tomato.carrot.2']] returns true,
+ * propPathSets [['foo.bar'], ['tomato.zucchini.2', 'tomato.carrot.2']] returns false
+ * @param propSets
+ * @param propPathSets
+ * @returns {*}
+ */
+export const isResolvePropPathForAllSets = (propSets, propPathSets) => {
+  return R.all(
+    R.length,
+    R.map(
+      compact,
+      mapMDeep(2,
+        path => R.propOr(null, path, propSets),
+        propPathSets
+      )
+    )
+  )
+}

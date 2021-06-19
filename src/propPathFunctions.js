@@ -1,4 +1,4 @@
-import {compact} from "./functions";
+import {compact} from "./functions.js";
 import * as R from 'ramda';
 import Rm from 'ramda-maybe';
 import Result from 'folktale/result/index.js';
@@ -237,25 +237,3 @@ export const eqStrPathsAllCustomizable = R.curry(
     );
   }
 );
-
-/**
- * Returns true if at least one path in each propPathSet resolved to truthy in propSets
- * E.g. for propSets {foo: {bar: 1}, {tomato: {potato: [1,2,3]}}}
- * propPathSets [['foo.bar'], ['tomato.potato.2', tomato.carrot.2']] returns true,
- * propPathSets [['foo.bar'], ['tomato.zucchini.2', tomato.carrot.2']] returns false
- * @param propSets
- * @param propPathSets
- * @returns {*}
- */
-export const isResolvePropPathForAllSets = (propSets, propPathSets) => {
-  return R.all(
-    R.length,
-    R.map(
-      compact,
-      mapMDeep(2,
-        path => R.propOr(null, path, propSets),
-        propPathSets
-      )
-    )
-  )
-}

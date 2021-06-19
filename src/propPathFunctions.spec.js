@@ -13,7 +13,7 @@ import {
   strPathsOr,
   strPathsOrNullOk,
   strPathTruthyOr, strPathEq
-} from './propPathFunctions'
+} from './propPathFunctions.js'
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 

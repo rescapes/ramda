@@ -19,7 +19,7 @@ import {
   composeWithMapMDeep,
   defaultOnRejected,
   defaultRunConfig,
-  defaultRunToResultConfig,
+  defaultRunToResultConfig, isResolvePropPathForAllSets,
   lift1stOf2ForMDeepMonad,
   mapExceptChainDeepestMDeep,
   mapMDeep,
@@ -2126,6 +2126,14 @@ describe('monadHelpers', () => {
       }
     }, errs, done));
   });
-})
-;
+
+  test('isResolvePropPathForAllSets', () => {
+    const propSets = {foo: {bar: 1}, tomato: {potato: [1, 2, 3]}};
+    expect(isResolvePropPathForAllSets(propSets,
+      [['foo.bar'], ['tomato.potato.2', 'tomato.carrot.2']])
+    ).toBeTruthy
+    expect(isResolvePropPathForAllSets(propSets, [['foo.bar'], ['tomato.zucchini.2', 'tomato.carrot.2']])
+    ).toBeFalsy;
+  })
+});
 

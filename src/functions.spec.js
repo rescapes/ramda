@@ -71,7 +71,7 @@ import {
   unflattenObjNoArrays
 } from './functions.js';
 import Result from 'folktale/result/index.js';
-import {reqStrPathThrowing} from './throwingFunctions.js';
+import {reqStrPathThrowing} from './propPathFunctionsThrowing.js';
 
 const recurseMe = {
   the: {

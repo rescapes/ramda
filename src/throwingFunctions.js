@@ -11,8 +11,7 @@
  * Functions that the trowing versions from functions.js
  */
 
-import {findOne, onlyOne, onlyOneValue, keyStringToLensPath} from './functions.js';
-import {reqPath, reqPathPropEq} from './propPathFunctions.js'
+import {findOne, onlyOne, onlyOneValue} from './functions.js';
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 import {inspect} from 'util';
@@ -72,70 +71,6 @@ export const mappedThrowIfResultError = R.curry((func, result) => {
   }
 );
 
-/**
- * Calls functions.reqPath and throws if the reqPath does not resolve to a non-nil
- * @params {[String]} Path the Ramda lens style path, e.g. ['x', 1, 'y']
- * @params {Object} obj The obj to query
- * @returns {Object|Exception} The value of the sought path or throws
- * reqPath:: string -> obj -> a or throws
- */
-export const reqPathThrowing = R.curry((pathList, obj) =>
-  reqPath(pathList, obj).mapError(
-    leftValue => {
-      // If left throw a helpful error
-      throw new Error(
-        R.join(' ', [
-            R.ifElse(
-              R.length,
-              resolved => `Only found non-nil path up to ${R.join('.', resolved)}`,
-              R.always('Found no non-nil value')
-            )(leftValue.resolved),
-            `of path ${R.join('.', pathList)} for obj ${inspect(obj, {depth: 3})}`
-          ]
-        )
-      );
-    },
-    // If right return the value
-    R.identity
-  ).unsafeGet()
-);
-
-/**
- * Expects a prop path and returns a function expecting props,
- * which resolves the prop indicated by the string. Throws if there is no match.
- * Any detected standalone numbrer is assumed to be an index and converted to an int
- * @param {String} str dot-separated prop path
- * @param {Object} props Object to resolve the path in
- * @return {function(*=)}
- */
-export const reqStrPathThrowing = R.curry(
-  (str, props) => {
-    return reqPathThrowing(keyStringToLensPath(str), props);
-  }
-);
-
-/**
- * Calls functions.reqPathPropEq and throws if the reqPath does not resolve to a non-nil
- * @params {[String]} Path the Ramda lens style path, e.g. ['x', 1, 'y']
- * @params {*} Value to compare to result of reqPath
- * @params {Object} obj The obj to query
- * @returns {Boolean|Exception} true|false if the path is valid depending whether if the
- * resulting value matches val. throws if the path is invalid
- * reqPath:: Boolean b = string -> obj -> b or throws
- */
-export const reqPathPropEqThrowing = R.curry((path, val, obj) =>
-  reqPathPropEq(path, val, obj).mapError(
-    leftValue => {
-      // If left throw a helpful error
-      throw new Error(
-        [leftValue.resolved.length ?
-          `Only found non-nil path up to ${leftValue.resolved.join('.')}` :
-          'Found no non-nil value of path',
-          `of ${path.join('.')} for obj ${inspect(obj, {depth: 2})}`
-        ].join(' '));
-    }
-  ).unsafeGet()
-);
 
 /**
  * Like R.find but expects only one match and works on both arrays and objects
