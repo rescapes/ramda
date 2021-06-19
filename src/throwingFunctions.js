@@ -10,7 +10,9 @@
  *
  * Functions that the trowing versions from functions.js
  */
-import {reqPath, reqPathPropEq, findOne, onlyOne, onlyOneValue, keyStringToLensPath} from './functions.js';
+
+import {findOne, onlyOne, onlyOneValue, keyStringToLensPath} from './functions.js';
+import {reqPath, reqPathPropEq} from './propPathFunctions.js'
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 import {inspect} from 'util';

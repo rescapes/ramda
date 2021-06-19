@@ -164,7 +164,7 @@ describe('monadHelpers', () => {
     const errors = [];
     expect(
       () => task(resolver => {
-        throw new Error('Oh noo!!!');
+        throw new Error('Expected Error: Oh noo!!!');
       }).run().listen(
         defaultRunConfig({
           onResolved: resolve => {
@@ -250,7 +250,7 @@ describe('monadHelpers', () => {
   });
 
 
-  test('defaultRunToRebsultConfig pending deferred problem', done => {
+  test('defaultRunToResultConfig pending deferred problem', done => {
     const delay = (timeout, result, isError = false) => task(resolver =>
       setTimeout(() => {
         // This prevents the pending deferred message the when task c rejects after task b's rejection has cancelled
@@ -266,7 +266,7 @@ describe('monadHelpers', () => {
       }, timeout)
     );
     // https://github.com/origamitower/folktale/issues/153
-    const tsk = waitAll([delay(50, 'a'), delay(20, 'b', true), delay(30, 'c', true)])
+    const tsk = waitAll([delay(50, 'a'), delay(20, 'purposeful test error', true), delay(30, 'c', true)])
       .orElse(e => rejected(console.log('Error: ', e))); // eslint-disable-line no-console
 
     tsk.run().listen(

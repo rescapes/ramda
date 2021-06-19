@@ -9,11 +9,26 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {mapToMergedResponseAndInputs, mapToMergedResponseAndInputsMDeep} from './monadHelpers.js';
-import {strPathTruthyOr} from './functions';
+export {
+  strPathTruthyOr,
+  strPathsOr,
+  pathOr,
+  strPathOrNullOk,
+  strPathsOrNullOk,
+  eqStrPath,
+  eqStrPathsAll,
+  eqStrPathsAllCustomizable,
+  strPathEq,
+  hasStrPath,
+  reqPath,
+  reqPathPropEq,
+  strPath,
+  isResolvePropPathForAllSets,
+  reqStrPath,
+  strPathOr
+} from './propPathFunctions'
 
 export {
-  reqStrPath,
   camelCase,
   capitalize,
   compact,
@@ -27,7 +42,6 @@ export {
   findOneValueByParams,
   findMapped,
   mapKeysAndValues,
-  hasStrPath,
   idOrIdFromObj,
   lowercase,
   mapDefault,
@@ -51,17 +65,8 @@ export {
   onlyOneValue,
   orEmpty,
   alwaysFunc,
-  strPathOr,
-  strPathTruthyOr,
-  strPathsOr,
-  pathOr,
-  strPathOrNullOk,
-  strPathsOrNullOk,
   removeDuplicateObjectsByProp,
   renameKey,
-  reqPath,
-  reqPathPropEq,
-  strPath,
   transformKeys,
   mapObjToValues,
   chainObjToValues,
@@ -84,10 +89,6 @@ export {
   applyDeep,
   applyDeepWithKeyWithRecurseArraysAndMapObjs,
   splitAtInclusive,
-  strPathEq,
-  eqStrPath,
-  eqStrPathsAll,
-  eqStrPathsAllCustomizable,
   toArrayIfNot,
   isObject
 } from './functions.js';
