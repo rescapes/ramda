@@ -25,7 +25,7 @@ export {
   strPath,
   reqStrPath,
   strPathOr
-} from './propPathFunctions'
+} from './propPathFunctions.js'
 
 export {
   camelCase,
