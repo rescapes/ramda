@@ -179,8 +179,13 @@ describe('helperFunctions', () => {
   });
 
   test('mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight', () => {
-    const itemMatchBy = (v, k) => R.when(isObject, R.propOr(v, 'id'))(v);
+    const itemMatchBy = (v, k) => R.when(isObject, R.propOr(null, 'id'))(v);
     const renameSnippy = (left, right, seen = []) => {
+      // Don't merge arrays
+      if (R.all(Array.isArray, [left, right])) {
+        return right
+      }
+
       // Recurse on each item usual, but rename snippy to snappy
       const rename = renameKey(R.lensPath([]), 'snippy', 'snappy');
       return R.mergeWithKey(

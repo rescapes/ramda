@@ -356,21 +356,28 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
           // Create a lookup of l items. If the items don't resolve to an id, filter them out to indicate
           // that they can't be matched by the right side items. This will leave them out of the merged array items,
           // which is find because the right items should be the same if we want to keep them
-          const lItemsByValue = R.compose(
+          const lItemsById = R.compose(
             obj => filterWithKeys((v, k) => R.complement(R.equals)('__NULL__')(k), obj),
             ll => R.indexBy(li => itemMatchBy(li, key) || '__NULL__', ll)
           )(l || []);
+
+          const rItemIds = R.map(
+            rItem => {
+              return itemMatchBy(rItem, key)
+            },
+            r || []
+          )
+
           // Map each item of r
-          return R.addIndex(R.map)(
-            (rItem, i) => {
+          const rightItems = R.addIndex(R.zipWith)(
+            (rItem, rItemId, i) => {
               // If the lookup of the r item matches one of l items' itemMatchBy value,
               // recurse with both items. Else just return r
-              const rItemValue = itemMatchBy(rItem, key);
-              const hasMatchingLItem = R.has(rItemValue, lItemsByValue);
+              const hasMatchingLItem = R.has(rItemId, lItemsById);
               return R.when(
                 () => hasMatchingLItem,
                 () => {
-                  const rItemInLItems = R.prop(rItemValue, lItemsByValue);
+                  const rItemInLItems = R.prop(rItemId, lItemsById);
                   // Pass the index as a key
                   return _mergeDeepWithRecurseArrayItemsByRight(
                     itemMatchBy,
@@ -380,11 +387,19 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
                     i,
                     seen
                   );
-                }
+                },
               )(rItem);
             },
-            r || []
+            r || [],
+            rItemIds || []
           );
+          // If our mergeObject strategy supports concatting the old items to the new unique ones, do it here
+          return mergeObject ? mergeObject(
+            R.values(filterWithKeys((ll, lId) => {
+              return !R.includes(lId, rItemIds)
+            }, lItemsById)),
+            rightItems
+          ) : rightItems;
         }
       ],
       // Primitives. If either is an object skip, it means 1 is null
@@ -420,8 +435,7 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
       ]
     ]
   )([left, right]);
-};
-
+};;
 
 /**
  * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key

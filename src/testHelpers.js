@@ -12,7 +12,7 @@
 import * as R from 'ramda';
 import {keyStringToLensPath} from './functions.js';
 import {taskToPromise} from './monadHelpers.js';
-import {reqStrPathThrowing} from "./propPathFunctionsThrowing";
+import {reqStrPathThrowing} from "./propPathFunctionsThrowing.js";
 
 /**
  * Given a task, wraps it in promise and passes it to Jest's expect.
