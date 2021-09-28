@@ -16,7 +16,7 @@ import Maybe from 'folktale/maybe/index.js';
 import {stringifyError} from './errorHelpers.js';
 import {compact, isObject, toArrayIfNot} from './functions.js';
 import {inspect} from 'util';
-import {strPathOr} from "./propPathFunctions.js";
+import {strPath, strPathOr} from "./propPathFunctions.js";
 import {reqStrPathThrowing} from "./propPathFunctionsThrowing.js";
 
 const {Just} = Maybe;
@@ -1784,7 +1784,7 @@ export const isResolvePropPathForAllSets = (propSets, propPathSets) => {
     R.map(
       compact,
       mapMDeep(2,
-        path => R.propOr(null, path, propSets),
+        path => strPathOr(null, path, propSets),
         propPathSets
       )
     )
