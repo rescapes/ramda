@@ -1784,7 +1784,7 @@ export const isResolvePropPathForAllSets = (propSets, propPathSets) => {
     R.map(
       compact,
       mapMDeep(2,
-        path => strPathOr(null, path, propSets),
+        path => strPathOr(null, path || '', propSets),
         propPathSets
       )
     )
