@@ -40,6 +40,7 @@ export {
   findByParams,
   findOneValueByParams,
   findMapped,
+  findMappedAndResolve,
   mapKeysAndValues,
   idOrIdFromObj,
   lowercase,

@@ -114,7 +114,7 @@ describe('monadHelpers', () => {
     }
   });
 
-  test('folktale error handling', async done => {
+  test('folktale error handling', async () => {
     //  https://folktale.origamitower.com/api/v2.1.0/en/folktale.concurrency.task.html
     let errors = [];
     const retry = (tsk, times) => {
@@ -145,7 +145,6 @@ describe('monadHelpers', () => {
         // console.log('Error in catch', e);
       }
     } finally {
-      done();
     }
   });
 
@@ -424,16 +423,17 @@ describe('monadHelpers', () => {
     });
   });
 
-  test('resultToTaskNeedingResult', done => {
+  test('resultToTaskNeedingResult1', done => {
+    const errors = []
     // Result.Ok is passed to f, which returns a Task
     resultToTaskNeedingResult(v => of(v + 1), Result.Ok(1)).run().listen(defaultRunConfig(
       {
         onResolved: result => result.map(value => {
           expect(value).toEqual(2);
-          done();
         })
-      }
-    ));
+      }, errors, done));
+  })
+  test('resultToTaskNeedingResult2', done => {
 
     // Result.Error goes straight to a Task.of
     resultToTaskNeedingResult(v => of(v + 1), Result.Error(1)).run().listen(defaultRunConfig(
@@ -444,7 +444,8 @@ describe('monadHelpers', () => {
         })
       }
     ));
-
+  })
+  test('resultToTaskNeedingResult3', done => {
     // If something goes wrong in the task. The value is put in a Result.Error
     // I'm not sure if this is good practice, but there's no reason to have a valid Result in a rejected Task
     resultToTaskNeedingResult(v => rejected(v), Result.Ok(1)).run().listen({
@@ -457,7 +458,7 @@ describe('monadHelpers', () => {
     );
   });
 
-  test('resultToTaskWithResult', done => {
+  test('resultToTaskWithResult1', done => {
     const errors = [];
     // Result.Ok is passed to f, which returns a Task
     resultToTaskWithResult(
@@ -472,7 +473,10 @@ describe('monadHelpers', () => {
       errors,
       done
     ));
+  })
+  test('resultToTaskWithResult2', done => {
 
+    const errors = []
     // Result.Error goes straight to a Task.of
     resultToTaskWithResult(
       // This is never called
@@ -488,7 +492,9 @@ describe('monadHelpers', () => {
       errors,
       done
     ));
+  })
 
+  test('resultToTaskWithResult3', done => {
     // If something goes wrong in the task. The value is put in a Result.Error
     // I'm not sure if this is good practice, but there's no reason to have a valid Result in a rejected Task
     resultToTaskWithResult(
@@ -502,7 +508,8 @@ describe('monadHelpers', () => {
         onResolved: result => expect('This should not ').toEqual('happen')
       }
     );
-
+  })
+  test('resultToTaskWithResult4', done => {
     // If something goes wrong in the task and the rejection doesn't produce a Result.Error, the rejected
     // value should get wrapped in a Resuilt.Error by resultToTaskWithResult
     // I'm not sure if this is good practice, but there's no reason to have a valid Result in a rejected Task
@@ -1183,7 +1190,6 @@ describe('monadHelpers', () => {
     );
   });
 
-
   test('composeWithMapChainLastMDeep', done => {
     const errors = [];
     const tsk = composeWithMapExceptChainDeepestMDeep(3, [
@@ -1476,7 +1482,6 @@ describe('monadHelpers', () => {
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
-          done();
         }
       }, errors, done)
     );
@@ -1682,8 +1687,7 @@ describe('monadHelpers', () => {
   });
 
 
-  test('mapResultMonadWithOtherInputs', done => {
-    expect.assertions(6);
+  test('mapResultMonadWithOtherInputs1', done => {
     const errors = [];
 
     // Case: f returns a Result.Ok
@@ -1702,7 +1706,10 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
+  })
 
+  test('mapResultMonadWithOtherInputs2', done => {
+    const errors = [];
     // Case: f returns a value that needs to be wrapped in a Result.Ok
     mapResultMonadWithOtherInputs(
       {
@@ -1720,7 +1727,10 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
+  })
 
+  test('mapResultMonadWithOtherInputs3', done => {
+    const errors = [];
     // Case: incoming Result is a Result.Error
     mapResultMonadWithOtherInputs(
       {
@@ -1737,7 +1747,10 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
+  })
 
+  test('mapResultMonadWithOtherInputs4', done => {
+    const errors = [];
     // Case: outgoing Result is a Result.Error
     mapResultMonadWithOtherInputs(
       {
@@ -1754,7 +1767,10 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
+  })
 
+  test('mapResultMonadWithOtherInputs5', done => {
+    const errors = [];
     // Case: resultInputKey and resultOutputKey is not specified, so use all of the inputObj as a Result
     mapResultMonadWithOtherInputs(
       {
@@ -1772,7 +1788,10 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
+  })
 
+  test('mapResultMonadWithOtherInputs6', done => {
+    const errors = [];
     // Case: resultInputKey and resultOutputKey is not specified, outgoing Result is a Result.Error
     mapResultMonadWithOtherInputs(
       {
@@ -1792,8 +1811,7 @@ describe('monadHelpers', () => {
     );
   });
 
-  test('mapResultTaskWithOtherInputs', done => {
-    expect.assertions(5);
+  test('mapResultTaskWithOtherInputs1', done => {
     const errors = [];
     mapResultTaskWithOtherInputs(
       {
@@ -1808,7 +1826,9 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
-
+  })
+  test('mapResultTaskWithOtherInputs2', done => {
+    const errors = [];
     // Make sure that the monad defaults to Task for error Results
     mapResultTaskWithOtherInputs(
       {
@@ -1823,7 +1843,9 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
-
+  })
+  test('mapResultTaskWithOtherInputs3', done => {
+    const errors = [];
     // Make sure that the monad defaults to Task with a Result.Error for rejected Task
     mapResultTaskWithOtherInputs(
       {
@@ -1838,7 +1860,9 @@ describe('monadHelpers', () => {
         })
       }, errors, done)
     );
-
+  })
+  test('mapResultTaskWithOtherInputs4', done => {
+    const errors = [];
     // When we don't map keys things still work
     mapResultTaskWithOtherInputs(
       {},
@@ -1850,7 +1874,10 @@ describe('monadHelpers', () => {
         }
       }, errors, done)
     );
+  })
 
+  test('mapResultTaskWithOtherInputs5', done => {
+    const errors = [];
     // When we don't map keys things still work
     mapResultTaskWithOtherInputs(
       {},
@@ -1954,11 +1981,11 @@ describe('monadHelpers', () => {
 
   test('mapExceptChainDeepestMDeep', () => {
     expect(mapExceptChainDeepestMDeep(3,
-      // Return a 1-level deep monad since we are chaining at the deepest level only
-      v => {
-        return Result.Error(R.add(1, v));
-      },
-      [[Result.Ok(1), Result.Ok(2)], [Result.Ok(3), Result.Ok(4)]]
+        // Return a 1-level deep monad since we are chaining at the deepest level only
+        v => {
+          return Result.Error(R.add(1, v));
+        },
+        [[Result.Ok(1), Result.Ok(2)], [Result.Ok(3), Result.Ok(4)]]
       )
     ).toEqual(
       // Since we mapped the two shallow levels we maintain the array structure, but each deepest monad is converted
@@ -1968,13 +1995,13 @@ describe('monadHelpers', () => {
 
   test('chainExceptMapDeepestMDeep', () => {
     expect(chainExceptMapDeepestMDeep(3,
-      v => {
-        // Return a an object since we map at the deepest level, this will become a Maybe.Just
-        return R.add(1, v);
-      },
-      [[Maybe.Just(1), Maybe.Just(2)],
-        [Maybe.Just(3), Maybe.Just(4)]
-      ]
+        v => {
+          // Return a an object since we map at the deepest level, this will become a Maybe.Just
+          return R.add(1, v);
+        },
+        [[Maybe.Just(1), Maybe.Just(2)],
+          [Maybe.Just(3), Maybe.Just(4)]
+        ]
       )
     ).toEqual(
       // Two-level array is chained, but the deepest level is mapped

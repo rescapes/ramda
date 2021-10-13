@@ -23,7 +23,7 @@ import {
   emptyToNull,
   filterObjToValues,
   findByParams,
-  findMapped,
+  findMapped, findMappedAndResolve,
   findOne,
   findOneValueByParams,
   flattenObj,
@@ -290,9 +290,9 @@ describe('helperFunctions', () => {
 
   test('mapKeysForLens', () => {
     expect(mapKeysForLens(
-      R.lensPath(['x', 1, 'y']),
-      key => `${capitalize(key)} Taco`,
-      {x: [null, {y: {fish: 'good', puppy: 'bad'}}]}
+        R.lensPath(['x', 1, 'y']),
+        key => `${capitalize(key)} Taco`,
+        {x: [null, {y: {fish: 'good', puppy: 'bad'}}]}
       )
     ).toEqual(
       {x: [null, {y: {['Fish Taco']: 'good', ['Puppy Taco']: 'bad'}}]}
@@ -516,6 +516,16 @@ describe('helperFunctions', () => {
   test('findMapped', () => {
     expect(findMapped(R.prop('fri'), [{a: 1}, {b: 2}, {fri: 0}, {fi: 'willy'}, {fra: 4}])).toEqual(0);
   });
+
+  test('findMappedAndResolve', () => {
+    expect(
+      findMappedAndResolve(
+        R.prop('fri'),
+        R.prop('pickle'),
+        [{a: 1}, {b: 2}, { fri: 0, pickle: 'herring' }, {fi: 'willy'}, {fra: 4}]
+      )
+    ).toEqual('herring');
+  })
 
   test('alwaysFunc', () => {
     const alwaysIWannaFuncWithYou = R.identity;

@@ -435,7 +435,8 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
       ]
     ]
   )([left, right]);
-};;
+};
+;
 
 /**
  * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key
@@ -887,6 +888,25 @@ export const findMapped = (f, items) => {
 };
 
 /**
+ * Finds the first value that maps to non-null and resolves it to another value
+ * @param {Function} fMap Mapping function for each of items
+ * @param {Function} fResolve Resolve function to call on the first item for which fMap(item) is non-null
+ * @param {[Object]} items Items to search
+ * @returns {Object} The fResolve value of the found item or null if no item is found
+ */
+export const findMappedAndResolve = (fMap, fResolve, items) => {
+  return R.reduceWhile(
+    R.isNil,
+    (_, item) => {
+      // Call fMap on the item. If non-null, resolve the original item to something
+      return R.unless(R.isNil, () => fResolve(item), fMap(item))
+    },
+    null,
+    items
+  );
+}
+
+/**
  * Converts the given value to an always function (that ignores all arguments) unless already a function
  * @param {Function} maybeFunc A function or something else
  * @return {Function} a function that always returns the non funcion value of maybeFunc, or maybeFunc
@@ -1164,12 +1184,12 @@ export const _unflattenObj = (config, obj) => {
  * @param {Object} obj The object to process
  */
 export const overDeep = R.curry((func, obj) => mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(
-  // We are using a mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but we only need the second function
-  (l, r, k) => l,
-  func,
-  // Use obj twice so that all keys match and get called with the merge function
-  obj,
-  obj
+    // We are using a mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but we only need the second function
+    (l, r, k) => l,
+    func,
+    // Use obj twice so that all keys match and get called with the merge function
+    obj,
+    obj
   )
 );
 
@@ -1361,59 +1381,59 @@ const _pickDeepPathsEliminateItemPredicate = (paths, item) => {
  * to get all items 0 or 3 of c that is in all items of a, whether a is an object or array
  */
 export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
-    // Arrays
-    [o => Array.isArray(o),
-      list => {
-        // Recurse on each array item that doesn't match the paths. We pass the key without the index
-        // We pass the key without the index
-        // If any path matches the path to the value we return the item and the matching paths
-        const survivingItemsEachWithRemainingPaths = compact(R.addIndex(R.map)(
-          (item, index) => {
-            return _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index);
-          },
-          list
-        ));
-        return R.map(
-          R.ifElse(
-            // If the only paths are now empty we have a match with the items path and keep the item.
-            // Otherwise we pick recursively
-            ({paths}) => R.all(R.compose(R.equals(0), R.length), paths),
-            ({item}) => item,
-            ({item, paths}) => pickDeepPaths(paths, item)
-          ),
-          survivingItemsEachWithRemainingPaths
-        );
-      }
-    ],
-    // Primitives never match because we'd only get here if we have pathSets remaining and no path can match a primitive
-    [R.complement(isObject),
-      () => {
-        throw new Error('pickDeepPaths encountered a value that is not an object or array at the top level. This should never happens and suggests a bug in this function');
-      }
-    ],
-    // Objects
-    [R.T,
-      o => {
-        // Recurse on each array item that doesn't match the paths. We pass the key without the index
-        // If any path matches the path to the value we return the value and the matching paths
-        // If no path matches it we know the value shouldn't be picked so we don't recurse on it below
-        const survivingItems = compact(R.mapObjIndexed(
-          (item, key) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, key),
-          o
-        ));
-        return R.map(
-          R.ifElse(
-            // If the only path is now empty we have a match with the items path and keep the item.
-            // Otherwise we pick recursively
-            ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
-            R.prop('item'),
-            ({item, paths}) => pickDeepPaths(paths, item)
-          ),
-          survivingItems
-        );
-      }
+      // Arrays
+      [o => Array.isArray(o),
+        list => {
+          // Recurse on each array item that doesn't match the paths. We pass the key without the index
+          // We pass the key without the index
+          // If any path matches the path to the value we return the item and the matching paths
+          const survivingItemsEachWithRemainingPaths = compact(R.addIndex(R.map)(
+            (item, index) => {
+              return _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index);
+            },
+            list
+          ));
+          return R.map(
+            R.ifElse(
+              // If the only paths are now empty we have a match with the items path and keep the item.
+              // Otherwise we pick recursively
+              ({paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+              ({item}) => item,
+              ({item, paths}) => pickDeepPaths(paths, item)
+            ),
+            survivingItemsEachWithRemainingPaths
+          );
+        }
+      ],
+      // Primitives never match because we'd only get here if we have pathSets remaining and no path can match a primitive
+      [R.complement(isObject),
+        () => {
+          throw new Error('pickDeepPaths encountered a value that is not an object or array at the top level. This should never happens and suggests a bug in this function');
+        }
+      ],
+      // Objects
+      [R.T,
+        o => {
+          // Recurse on each array item that doesn't match the paths. We pass the key without the index
+          // If any path matches the path to the value we return the value and the matching paths
+          // If no path matches it we know the value shouldn't be picked so we don't recurse on it below
+          const survivingItems = compact(R.mapObjIndexed(
+            (item, key) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, key),
+            o
+          ));
+          return R.map(
+            R.ifElse(
+              // If the only path is now empty we have a match with the items path and keep the item.
+              // Otherwise we pick recursively
+              ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+              R.prop('item'),
+              ({item, paths}) => pickDeepPaths(paths, item)
+            ),
+            survivingItems
+          );
+        }
+      ]
     ]
-  ]
   )(obj)
 );
 

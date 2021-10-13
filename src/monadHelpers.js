@@ -178,6 +178,7 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
           try {
             // Wrap in case anything goes wrong with the assertions
             onResolved(value);
+            done()
           } catch (error) {
             reject(R.concat(onCancelled || [], [error]), error);
           }
@@ -190,7 +191,7 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
       onCancelled: onCancelled
     },
     errors,
-    done
+    () => {}
   );
 };
 
