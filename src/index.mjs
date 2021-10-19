@@ -41,6 +41,7 @@ export {
   findOneValueByParams,
   findMapped,
   findMappedAndResolve,
+  setMatchingMappedBoolAndResolve,
   mapKeysAndValues,
   idOrIdFromObj,
   lowercase,

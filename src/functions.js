@@ -907,6 +907,31 @@ export const findMappedAndResolve = (fMap, fResolve, items) => {
 }
 
 /**
+ * Updates one (or more) items that match with fEquals to using fSetBool, presumably setting a property to true.
+ * All non-matching values are applied to !fSetBool, presumably setting a property to false
+ * @param {Function<Boolean>} fMatches Unary function that expects item and returns true if that item matches.
+ * 0 or more items can matche
+ * @param {Function<Boolean>} fSetBool Binary function expecting true for matching items and false for non-matching
+ * items and one of items and returning the item with some property "updated" to presumably true or false
+ * @param {[Object]} items The items to process
+ * @returns {[Object]} The items with the property update.
+ */
+export const setMatchingMappedBoolAndResolve = (fMatches, fSetBool, items) => {
+  return R.map(
+    item => R.ifElse(
+      // Find the item in items that is true with fMatches and apply it to fSetBool
+      // Apply non matching items to !fSetBool
+      item => fMatches(item),
+      // Apply it to fSetBool
+      item => fSetBool(true, item),
+      // Apply it to !fSetBool
+      item => fSetBool(false, item)
+    )(item),
+    items
+  )
+}
+
+/**
  * Converts the given value to an always function (that ignores all arguments) unless already a function
  * @param {Function} maybeFunc A function or something else
  * @return {Function} a function that always returns the non funcion value of maybeFunc, or maybeFunc

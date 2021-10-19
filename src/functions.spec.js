@@ -63,7 +63,7 @@ import {
   renameKey,
   replaceValuesAtDepth,
   replaceValuesAtDepthAndStringify,
-  replaceValuesWithCountAtDepth,
+  replaceValuesWithCountAtDepth, setMatchingMappedBoolAndResolve,
   splitAtInclusive,
   toArrayIfNot,
   transformKeys,
@@ -522,9 +522,39 @@ describe('helperFunctions', () => {
       findMappedAndResolve(
         R.prop('fri'),
         R.prop('pickle'),
-        [{a: 1}, {b: 2}, { fri: 0, pickle: 'herring' }, {fi: 'willy'}, {fra: 4}]
+        [{a: 1}, {b: 2}, {fri: 0, pickle: 'herring'}, {fi: 'willy'}, {fra: 4}]
       )
     ).toEqual('herring');
+  })
+
+  test('setMatchingMappedBoolAndResolve', () => {
+    expect(
+      setMatchingMappedBoolAndResolve(
+        item => R.propEq('pickle', 'herring', item),
+        (trueFalse, item) => R.set(R.lensPath(['puppy', 'smell']), trueFalse, item),
+        [
+          {a: 1, puppy: {smell: true}},
+          {b: 2, puppy: {smell: false}},
+          {
+            fri: 0,
+            pickle: 'herring',
+            puppy: {smell: false}
+          },
+          {fi: 'willy'},
+          {fra: 4}]
+      )
+    ).toEqual([
+        {a: 1, puppy: {smell: false}},
+        {b: 2, puppy: {smell: false}},
+        {
+          fri: 0,
+          pickle: 'herring',
+          puppy: {smell: true}
+        },
+        {fi: 'willy', puppy: {smell: false}},
+        {fra: 4, puppy: {smell: false}}
+      ]
+    );
   })
 
   test('alwaysFunc', () => {
