@@ -19,6 +19,7 @@ export {
   eqStrPathsAll,
   eqStrPathsAllCustomizable,
   strPathEq,
+  eqAsSetsWith,
   hasStrPath,
   reqPath,
   reqPathPropEq,

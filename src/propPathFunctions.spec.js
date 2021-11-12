@@ -12,7 +12,7 @@ import {
   strPathOrNullOk,
   strPathsOr,
   strPathsOrNullOk,
-  strPathTruthyOr, strPathEq
+  strPathTruthyOr, strPathEq, eqAsSetsWith
 } from './propPathFunctions.js'
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
@@ -177,5 +177,10 @@ describe('propPathFunctions', () => {
       {a: {goat: 1}, b: 2, c: 'hub'}
     )).toEqual(true);
   });
-
+  test('eqAsSetsWith', () => {
+    expect(eqAsSetsWith(R.identity, [1,2,3], [3, 2, 1])).toBe(true)
+    expect(eqAsSetsWith(R.identity, [1,2,3], [3, 2, 1, 0])).toBe(false)
+    expect(eqAsSetsWith(R.prop('go'), [{go:1},{go:2},{go:3}], [{go:3}, {go:2}, {go:1}])).toBe(true)
+    expect(eqAsSetsWith(R.prop('go'), [{go:1},{go:2},{go:3}], [{go:3}, {go:2}, {go:4}])).toBe(false)
+  })
 })

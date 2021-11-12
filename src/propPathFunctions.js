@@ -2,6 +2,7 @@ import {compact} from "./functions.js";
 import * as R from 'ramda';
 import Rm from 'ramda-maybe';
 import Result from 'folktale/result/index.js';
+import {mapMDeep} from "./monadHelpers.js";
 
 /**
  * Get a required path or return a helpful Error if it fails
@@ -237,3 +238,14 @@ export const eqStrPathsAllCustomizable = R.curry(
     );
   }
 );
+
+export const eqAsSetsWith = (mappingFunc, list1, list2) => {
+  return R.compose(
+    lists => {
+      return R.equals(...R.map(l => new Set(l), lists))
+    },
+    lists => {
+      return mapMDeep(2, mappingFunc, lists)
+    }
+  )([list1, list2])
+}
