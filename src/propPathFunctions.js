@@ -239,6 +239,14 @@ export const eqStrPathsAllCustomizable = R.curry(
   }
 );
 
+/**
+ * Maps each item of two sets with the mappingFunc and then compares the two resulting lists as Sets.
+ * Useful to quickly compare to lists of objects by id or similar
+ * @param {Function} mappingFunc Unary function expecting each item of list1 and list2
+ * @param {[Object]} list1 List of items
+ * @param {[Object]} list2 List of items
+ * @returns {Boolean} True if the mapped items sets equal with R.equals, else false
+ */
 export const eqAsSetsWith = (mappingFunc, list1, list2) => {
   return R.compose(
     lists => {
