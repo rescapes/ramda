@@ -737,7 +737,7 @@ export const renameKey = R.curry((lens, from, to, obj) => R.over(
 export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
   lens,
   // convert the target of the lens to a merge of the target with copies of target[key]
-  target => R.merge(
+  target => R.mergeRight(
     target,
     R.fromPairs(
       R.map(
@@ -770,7 +770,7 @@ export const moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
   lens,
   // convert the target of the lens to a merge of the target with copies of target[key]
   // and with target[key] itself removed
-  target => R.merge(
+  target => R.mergeRight(
     R.omit([key], target),
     R.fromPairs(
       R.map(

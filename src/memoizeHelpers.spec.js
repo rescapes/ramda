@@ -41,7 +41,7 @@ describe('memoizeHelpers', () => {
     expect(later).toEqual(now);
     // This should call the function anew
     const muchLater = memoizedFunc(1, 2, {crazy: 889});
-    expect(muchLater).toEqual(R.merge(now, {i: 1}));
+    expect(muchLater).toEqual(R.mergeRight(now, {i: 1}));
 
     const deepTrouble = snooky => {
       i++;
@@ -87,7 +87,7 @@ describe('memoizeHelpers', () => {
     // When we change crazy we get a cash miss and everything updates
     const offtheshizzle = {crazy: 889, alot: {of: {stuff: {that: {equals: 6}}}}};
     const mostLater = memoizedFunc(1, 2, offtheshizzle);
-    expect(mostLater).toEqual(R.merge(now, {i: 2 + 889, j: 2 + 6}));
+    expect(mostLater).toEqual(R.mergeRight(now, {i: 2 + 889, j: 2 + 6}));
   });
 
   test('memoizedTaskWith', done => {
@@ -143,7 +143,7 @@ describe('memoizeHelpers', () => {
         })
     ])({crazy}).run().listen(defaultRunConfig({
       onResolved: ({now, mostLater}) => {
-        expect(mostLater).toEqual(R.merge(now, {i: 2 + 889, j: 2 + 6}));
+        expect(mostLater).toEqual(R.mergeRight(now, {i: 2 + 889, j: 2 + 6}));
       }
     }, errors, done));
   });

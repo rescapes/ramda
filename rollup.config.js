@@ -17,8 +17,7 @@ const config = {
 const externals = ['symbol-observable', 'folktale/concurrency/task/index.js', 'folktale/maybe/index.js', 'folktale/result/index.js'];
 
 const configs = R.map(c => {
-  const x = R.merge(config, c);
-  //console.warn(x);
+  const x = R.mergeRight(config, c);
   return x;
 }, [
   // CommonJS

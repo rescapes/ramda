@@ -35,7 +35,7 @@ export const stringifyError = err => {
   // Use replace to convert escaped in stack \\n to \n
   return R.replace(/\\n/g, '\n', JSON.stringify(
     // Put message and stack first
-    R.merge(
+    R.mergeRight(
       R.pick(['message', 'stack'], obj),
       R.omit(['message', 'stack'])
     ),

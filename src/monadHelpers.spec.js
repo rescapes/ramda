@@ -526,7 +526,7 @@ describe('monadHelpers', () => {
     );
   });
 
-  const merge = (res, [k, v]) => R.merge(res, {[k]: v});
+  const merge = (res, [k, v]) => R.mergeRight(res, {[k]: v});
   const initialValue = apConstructor => apConstructor({});
 
   // Convert dict into list of Container([k,v]) because ramda's reduce doesn't support non-lists
@@ -1778,7 +1778,7 @@ describe('monadHelpers', () => {
       },
       ({kid, ...rest}) => of(
         Result.Ok(
-          R.merge(R.map(R.add(5), rest), {kid: R.concat(kid, ' and his friends became a billy goats')})
+          R.mergeRight(R.map(R.add(5), rest), {kid: R.concat(kid, ' and his friends became a billy goats')})
         )
       )
     )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(
@@ -1799,7 +1799,7 @@ describe('monadHelpers', () => {
       },
       ({kid, ...rest}) => of(
         Result.Error(
-          R.merge(rest, {kid: R.concat(kid, ' and his friends were shot')})
+          R.mergeRight(rest, {kid: R.concat(kid, ' and his friends were shot')})
         )
       )
     )(Result.Ok({a: 1, b: 1, kid: 'Billy the kid'})).run().listen(

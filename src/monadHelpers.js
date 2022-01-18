@@ -615,7 +615,7 @@ export const traverseReduceWhile = (predicateOrObj, accumulator, initialValueMon
  */
 export const traverseReduceWhileBucketed = (config, accumulator, initialValue, list) => {
   return traverseReduceWhile(
-    R.merge(config, {reducer: _reduceMonadsChainedBucketed({})}),
+    R.mergeRight(config, {reducer: _reduceMonadsChainedBucketed({})}),
     accumulator,
     initialValue,
     list
@@ -650,7 +650,7 @@ export const traverseReduceWhileBucketedTasks = (config, accumulator, initialVal
     () => composeWithMapMDeep
   )(R.propOr(null, 'mappingFunction', config));
   return traverseReduceWhileBucketed(
-    R.merge(
+    R.mergeRight(
       config,
       {
         monadConstructor: of,
@@ -1222,9 +1222,9 @@ export const toMergedResponseAndInputs = f => arg => {
 const _mapResultToOutputKey = (resultOutputKey, remainingInputObj, result) => R.ifElse(
   R.always(resultOutputKey),
   // Leave the remainingInputObj out
-  _result => R.merge(remainingInputObj, {[resultOutputKey]: _result}),
+  _result => R.mergeRight(remainingInputObj, {[resultOutputKey]: _result}),
   // If there is anything in the remainingInputObj, merge it with the result.value
-  _result => R.map(R.merge(remainingInputObj), _result)
+  _result => R.map(R.mergeRight(remainingInputObj), _result)
 )(result);
 
 /**
@@ -1323,7 +1323,7 @@ export const mapResultMonadWithOtherInputs = R.curry(
         // Merge the inputObj with the valued value
         // Assign the value to inputKey if it's specified
         // Result R: R a -> <k, v>
-        v => R.merge(remainingInputObj, R.when(R.always(inputKey), vv => ({[inputKey]: vv}))(v))
+        v => R.mergeRight(remainingInputObj, R.when(R.always(inputKey), vv => ({[inputKey]: vv}))(v))
       )(value),
       inputResult
     );
@@ -1442,7 +1442,7 @@ export const mapMonadByConfig = (
           }
         }
       )(value);
-      return R.merge(
+      return R.mergeRight(
         arg,
         R.when(
           () => name,

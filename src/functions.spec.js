@@ -251,7 +251,7 @@ describe('helperFunctions', () => {
         R.is(Number),
         R.add(l)
       )(r),
-      (key, obj) => R.merge({key: R.toUpper(key.toString())}, obj),
+      (key, obj) => R.mergeRight({key: R.toUpper(key.toString())}, obj),
       {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
     )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19, key: 'BIZZ'}], buzz: 7}});
@@ -769,7 +769,7 @@ describe('helperFunctions', () => {
 
   test('overDeep', () => {
     const res = overDeep(
-      (k, v) => R.merge({butter: `${R.toUpper(k.toString())} Butter`})(v),
+      (k, v) => R.mergeRight({butter: `${R.toUpper(k.toString())} Butter`})(v),
       {
         peanut: {
           almond: {
