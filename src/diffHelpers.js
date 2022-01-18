@@ -65,7 +65,7 @@ export const objectDiff = R.curry((versionLabels, l, r) => {
       ), result),
     result => R.reject(obj => isEqual(labels)(obj), result),
     R.useWith(
-      R.mergeWith(R.merge),
+      R.mergeWith(R.mergeRight),
       [
         R.map(R.objOf(left)),
         R.map(R.objOf(right))
