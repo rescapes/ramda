@@ -1500,6 +1500,7 @@ describe('monadHelpers', () => {
     );
   });
   test('mapToMergedResponseAndInputsMDeepWithChainMDeep', done => {
+    const errors = []
     composeWithChainMDeep(2, [
         // Produces another of(Result.Ok({})
         mapToMergedResponseAndInputsMDeep(2, ({}) => {
@@ -1512,9 +1513,8 @@ describe('monadHelpers', () => {
       defaultRunToResultConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2', h: 'what?'});
-          done();
         }
-      })
+      }, errors, done),
     );
   });
 
