@@ -340,67 +340,12 @@ describe('monadHelpers', () => {
       reject(err);
     }), true))).rejects.toBe(err);
     // What if a chained task rejects
-    await expect(taskToPromise(R.composeK(
+    await expect(taskToPromise(composeWithChain([
       value => task(resolver => resolver.reject('2 2 1 1 2')),
       value => task(resolver => resolver.reject('1 1 1 race')),
       value => task(resolver => resolver.reject('was 1 2')),
       value => of('was a race horse')
-    )('1 1'))).rejects.toEqual('was 1 2');
-  });
-
-  test('composeK with new Tasks (technology test)', done => {
-    R.composeK(
-      v => of(`${v} racehorse`),
-      v => of(`${v} a`),
-      v => of(`${v} was`),
-      v => of(`${v} 1`)
-    )(1).run().listen({
-      onRejected: reject => {
-        throw(reject);
-      },
-      onResolved: result => {
-        expect(result).toEqual(
-          '1 1 was a racehorse'
-        );
-        done();
-      }
-    });
-  });
-
-  test('composeK with new Tasks and error (technology test)', done => {
-    R.composeK(
-      v => of('I never get called :<'),
-      v => task(resolver => resolver.reject(`${v} Oh no!`)),
-      v => of(`${v} a`),
-      v => of(`${v} was`),
-      v => of(`${v} 1`)
-    )(1).run().listen({
-      onRejected: reject => {
-        expect(reject).toEqual(
-          '1 1 was a Oh no!'
-        );
-        done();
-      },
-      onResolved: result => {
-        throw(new Error(result));
-      }
-    });
-  });
-
-  test('fromPromised (technology test)', done => {
-    // fromPromised works on an n-arity function that returns a promise
-    const t = fromPromised(receive => Promise.resolve(`shellac${receive}`))('ing');
-    t.run().listen({
-      onRejected: reject => {
-        throw(reject);
-      },
-      onResolved: result => {
-        expect(result).toEqual(
-          'shellacing'
-        );
-        done();
-      }
-    });
+    ])('1 1'))).rejects.toEqual('was 1 2');
   });
 
   test('resultToTask', done => {
@@ -553,11 +498,11 @@ describe('monadHelpers', () => {
     const mapper = objOfApplicativesToApplicative(of);
     const initialTask = initialValue(of);
     // More complicated
-    const t = R.composeK(
+    const t = composeWithChain([
       // returns a single Task
       letterToApplicative => traverseReduce(merge, initialTask, mapper(letterToApplicative)),
       values =>
-        // wrap in task of to support composeK
+        // wrap in task of to support composeWithChain
         of(
           R.map(
             // First reduce each letter value to get
@@ -573,7 +518,7 @@ describe('monadHelpers', () => {
             values
           )
         )
-    )(
+    ])(
       {
         a: {apple: of('apple'), aardvark: of('aardvark')},
         b: {banana: of('banana'), bonobo: of('bonobo')}
@@ -1420,34 +1365,17 @@ describe('monadHelpers', () => {
   });
 
   test('ComposeK with arrays', () => {
-    const lyrics = R.composeK(
+    const lyrics = composeWithChain([
       lyric => R.when(R.equals('me'), R.flip(R.concat)('!'))(lyric),
       lyric => R.when(R.equals('a'), R.toUpper)(lyric),
       lyric => R.when(R.equals('angry'), R.toUpper)(lyric),
       lyric => R.split(' ', lyric)
-    )('a is for angry, which is what you are at me');
+    ])('a is for angry, which is what you are at me');
     expect(R.join(' ', lyrics)).toEqual('A is for angry, which is what you are at me!');
   });
 
-  test('Using composeWith(chain) instead of composeK', () => {
-    const maybe = R.composeWith(
-      // Equivalent to R.chain (just showing the arguments passed)
-      (func, x) => R.chain(func, x)
-    )([
-      v => Maybe.Just(R.concat(v, ' want to know')),
-      v => Maybe.Just(R.concat(v, ' I don\'t really'))
-    ])('Maybe,');
-    expect(maybe.value).toEqual('Maybe, I don\'t really want to know');
-  });
-
-  /*
-  test('liftObjDeep', () => {
-    const pairs = liftObjDeep({city: "Stavanger", data: {sidewalk: [0, 2], plazaSq: [0, 3]}})
-    R.liftN(R.length(pairs), (...pairs) => [...pairs], ...R.map(R.last, pairs))
-  })
-  */
-
   test('mapToResponseAndInputs', done => {
+    const errors = []
     // Uses a and b for the task, returning an obj that is mapped to value, c is left alone
     mapToResponseAndInputs(
       ({a, b, c}) => of({d: a + 1, f: b + 1, g: 'was 1 2'})
@@ -1455,9 +1383,8 @@ describe('monadHelpers', () => {
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', value: {d: 2, f: 2, g: 'was 1 2'}});
-          done();
         }
-      })
+      }, errors, done)
     );
   });
 
