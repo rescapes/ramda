@@ -149,13 +149,13 @@ describe('monadHelpers', () => {
   });
 
   test('defaultRunConfig Resolved', done => {
+    const errors = []
     task(resolver => resolver.resolve('Re solved!')).run().listen(
       defaultRunConfig({
         onResolved: resolve => {
           expect(resolve).toEqual('Re solved!');
-          done();
         }
-      })
+      }, errors, done)
     );
   });
 
@@ -216,13 +216,13 @@ describe('monadHelpers', () => {
   });
 
   test('defaultRunToResultConfig Resolved', done => {
+    const errors = []
     task(resolver => resolver.resolve(Result.Ok('Re solved!'))).run().listen(
       defaultRunToResultConfig({
         onResolved: resolve => {
           expect(resolve).toEqual('Re solved!');
-          done();
         }
-      })
+      }, errors, done)
     );
   });
 
@@ -1488,15 +1488,15 @@ describe('monadHelpers', () => {
   });
 
   test('mapToMergedResponseAndInputsMDeep', done => {
+    const errors = []
     mapToMergedResponseAndInputsMDeep(2,
       ({a, b, c}) => of(Result.Ok({d: a + 1, f: b + 1, g: 'was 1 2'}))
     )({a: 1, b: 1, c: 'was a racehorse'}).run().listen(
       defaultRunToResultConfig({
         onResolved: resolve => {
           expect(resolve).toEqual({a: 1, b: 1, c: 'was a racehorse', d: 2, f: 2, g: 'was 1 2'});
-          done();
         }
-      })
+      }, errors, done)
     );
   });
   test('mapToMergedResponseAndInputsMDeepWithChainMDeep', done => {
