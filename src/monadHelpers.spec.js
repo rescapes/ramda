@@ -1076,7 +1076,7 @@ describe('monadHelpers', () => {
   test('composeWithChainMDeep', () => {
     const maybes = composeWithChainMDeep(2, [
       // Extract word from each Maybe Just
-      v => Maybe.Just(R.when(R.contains('T'), x => R.concat(x, '!'))(v)),
+      v => Maybe.Just(R.when(R.includes('T'), x => R.concat(x, '!'))(v)),
       // Chain, so we return a Maybe.Just for each word
       v => Maybe.Just(`(${v})`),
       // Creates a Just with an array. This 2-level monad can be processed on array item at a time
@@ -1162,7 +1162,7 @@ describe('monadHelpers', () => {
       deliciousFruitOnly => Result.Ok(R.concat('still ', deliciousFruitOnly)),
       // Subsequent function returns the deepest monad
       testFruit => R.ifElse(
-        R.contains('apple'),
+        R.includes('apple'),
         ff => Result.Ok(R.concat('delicious ', ff)),
         ff => Result.Error(R.concat('disgusting ', ff))
       )(testFruit),

@@ -1041,7 +1041,7 @@ export const composeWithChain = list => {
  * // Subsequent function will only process Result.Ok
  * deliciousFruitOnly => Result.Ok(R.concat('still ', deliciousFruitOnly)),
  * // Subsequent function returns the deepest monad
- * testFruit => R.ifElse(R.contains('apple'), f => Result.Ok(R.concat('delicious ', f)), f => Result.Error(R.concat('disgusting ', f)))(testFruit),
+ * testFruit => R.ifElse(R.includes('apple'), f => Result.Ok(R.concat('delicious ', f)), f => Result.Error(R.concat('disgusting ', f)))(testFruit),
  * // Initial function returns 2-levels deep
  * fruit => task.of(Result.Ok(R.concat('test ', fruit)))
  *])
