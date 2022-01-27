@@ -14,7 +14,7 @@ import {
   findOneValueByParamsThrowing,
   mappedThrowIfResultError,
   onlyOneThrowing,
-  onlyOneValueThrowing,
+  onlyOneValueThrowing, pickOrThrow,
   throwIfResultError
 } from './throwingFunctions.js';
 import Result from 'folktale/result/index.js';
@@ -142,5 +142,14 @@ describe('throwingFunctions', () => {
     const tooGoodParams = {brand: 'crush'};
     expect(() => findOneValueByParamsThrowing(tooGoodParams, items)).toThrow();
   });
+
+  test('pickOrThrow', () => {
+    const obj = {bushbaby: 1, owl: 2, margay: 3, dodo: undefined}
+    expect(pickOrThrow(['bushbaby', 'owl', 'margay'], obj)).toEqual(
+      R.pick(['bushbaby', 'owl', 'margay'], obj)
+    )
+    expect(() => pickOrThrow(['bushbaby', 'owl', 'margay', 'dodo'], obj)).toThrow()
+    expect(() => pickOrThrow(['bushbaby', 'owl', 'margay', 'quayle'], obj)).toThrow()
+  })
 });
 
