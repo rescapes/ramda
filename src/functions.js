@@ -1475,3 +1475,12 @@ export const splitAtInclusive = (index, list) => {
     R.last(pair)
   ];
 };
+
+/**
+ * Sets an objs values to its keys
+ * @param obj
+ * @returns {any}
+ */
+export const valuesToKeys = obj => {
+  return R.mapObjIndexed((v, k) => k, obj)
+}

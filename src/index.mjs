@@ -92,7 +92,8 @@ export {
   applyDeepWithKeyWithRecurseArraysAndMapObjs,
   splitAtInclusive,
   toArrayIfNot,
-  isObject
+  isObject,
+  valuesToKeys
 } from './functions.js';
 
 export {
