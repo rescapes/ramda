@@ -138,6 +138,15 @@ describe('helperFunctions', () => {
     ))).toEqual({foo: 4, bar: {bizz: [5, 6], buzz: 7}});
   });
 
+  test('Should deep merge objects but ignore dates', () => {
+    const date = new Date()
+    expect(mergeDeep({date}, {date})).toEqual({date})
+    expect(R.omit(['recursive'], mergeDeep(
+      {foo: 1, recursive, bar: {bizz: [date, 3], buzz: 7, date}},
+      {foo: 4, recursive, bar: {bizz: [date, 6]}}
+    ))).toEqual({foo: 4, bar: {bizz: [date, 6], buzz: 7, date}});
+  });
+
   test('Should deep merge objects with a function', () => {
     expect(omitDeepPaths(['bar.recursive'], mergeDeepWith(
       (l, r) => R.when(

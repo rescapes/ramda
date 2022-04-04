@@ -156,7 +156,7 @@ export const mergeDeep = (left, right, seen = []) => {
       // If either is an array take the last
       (l && l.concat && Array.isArray(l)) ||
       (r && r.concat && Array.isArray(r))) ||
-    !(R.is(Object, l) && R.is(Object, r)) ?
+    !(R.is(Object, l) && R.is(Object, r)) || (R.is(Date, l) || R.is(Date, r)) ?
       r :
       mergeDeep(l, r, R.concat(seen, cacheObjs));
   })(left, right);
