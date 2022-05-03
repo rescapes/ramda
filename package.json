@@ -1,6 +1,6 @@
 {
   "name": "@rescapes/ramda",
-  "version": "1.6.208",
+  "version": "1.6.209",
   "description": "Functions to augment Ramda and Folktale",
   "homepage": "https://www.rescapes.net/",
   "author": "Andy Likuski",
@@ -31,8 +31,8 @@
     "docs:publish": "yarn run docs:clean && yarn run docs:build && cp CNAME _book && cd _book && git init && git commit --allow-empty -m 'update book' && git checkout -b gh-pages && touch .nojekyll && git add . && git commit -am 'update book' && git push git@github.com:calocan/@rescapes/ramda.git gh-pages --force",
     "build-publish-patch": "yarn run build && yarn run publish-patch",
     "build-publish-minor": "yarn run build && yarn run publish-minor",
-    "publish-patch": "yarn version --patch && yarn publish --non-interactive",
-    "publish-minor": "yarn version --minor && yarn publish --non-interactive"
+    "publish-patch": "yarn version --patch && yarn publish --non-interactive --access public",
+    "publish-minor": "yarn version --minor && yarn publish --non-interactive --access public"
   },
   "dependencies": {
     "browser-or-node": "^1.3.0",
