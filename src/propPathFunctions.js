@@ -1,6 +1,5 @@
-import {compact} from "./functions.js";
 import * as R from 'ramda';
-import Rm from 'ramda-maybe';
+import Maybe from 'folktale/maybe/index.js';
 import Result from 'folktale/result/index.js';
 import {mapMDeep} from "./monadHelpers.js";
 
@@ -32,7 +31,9 @@ export const reqPath = R.curry((path, obj) => {
       res => Result.Ok(res.value)
     ),
     // Try to resolve the value using the path and obj, returning Maybe
-    Rm.path(path)
+    obj => {
+      return R.ifElse(R.isNil, Maybe.Nothing, Maybe.Just)(R.path(path, obj))
+    }
   )(obj);
 });
 
