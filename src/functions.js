@@ -34,7 +34,7 @@ const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.
  * @return {boolean} True if R.is(Object, obj) or is not null and it a typeof 'object'
  */
 export const isObject = obj => {
-  return !R.is(Date, obj) && R.is(Object, obj) || (obj !== null && typeof obj === 'object');
+  return !R.is(Function, obj) && !R.is(Date, obj) && (R.is(Object, obj) || (obj !== null && typeof obj === 'object'));
 };
 
 /**
@@ -402,8 +402,9 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
           ) : rightItems;
         }
       ],
-      // Primitives. If either is an object skip, it means 1 is null
-      [R.none(isObject),
+      // Primitives, dates: if neither is an Object or any is a Date, return without merging
+      // If either is an object it means 1 is null so keep merging
+      [R.either(R.none(isObject), R.any(R.is(Date))),
         ([l, r]) => {
           return r;
         }
@@ -516,8 +517,8 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
         [R.complement(R.all)(x => isObject(x)), lr => {
           return fn(...lr, key);
         }],
-        // Always leave functions alone.
-        [lr => R.all(R.is(Function), lr), ([l, _]) => {
+        // Always leave functions and dates alone.
+        [lr => R.all(R.either(R.is(Function), R.is(Date)), lr), ([l, _]) => {
           return l;
         }],
         // Objects
@@ -529,9 +530,8 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
                   // Take key and the result and call the applyObj func, but only if res is an Object
                   v => R.when(
                     // When it's an object and not an array call applyObj
-                    // typeof x === 'object' check because sometimes values that are objects are not returning true
                     R.both(
-                      x => typeof x === 'object',
+                      x => isObject(x),
                       R.complement(R.is)(Array)
                     ),
                     res => applyObj(k, res)
