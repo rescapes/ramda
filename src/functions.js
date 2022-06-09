@@ -34,7 +34,7 @@ const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.
  * @return {boolean} True if R.is(Object, obj) or is not null and it a typeof 'object'
  */
 export const isObject = obj => {
-  return R.is(Object, obj) || (obj !== null && typeof obj === 'object');
+  return !R.is(Date, obj) && R.is(Object, obj) || (obj !== null && typeof obj === 'object');
 };
 
 /**
