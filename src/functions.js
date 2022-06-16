@@ -258,11 +258,23 @@ export const mergeDeepWithKeyRecurseArrayItems = (fn, key, left, right, seen = [
       // Arrays
       [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
         ([l, r]) => {
+          // The two arrays need to be equal size, so fill the smaller with undefineds
+          const maxLength = Math.max(R.length(l), R.length(r))
+          const [ll, rr] = R.map(
+            lorR => {
+              return R.concat(
+                lorR,
+                R.times(R.always(undefined), maxLength - R.length(lorR))
+              )
+            },
+            [l, r]
+          )
+
           return R.addIndex(R.zipWith)(
             (a, b, i) => {
               return mergeDeepWithKeyRecurseArrayItems(fn, i, a, b, _seen);
             },
-            l, r
+            ll, rr
           );
         }
       ],

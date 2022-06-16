@@ -174,9 +174,9 @@ describe('helperFunctions', () => {
           R.add(l)
         )(r);
       },
-      {foo: 1, bar: {bizz: [2, {brewer: 9, recursive}, {me: new Date()}], buzz: 7}},
-      {foo: 4, bar: {bizz: [5, {brewer: 10, recursive}, {me: date}]}}
-    ))).toEqual({foo: 5, bar: {bizz: [7, {brewer: 19}, {me: date}], buzz: 7}});
+      {foo: 1, bar: {bizz: [['carter', 'babs'], 2, {brewer: 9, recursive}, {me: new Date()}], buzz: 7}},
+      {foo: 4, bar: {bizz: [['pete', 'lois', 'brian', 'meg'], 5, {brewer: 10, recursive}, {me: date}]}}
+    ))).toEqual({foo: 5, bar: {bizz: [['pete', 'lois', 'brian', 'meg'], 7, {brewer: 19}, {me: date}], buzz: 7}});
   });
 
 
