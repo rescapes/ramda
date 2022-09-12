@@ -16,8 +16,8 @@ import Maybe from 'folktale/maybe/index.js';
 import {stringifyError} from './errorHelpers.js';
 import {compact, isObject, toArrayIfNot} from './functions.js';
 import {inspect} from 'util';
-import {strPath, strPathOr} from "./propPathFunctions.js";
-import {reqStrPathThrowing} from "./propPathFunctionsThrowing.js";
+import {strPath, strPathOr} from './propPathFunctions.js';
+import {reqStrPathThrowing} from './propPathFunctionsThrowing.js';
 
 const {Just} = Maybe;
 const {fromPromised, of, rejected, task, waitAll} = T;
@@ -178,7 +178,7 @@ export const defaultRunToResultConfig = ({onResolved, onCancelled, onRejected}, 
           try {
             // Wrap in case anything goes wrong with the assertions
             onResolved(value);
-            done()
+            done();
           } catch (error) {
             reject(R.concat(onCancelled || [], [error]), error);
           }
@@ -1789,5 +1789,5 @@ export const isResolvePropPathForAllSets = (propSets, propPathSets) => {
         propPathSets
       )
     )
-  )
-}
+  );
+};

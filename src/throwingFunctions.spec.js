@@ -19,8 +19,8 @@ import {
 } from './throwingFunctions.js';
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
-import {reqPath} from "./propPathFunctions";
-import {reqPathPropEqThrowing, reqPathThrowing, reqStrPathThrowing} from "./propPathFunctionsThrowing";
+import {reqPath} from './propPathFunctions';
+import {reqPathPropEqThrowing, reqPathThrowing, reqStrPathThrowing} from './propPathFunctionsThrowing';
 
 describe('throwingFunctions', () => {
   test('throwIfResultError', () => {
@@ -144,12 +144,12 @@ describe('throwingFunctions', () => {
   });
 
   test('pickOrThrow', () => {
-    const obj = {bushbaby: 1, owl: 2, margay: 3, dodo: undefined}
+    const obj = {bushbaby: 1, owl: 2, margay: 3, dodo: undefined};
     expect(pickOrThrow(['bushbaby', 'owl', 'margay'], obj)).toEqual(
       R.pick(['bushbaby', 'owl', 'margay'], obj)
-    )
-    expect(() => pickOrThrow(['bushbaby', 'owl', 'margay', 'dodo'], obj)).toThrow()
-    expect(() => pickOrThrow(['bushbaby', 'owl', 'margay', 'quayle'], obj)).toThrow()
-  })
+    );
+    expect(() => pickOrThrow(['bushbaby', 'owl', 'margay', 'dodo'], obj)).toThrow();
+    expect(() => pickOrThrow(['bushbaby', 'owl', 'margay', 'quayle'], obj)).toThrow();
+  });
 });
 

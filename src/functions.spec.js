@@ -23,7 +23,8 @@ import {
   emptyToNull,
   filterObjToValues,
   findByParams,
-  findMapped, findMappedAndResolve,
+  findMapped,
+  findMappedAndResolve,
   findOne,
   findOneValueByParams,
   flattenObj,
@@ -63,7 +64,8 @@ import {
   renameKey,
   replaceValuesAtDepth,
   replaceValuesAtDepthAndStringify,
-  replaceValuesWithCountAtDepth, setMatchingMappedBoolAndResolve,
+  replaceValuesWithCountAtDepth,
+  setMatchingMappedBoolAndResolve,
   splitAtInclusive,
   toArrayIfNot,
   transformKeys,
@@ -72,7 +74,6 @@ import {
 } from './functions.js';
 import Result from 'folktale/result/index.js';
 import {reqStrPathThrowing} from './propPathFunctionsThrowing.js';
-import {mergeDeepWithKey} from "ramda";
 
 const recurseMe = {
   the: {
@@ -140,8 +141,8 @@ describe('helperFunctions', () => {
   });
 
   test('Should deep merge objects but ignore dates', () => {
-    const date = new Date()
-    expect(mergeDeep({date}, {date})).toEqual({date})
+    const date = new Date();
+    expect(mergeDeep({date}, {date})).toEqual({date});
     expect(R.omit(['recursive'], mergeDeep(
       {foo: 1, recursive, bar: {bizz: [date, 3], buzz: 7, date}},
       {foo: 4, recursive, bar: {bizz: [date, 6]}}
@@ -167,7 +168,7 @@ describe('helperFunctions', () => {
   });
 
   test('mergeDeepWithRecurseArrayItems', () => {
-    const date = new Date()
+    const date = new Date();
     expect(omitDeep(['recursive'], mergeDeepWithRecurseArrayItems(
       (k, l, r) => {
         return R.when(
@@ -194,7 +195,7 @@ describe('helperFunctions', () => {
     const renameSnippy = (left, right, seen = []) => {
       // Don't merge arrays
       if (R.all(Array.isArray, [left, right])) {
-        return right
+        return right;
       }
 
       // Recurse on each item usual, but rename snippy to snappy
@@ -537,7 +538,7 @@ describe('helperFunctions', () => {
         [{a: 1}, {b: 2}, {fri: 0, pickle: 'herring'}, {fi: 'willy'}, {fra: 4}]
       )
     ).toEqual('herring');
-  })
+  });
 
   test('setMatchingMappedBoolAndResolve', () => {
     expect(
@@ -567,7 +568,7 @@ describe('helperFunctions', () => {
         {fra: 4, puppy: {smell: false}}
       ]
     );
-  })
+  });
 
   test('alwaysFunc', () => {
     const alwaysIWannaFuncWithYou = R.identity;
@@ -713,10 +714,10 @@ describe('helperFunctions', () => {
   });
 
   test('flattenObj', () => {
-    const f = () => 'func you'
-    const banana = {}
-    const a = {apple: banana}
-    banana['a'] = a
+    const f = () => 'func you';
+    const banana = {};
+    const a = {apple: banana};
+    banana.a = a;
 
     // Survives functions and circular references
     expect(flattenObj({a, f})).toEqual({'a.apple': banana, f});
@@ -728,6 +729,16 @@ describe('helperFunctions', () => {
       {a: 1, 'b.johnny': 'b good', 'b.sam.0': 1, 'b.sam.1': 2, 'b.sam.2': 3}
     );
     expect(flattenObj([1, 2, 3])).toEqual({0: 1, 1: 2, 2: 3});
+    expect(flattenObj([1, 2, 3])).toEqual({0: 1, 1: 2, 2: 3});
+    expect(flattenObj({
+      fi: {
+        jojo: [
+          {
+            equals: 1
+          }
+        ]
+      }
+    })).toEqual({'fi.jojo.0.equals': 1});
   });
 
   test('flattenObjUntil', () => {

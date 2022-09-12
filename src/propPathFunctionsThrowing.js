@@ -12,7 +12,7 @@
  */
 
 import {keyStringToLensPath} from './functions.js';
-import {reqPath, reqPathPropEq} from './propPathFunctions.js'
+import {reqPath, reqPathPropEq} from './propPathFunctions.js';
 import * as R from 'ramda';
 import {inspect} from 'util';
 

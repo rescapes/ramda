@@ -59,10 +59,10 @@ const memoizeTask = fnTask => {
       return R.map(
         result => {
           cache.set(flatArg, result);
-          return result
+          return result;
         },
         R.apply(fnTask, normalArgs)
-      )
+      );
     }
     return of(cache.get(flatArg));
   });
@@ -138,6 +138,6 @@ export const memoizedTaskWith = (argumentFilter, fnTask) => {
       // Filter out unneeded parts of the arguments, or does nothing if argumentFilter is ...args => args
       R.apply(argumentFilter)
     )(args);
-    return memoTask(args, flatArgs)
+    return memoTask(args, flatArgs);
   });
-}
+};

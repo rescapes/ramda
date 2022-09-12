@@ -259,16 +259,16 @@ export const mergeDeepWithKeyRecurseArrayItems = (fn, key, left, right, seen = [
       [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
         ([l, r]) => {
           // The two arrays need to be equal size, so fill the smaller with undefineds
-          const maxLength = Math.max(R.length(l), R.length(r))
+          const maxLength = Math.max(R.length(l), R.length(r));
           const [ll, rr] = R.map(
             lorR => {
               return R.concat(
                 lorR,
                 R.times(R.always(undefined), maxLength - R.length(lorR))
-              )
+              );
             },
             [l, r]
-          )
+          );
 
           return R.addIndex(R.zipWith)(
             (a, b, i) => {
@@ -375,10 +375,10 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
 
           const rItemIds = R.map(
             rItem => {
-              return itemMatchBy(rItem, key)
+              return itemMatchBy(rItem, key);
             },
             r || []
-          )
+          );
 
           // Map each item of r
           const rightItems = R.addIndex(R.zipWith)(
@@ -399,7 +399,7 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
                     i,
                     seen
                   );
-                },
+                }
               )(rItem);
             },
             r || [],
@@ -408,7 +408,7 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
           // If our mergeObject strategy supports concatting the old items to the new unique ones, do it here
           return mergeObject ? mergeObject(
             R.values(filterWithKeys((ll, lId) => {
-              return !R.includes(lId, rItemIds)
+              return !R.includes(lId, rItemIds);
             }, lItemsById)),
             rightItems
           ) : rightItems;
@@ -449,7 +449,7 @@ export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject,
     ]
   )([left, right]);
 };
-;
+
 
 /**
  * mergeDeepWithRecurseArrayItems but passes obj as left and right so fn is called on every key
@@ -571,9 +571,9 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
     // For the top level, call applyObj the result is an object
     return R.when(obj => !R.length(seen) && isObject(obj),
       obj => {
-        return applyObj(null, obj)
+        return applyObj(null, obj);
       }
-    )(result)
+    )(result);
   }
 );
 
@@ -917,12 +917,12 @@ export const findMappedAndResolve = (fMap, fResolve, items) => {
     R.isNil,
     (_, item) => {
       // Call fMap on the item. If non-null, resolve the original item to something
-      return R.unless(R.isNil, () => fResolve(item), fMap(item))
+      return R.unless(R.isNil, () => fResolve(item), fMap(item));
     },
     null,
     items
   );
-}
+};
 
 /**
  * Updates one (or more) items that match with fEquals to using fSetBool, presumably setting a property to true.
@@ -946,8 +946,8 @@ export const setMatchingMappedBoolAndResolve = (fMatches, fSetBool, items) => {
       item => fSetBool(false, item)
     )(item),
     items
-  )
-}
+  );
+};
 
 /**
  * Converts the given value to an always function (that ignores all arguments) unless already a function
@@ -1132,11 +1132,11 @@ const _flattenObj = (config, obj, keys = [], seen = []) => {
       o => chainObjToValues((oo, k) => {
         if ((R.is(Object, oo) || Array.isArray(oo)) && seen.includes(oo)) {
           // can't continue infinitely
-          return [[R.join('.', keys), o]]
+          return [[R.join('.', keys), o]];
         }
         // Mark arrays and objects (references) to prevent recursion
-        const newSeen = (R.is(Object, oo) || Array.isArray(oo)) ? seen.concat(oo) : seen;
-        return _flattenObj(config, oo, R.concat(keys, [k]), newSeen)
+        const newSeen = (R.is(Object, oo) || Array.isArray(oo)) ? R.concat(seen, [oo]) : seen;
+        return _flattenObj(config, oo, R.concat(keys, [k]), newSeen);
       }, o)
     ],
     // If not an object return flat pair
@@ -1500,5 +1500,5 @@ export const splitAtInclusive = (index, list) => {
  * @returns {any}
  */
 export const valuesToKeys = obj => {
-  return R.mapObjIndexed((v, k) => k, obj)
-}
+  return R.mapObjIndexed((v, k) => k, obj);
+};

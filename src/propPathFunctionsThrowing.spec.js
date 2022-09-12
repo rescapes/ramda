@@ -12,7 +12,6 @@
 import {reqPathPropEqThrowing, reqPathThrowing, reqStrPathThrowing} from './propPathFunctionsThrowing.js';
 
 describe('propPathFunctionsThrowing', () => {
-
   test('reqPathThrowing', () => {
     expect(reqPathThrowing(['a'], {a: 1})).toBe(1);
     expect(() => reqPathThrowing(['a', 'b'], {a: {c: 1}})).toThrow('Only found non-nil path up to a of path a.b for obj { a: { c: 1 } }');
@@ -42,6 +41,5 @@ describe('propPathFunctionsThrowing', () => {
     expect(reqPathPropEqThrowing(['a'], 1, {a: 1})).toBe(true);
     expect(() => reqPathPropEqThrowing(['a', 'b'], 1, {a: {c: 1}})).toThrow();
   });
-
 });
 

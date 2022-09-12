@@ -15,7 +15,7 @@ import {findOne, onlyOne, onlyOneValue} from './functions.js';
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 import {inspect} from 'util';
-import {reqPathThrowing} from "./propPathFunctionsThrowing.js";
+import {reqPathThrowing} from './propPathFunctionsThrowing.js';
 
 /**
  * Throw and exception if Result is Result.Error
@@ -117,9 +117,9 @@ export const findOneValueByParamsThrowing = (params, items) => {
     ),
     R.values(items)
   ).map(R.head));
-}
+};
 
-/***
+/** *
  * Like R.pick but requires the names to be present and not undefined in obj
  * @param {[String]} names The props to check
  * @param {Object} object The target object
@@ -128,12 +128,12 @@ export const findOneValueByParamsThrowing = (params, items) => {
 export const pickOrThrow = R.curry((names, obj) => {
   const missing = R.filter(
     name => {
-      return !name in obj || typeof obj[name] === 'undefined'
+      return !name in obj || typeof obj[name] === 'undefined';
     }, names
-  )
+  );
   if (R.length(missing)) {
-    throw new Error(`reqPick: Missing props ${R.join(', ', missing)} of given names ${R.join(', ', names)} of obj ${inspect(obj, {depth: 2})}`)
+    throw new Error(`reqPick: Missing props ${R.join(', ', missing)} of given names ${R.join(', ', names)} of obj ${inspect(obj, {depth: 2})}`);
   }
-  return R.pick(names, obj)
-})
+  return R.pick(names, obj);
+});
 

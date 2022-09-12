@@ -147,5 +147,4 @@ describe('memoizeHelpers', () => {
       }
     }, errors, done));
   });
-
 });

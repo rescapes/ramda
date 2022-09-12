@@ -13,12 +13,11 @@ import {
   strPathsOr,
   strPathsOrNullOk,
   strPathTruthyOr, strPathEq, eqAsSetsWith
-} from './propPathFunctions.js'
+} from './propPathFunctions.js';
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 
 describe('propPathFunctions', () => {
-
   test('Required path', () => {
     expect(reqPath(['a'], {a: 1}).value).toBe(1);
     expect(reqPath(['a', 'b'], {a: {c: 1}}).value).toEqual({
@@ -33,11 +32,11 @@ describe('propPathFunctions', () => {
     ).toEqual(Result.Ok(2));
   });
   test('strPathEq', () => {
-    expect(strPathEq('jolly.rogers.0.candy', 'red', {jolly: {rogers: [{candy: 'red'}]}})).toBeTruthy()
-    expect(strPathEq('jolly.rogers.0.candy', 'blue', {jolly: {rogers: [{candy: 'red'}]}})).toBeFalsy()
-    expect(strPathEq('0.jolly.rogers.0.candy', 'red', [{jolly: {rogers: [{candy: 'red'}]}}])).toBeTruthy()
-    expect(strPathEq('0.jolly.rogers.0.candy', 'blue', [{jolly: {rogers: [{candy: 'red'}]}}])).toBeFalsy()
-  })
+    expect(strPathEq('jolly.rogers.0.candy', 'red', {jolly: {rogers: [{candy: 'red'}]}})).toBeTruthy();
+    expect(strPathEq('jolly.rogers.0.candy', 'blue', {jolly: {rogers: [{candy: 'red'}]}})).toBeFalsy();
+    expect(strPathEq('0.jolly.rogers.0.candy', 'red', [{jolly: {rogers: [{candy: 'red'}]}}])).toBeTruthy();
+    expect(strPathEq('0.jolly.rogers.0.candy', 'blue', [{jolly: {rogers: [{candy: 'red'}]}}])).toBeFalsy();
+  });
 
   test('reqStrPath', () => {
     expect(reqStrPath('foo.bar.goo', {
@@ -178,9 +177,9 @@ describe('propPathFunctions', () => {
     )).toEqual(true);
   });
   test('eqAsSetsWith', () => {
-    expect(eqAsSetsWith(R.identity, [1,2,3], [3, 2, 1])).toBe(true)
-    expect(eqAsSetsWith(R.identity, [1,2,3], [3, 2, 1, 0])).toBe(false)
-    expect(eqAsSetsWith(R.prop('go'), [{go:1},{go:2},{go:3}], [{go:3}, {go:2}, {go:1}])).toBe(true)
-    expect(eqAsSetsWith(R.prop('go'), [{go:1},{go:2},{go:3}], [{go:3}, {go:2}, {go:4}])).toBe(false)
-  })
-})
+    expect(eqAsSetsWith(R.identity, [1, 2, 3], [3, 2, 1])).toBe(true);
+    expect(eqAsSetsWith(R.identity, [1, 2, 3], [3, 2, 1, 0])).toBe(false);
+    expect(eqAsSetsWith(R.prop('go'), [{go: 1}, {go: 2}, {go: 3}], [{go: 3}, {go: 2}, {go: 1}])).toBe(true);
+    expect(eqAsSetsWith(R.prop('go'), [{go: 1}, {go: 2}, {go: 3}], [{go: 3}, {go: 2}, {go: 4}])).toBe(false);
+  });
+});
