@@ -45,7 +45,7 @@ describe('memoizeHelpers', () => {
 
     const deepTrouble = snooky => {
       i++;
-      return R.view(R.lensPath('a', 'b', 'c', 'd'), snooky + i);
+      return R.view(R.lensPath(['a', 'b', 'c', 'd']), snooky + i);
     };
     const deep = memoized(deepTrouble);
     expect(deep({a: {b: {c: {d: 5}}}})).toEqual((deep({a: {b: {c: {d: 5}}}})));

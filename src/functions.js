@@ -498,7 +498,7 @@ export const applyDeepWithKeyWithRecurseArraysAndMapObjs = R.curry((fn, applyObj
  */
 /* eslint-disable max-params */
 const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right, seen = []) => {
-    return R.cond(
+    const result = R.cond(
       [
         // Arrays
         [R.all(Array.isArray),
@@ -568,6 +568,12 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
         ]
       ]
     )([left, right]);
+    // For the top level, call applyObj the result is an object
+    return R.when(obj => !R.length(seen) && isObject(obj),
+      obj => {
+        return applyObj(null, obj)
+      }
+    )(result)
   }
 );
 

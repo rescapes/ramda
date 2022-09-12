@@ -72,6 +72,7 @@ import {
 } from './functions.js';
 import Result from 'folktale/result/index.js';
 import {reqStrPathThrowing} from './propPathFunctionsThrowing.js';
+import {mergeDeepWithKey} from "ramda";
 
 const recurseMe = {
   the: {
@@ -261,7 +262,8 @@ describe('helperFunctions', () => {
         R.is(Number),
         R.add(l)
       )(r),
-      (key, obj) => R.mergeRight({key: R.toUpper(key.toString())}, obj),
+      // key is null at the top level
+      (key, obj) => key ? R.mergeRight({key: R.toUpper(key.toString())}, obj) : obj,
       {foo: 1, bar: {bizz: [2, {brewer: 9}], buzz: 7}},
       {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
     )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19, key: 'BIZZ'}], buzz: 7}});
@@ -779,7 +781,8 @@ describe('helperFunctions', () => {
 
   test('overDeep', () => {
     const res = overDeep(
-      (k, v) => R.mergeRight({butter: `${R.toUpper(k.toString())} Butter`})(v),
+      // Keep is null at the top level
+      (k, v) => k ? R.mergeRight({butter: `${R.toUpper(k.toString())} Butter`})(v) : v,
       {
         peanut: {
           almond: {
