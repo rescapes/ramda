@@ -14,7 +14,7 @@ export const reqPath = R.curry((path, obj) => {
   return R.compose(
     R.ifElse(
       // If path doesn't resolve
-      maybe => maybe.isNothing,
+       maybe => Maybe.Nothing.hasInstance(maybe),
       // Create a useful Error message
       () => Result.Error({
         resolved: R.reduceWhile(
