@@ -284,13 +284,18 @@ describe('helperFunctions', () => {
                     )
                     clone['key'] = R.toUpper(key.toString())
                     return clone
-                }
-                else {
+                } else {
                     return obj
                 }
             },
             {
-                foo: 1, bar: {bizz: [2, {brewer: 9, get willy() {return 'willy'}}], buzz: 7}, get gogetter() {
+                foo: 1, bar: {
+                    bizz: [2, {
+                        brewer: 9, get willy() {
+                            return 'willy'
+                        }
+                    }], buzz: 7
+                }, get gogetter() {
                     return 'fun'
                 }
             },
@@ -586,8 +591,12 @@ describe('helperFunctions', () => {
     test('setMatchingMappedBoolAndResolve', () => {
         expect(
             setMatchingMappedBoolAndResolve(
-                item => R.propEq('pickle', 'herring', item),
-                (trueFalse, item) => R.set(R.lensPath(['puppy', 'smell']), trueFalse, item),
+                item => {
+                    return R.propEq('herring', 'pickle', item)
+                },
+                (trueFalse, item) => {
+                    return R.set(R.lensPath(['puppy', 'smell']), trueFalse, item)
+                },
                 [
                     {a: 1, puppy: {smell: true}},
                     {b: 2, puppy: {smell: false}},

@@ -11,30 +11,30 @@ import {mapMDeep} from "./monadHelpers.js";
  * @sig reqPath:: String -> {k: v} → Result
  */
 export const reqPath = R.curry((path, obj) => {
-  return R.compose(
-    R.ifElse(
-      // If path doesn't resolve
-       maybe => Maybe.Nothing.hasInstance(maybe),
-      // Create a useful Error message
-      () => Result.Error({
-        resolved: R.reduceWhile(
-          // Stop if the accumulated segments can't be resolved
-          (segments, segment) => R.not(R.isNil(R.path(R.concat(segments, [segment]), obj))),
-          // Accumulate segments
-          (segments, segment) => R.concat(segments, [segment]),
-          [],
-          path
+    return R.compose(
+        R.ifElse(
+            // If path doesn't resolve
+            maybe => Maybe.Nothing.hasInstance(maybe),
+            // Create a useful Error message
+            () => Result.Error({
+                resolved: R.reduceWhile(
+                    // Stop if the accumulated segments can't be resolved
+                    (segments, segment) => R.not(R.isNil(R.path(R.concat(segments, [segment]), obj))),
+                    // Accumulate segments
+                    (segments, segment) => R.concat(segments, [segment]),
+                    [],
+                    path
+                ),
+                path: path
+            }),
+            // Return the resolved value
+            res => Result.Ok(res.value)
         ),
-        path: path
-      }),
-      // Return the resolved value
-      res => Result.Ok(res.value)
-    ),
-    // Try to resolve the value using the path and obj, returning Maybe
-    obj => {
-      return R.ifElse(R.isNil, Maybe.Nothing, Maybe.Just)(R.path(path, obj))
-    }
-  )(obj);
+        // Try to resolve the value using the path and obj, returning Maybe
+        obj => {
+            return R.ifElse(R.isNil, Maybe.Nothing, Maybe.Just)(R.path(path, obj))
+        }
+    )(obj);
 });
 
 /**
@@ -45,11 +45,11 @@ export const reqPath = R.curry((path, obj) => {
  * @return {Object} The resolved value or the defaultValue
  */
 export const pathOr = R.curry((defaultValue, path, props) => {
-  const result = R.view(R.lensPath(path), props);
-  return R.when(
-    R.isNil,
-    R.always(defaultValue)
-  )(result);
+    const result = R.view(R.lensPath(path), props);
+    return R.when(
+        R.isNil,
+        R.always(defaultValue)
+    )(result);
 });
 
 /**
@@ -70,7 +70,7 @@ export const reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), pro
  * @return {Object} The resolved object or undefined
  */
 export const strPath = R.curry((str, props) => {
-  return R.view(R.lensPath(R.split('.', str)), props);
+    return R.view(R.lensPath(R.split('.', str)), props);
 });
 
 /**
@@ -81,11 +81,11 @@ export const strPath = R.curry((str, props) => {
  * @return {function(*=)}
  */
 export const strPathOr = R.curry((defaultValue, str, props) => {
-  const result = R.view(R.lensPath(R.split('.', str)), props);
-  return R.when(
-    R.isNil,
-    R.always(defaultValue)
-  )(result);
+    const result = R.view(R.lensPath(R.split('.', str)), props);
+    return R.when(
+        R.isNil,
+        R.always(defaultValue)
+    )(result);
 });
 
 /**
@@ -97,11 +97,11 @@ export const strPathOr = R.curry((defaultValue, str, props) => {
  * @return {function(*=)}
  */
 export const strPathTruthyOr = R.curry((defaultValue, str, props) => {
-  const result = R.view(R.lensPath(R.split('.', str)), props);
-  return R.when(
-    R.complement(R.identity),
-    R.always(defaultValue)
-  )(result);
+    const result = R.view(R.lensPath(R.split('.', str)), props);
+    return R.when(
+        R.complement(R.identity),
+        R.always(defaultValue)
+    )(result);
 });
 
 /**
@@ -112,10 +112,10 @@ export const strPathTruthyOr = R.curry((defaultValue, str, props) => {
  * @return {[Object]} The mapped values or defaultValue where the value is not truthy
  */
 export const strPathsOr = R.curry((defaultValue, strPaths, props) => {
-  return R.map(
-    _strPath => strPathOr(defaultValue, _strPath, props),
-    strPaths
-  );
+    return R.map(
+        _strPath => strPathOr(defaultValue, _strPath, props),
+        strPaths
+    );
 });
 
 
@@ -127,19 +127,19 @@ export const strPathsOr = R.curry((defaultValue, strPaths, props) => {
  * @return {function(*=)}
  */
 export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
-  const segments = R.split('.', str);
-  const result = R.view(R.lensPath(R.init(segments)), props);
-  return R.ifElse(
-    R.isNil,
-    R.always(defaultValue),
-    r => {
-      try {
-        return R.when(v => typeof v === 'undefined', () => defaultValue)(R.prop(R.last(segments), r));
-      } catch {
-        return defaultValue;
-      }
-    }
-  )(result);
+    const segments = R.split('.', str);
+    const result = R.view(R.lensPath(R.init(segments)), props);
+    return R.ifElse(
+        R.isNil,
+        R.always(defaultValue),
+        r => {
+            try {
+                return R.when(v => typeof v === 'undefined', () => defaultValue)(R.prop(R.last(segments), r));
+            } catch {
+                return defaultValue;
+            }
+        }
+    )(result);
 });
 
 /**
@@ -151,10 +151,10 @@ export const strPathOrNullOk = R.curry((defaultValue, str, props) => {
  * @return {[Object]} The mapped values or defaultValue where the value is only used for undefined values
  */
 export const strPathsOrNullOk = R.curry((defaultValue, strPaths, props) => {
-  return R.map(
-    _strPath => strPathOrNullOk(defaultValue, _strPath, props),
-    strPaths
-  );
+    return R.map(
+        _strPath => strPathOrNullOk(defaultValue, _strPath, props),
+        strPaths
+    );
 });
 
 /**
@@ -164,9 +164,9 @@ export const strPathsOrNullOk = R.curry((defaultValue, strPaths, props) => {
  * @returns {Boolean} true
  */
 export const hasStrPath = R.curry((str, props) =>
-  R.complement(R.isNil)(
-    R.view(R.lensPath(R.split('.', str)), props)
-  )
+    R.complement(R.isNil)(
+        R.view(R.lensPath(R.split('.', str)), props)
+    )
 );
 
 /**
@@ -178,19 +178,29 @@ export const hasStrPath = R.curry((str, props) =>
  * @sig reqPath:: String -> {k: v} → Result
  */
 export const reqPathPropEq = R.curry((path, val, obj) =>
-  // If the reqPath is valid map it to a comparison with val
-  reqPath(path, obj).map(R.equals(val))
+    // If the reqPath is valid map it to a comparison with val
+    reqPath(path, obj).map(R.equals(val))
 );
 
 /**
  * Whether the dot-separated string path of obj resolves to value or not
+ * This no longer uses pathEq because that doesn't work with indices
  * @param {String} strPath Path of props separated by dots
  * @param {*} value The value to check
  * @param {Object|Array} obj The object or array to check
  * @returns {Boolean} True or false
  */
 export const strPathEq = R.curry((strPath, value, obj) => {
-  return R.pathEq(R.split('.', strPath), value, obj)
+    return R.equals(
+        value,
+        R.view(R.lensPath(
+                R.map(
+                    part => R.when(isNaN, R.always(part))(parseInt(part)),
+                    R.split('.', strPath)
+                ),
+            ), obj
+        )
+    )
 });
 /**
  * Whether the objects are equal at the given propStr. Null objects are never equal
@@ -200,7 +210,7 @@ export const strPathEq = R.curry((strPath, value, obj) => {
  * @returns {Boolean} True or false
  */
 export const eqStrPath = R.curry((stringPath, obj1, obj2) => {
-  return R.apply(R.equals, R.map(strPathOr(null, stringPath), [obj1, obj2]));
+    return R.apply(R.equals, R.map(strPathOr(null, stringPath), [obj1, obj2]));
 });
 
 /**
@@ -211,7 +221,7 @@ export const eqStrPath = R.curry((stringPath, obj1, obj2) => {
  * @returns {Boolean} True or false
  */
 export const eqStrPathsAll = R.curry(
-  (strPaths, obj1, obj2) => R.all(prop => eqStrPath(prop, obj1, obj2), strPaths)
+    (strPaths, obj1, obj2) => R.all(prop => eqStrPath(prop, obj1, obj2), strPaths)
 );
 
 /**
@@ -225,19 +235,19 @@ export const eqStrPathsAll = R.curry(
  * @returns {Boolean} True or false
  */
 export const eqStrPathsAllCustomizable = R.curry(
-  (strPaths, customEqualsObj, obj1, obj2) => {
-    return R.all(
-      stringPath => {
-        return strPathOr(
-          // Default
-          eqStrPath,
-          stringPath,
-          customEqualsObj
-        )(stringPath, obj1, obj2);
-      },
-      strPaths
-    );
-  }
+    (strPaths, customEqualsObj, obj1, obj2) => {
+        return R.all(
+            stringPath => {
+                return strPathOr(
+                    // Default
+                    eqStrPath,
+                    stringPath,
+                    customEqualsObj
+                )(stringPath, obj1, obj2);
+            },
+            strPaths
+        );
+    }
 );
 
 /**
@@ -249,12 +259,12 @@ export const eqStrPathsAllCustomizable = R.curry(
  * @returns {Boolean} True if the mapped items sets equal with R.equals, else false
  */
 export const eqAsSetsWith = (mappingFunc, list1, list2) => {
-  return R.compose(
-    lists => {
-      return R.equals(...R.map(l => new Set(l), lists))
-    },
-    lists => {
-      return mapMDeep(2, mappingFunc, lists)
-    }
-  )([list1, list2])
+    return R.compose(
+        lists => {
+            return R.equals(...R.map(l => new Set(l), lists))
+        },
+        lists => {
+            return mapMDeep(2, mappingFunc, lists)
+        }
+    )([list1, list2])
 }
