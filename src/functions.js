@@ -34,7 +34,7 @@ const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.
  * @return {boolean} True if R.is(Object, obj) or is not null and it a typeof 'object'
  */
 export const isObject = obj => {
-  return !R.is(Function, obj) && !R.is(Date, obj) && (R.is(Object, obj) || (obj !== null && typeof obj === 'object'));
+    return !R.is(Function, obj) && !R.is(Date, obj) && (R.is(Object, obj) || (obj !== null && typeof obj === 'object'));
 };
 
 /**
@@ -80,7 +80,7 @@ export const emptyToNull = R.when(R.isEmpty, () => null);
  *             :: [a] -> null
  */
 export const compactJoin = R.compose(
-  (connector, items) => R.pipe(compactEmpty, R.join(connector), emptyToNull)(items)
+    (connector, items) => R.pipe(compactEmpty, R.join(connector), emptyToNull)(items)
 );
 
 /**
@@ -102,10 +102,10 @@ export const mapProp = R.curry((prop, objs) => R.pipe(R.prop, R.map)(prop)(objs)
  * @sig mapPropValueAsIndex:: String -> {k, v} -> {k, v}
  */
 export const mapPropValueAsIndex = R.curry((prop, obj) =>
-  R.when(
-    Array.isArray,
-    R.pipe(R.prop, R.indexBy)(prop)
-  )(obj));
+    R.when(
+        Array.isArray,
+        R.pipe(R.prop, R.indexBy)(prop)
+    )(obj));
 
 /**
  * Merges a list of objects by the given key and returns the values, meaning all items that are
@@ -114,10 +114,10 @@ export const mapPropValueAsIndex = R.curry((prop, obj) =>
  * @sig removeDuplicateObjectsByProp:: String -> [{k, v}] -> [{k, v}]
  */
 export const removeDuplicateObjectsByProp = R.curry((prop, list) =>
-  R.pipe(
-    mapPropValueAsIndex(prop),
-    R.values
-  )(list)
+    R.pipe(
+        mapPropValueAsIndex(prop),
+        R.values
+    )(list)
 );
 
 /**
@@ -128,8 +128,8 @@ export const removeDuplicateObjectsByProp = R.curry((prop, list) =>
  *              :: {k, v} -> a
  */
 export const idOrIdFromObj = R.when(
-  objOrId => (typeof objOrId === 'object') && objOrId !== null,
-  R.prop('id')
+    objOrId => (typeof objOrId === 'object') && objOrId !== null,
+    R.prop('id')
 );
 
 /**
@@ -142,24 +142,24 @@ export const idOrIdFromObj = R.when(
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
 export const mergeDeep = (left, right, seen = []) => {
-  return R.mergeWith((l, r) => {
-    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
-    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
-      // Never recurse on an instance that has been seen
-      return l;
-    }
-    // If either (hopefully both) items are arrays or not both objects
-    // accept the right value
-    return (
-      // If either is a function take the last
-      (R.is(Function, l) || R.is(Function, r)) ||
-      // If either is an array take the last
-      (l && l.concat && Array.isArray(l)) ||
-      (r && r.concat && Array.isArray(r))) ||
-    !(R.is(Object, l) && R.is(Object, r)) || (R.is(Date, l) || R.is(Date, r)) ?
-      r :
-      mergeDeep(l, r, R.concat(seen, cacheObjs));
-  })(left, right);
+    return R.mergeWith((l, r) => {
+        const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+        if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+            // Never recurse on an instance that has been seen
+            return l;
+        }
+        // If either (hopefully both) items are arrays or not both objects
+        // accept the right value
+        return (
+            // If either is a function take the last
+            (R.is(Function, l) || R.is(Function, r)) ||
+            // If either is an array take the last
+            (l && l.concat && Array.isArray(l)) ||
+            (r && r.concat && Array.isArray(r))) ||
+        !(R.is(Object, l) && R.is(Object, r)) || (R.is(Date, l) || R.is(Date, r)) ?
+            r :
+            mergeDeep(l, r, R.concat(seen, cacheObjs));
+    })(left, right);
 };
 
 /**
@@ -180,23 +180,23 @@ export const mergeDeepAll = R.reduce(mergeDeep, {});
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
 export const mergeDeepWith = (fn, left, right, seen = []) => {
-  return R.mergeWith((l, r) => {
-    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
-    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
-      // Never recurse on an instance that has been seen
-      return l;
-    }
-    // If either (hopefully both) items are arrays or not both objects
-    // accept the right value
-    return (
-      (l && l.concat && Array.isArray(l)) ||
-      (r && r.concat && Array.isArray(r))
-    ) ||
-    !(R.all(isObject))([l, r]) ||
-    R.any(R.is(Function))([l, r]) ?
-      fn(l, r) :
-      mergeDeepWith(fn, l, r, R.concat(seen, cacheObjs));
-  })(left, right);
+    return R.mergeWith((l, r) => {
+        const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+        if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+            // Never recurse on an instance that has been seen
+            return l;
+        }
+        // If either (hopefully both) items are arrays or not both objects
+        // accept the right value
+        return (
+            (l && l.concat && Array.isArray(l)) ||
+            (r && r.concat && Array.isArray(r))
+        ) ||
+        !(R.all(isObject))([l, r]) ||
+        R.any(R.is(Function))([l, r]) ?
+            fn(l, r) :
+            mergeDeepWith(fn, l, r, R.concat(seen, cacheObjs));
+    })(left, right);
 };
 
 /**
@@ -208,20 +208,20 @@ export const mergeDeepWith = (fn, left, right, seen = []) => {
  * @sig mergeDeep:: (<k, v>, <k, v>) -> <k, v>
  */
 export const mergeDeepWithConcatArrays = (left, right, seen = []) => {
-  return mergeDeepWith((l, r) => {
-    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
-    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
-      // Never recurse on an instance that has been seen
-      return l;
-    }
-    return R.cond(
-      [
-        [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
-        [R.complement(R.all)(isObject), R.last],
-        [R.T, ([ll, rr]) => mergeDeepWithConcatArrays(ll, rr, R.concat(seen, cacheObjs))]
-      ]
-    )([l, r]);
-  }, left, right, seen);
+    return mergeDeepWith((l, r) => {
+        const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+        if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+            // Never recurse on an instance that has been seen
+            return l;
+        }
+        return R.cond(
+            [
+                [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])), R.apply(R.concat)],
+                [R.complement(R.all)(isObject), R.last],
+                [R.T, ([ll, rr]) => mergeDeepWithConcatArrays(ll, rr, R.concat(seen, cacheObjs))]
+            ]
+        )([l, r]);
+    }, left, right, seen);
 };
 
 /**
@@ -233,7 +233,7 @@ export const mergeDeepWithConcatArrays = (left, right, seen = []) => {
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
 export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => {
-  return mergeDeepWithKeyRecurseArrayItems(fn, null, left, right);
+    return mergeDeepWithKeyRecurseArrayItems(fn, null, left, right);
 });
 
 /**
@@ -247,50 +247,50 @@ export const mergeDeepWithRecurseArrayItems = R.curry((fn, left, right) => {
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
 export const mergeDeepWithKeyRecurseArrayItems = (fn, key, left, right, seen = []) => {
-  const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [left, right]));
-  if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
-    // Never recurse on an instance that has been seen
-    return left;
-  }
-  const _seen = R.concat(seen, cacheObjs);
-  return R.cond(
-    [
-      // Arrays
-      [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
-        ([l, r]) => {
-          // The two arrays need to be equal size, so fill the smaller with undefineds
-          const maxLength = Math.max(R.length(l), R.length(r));
-          const [ll, rr] = R.map(
-            lorR => {
-              return R.concat(
-                lorR,
-                R.times(R.always(undefined), maxLength - R.length(lorR))
-              );
-            },
-            [l, r]
-          );
+    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [left, right]));
+    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+        // Never recurse on an instance that has been seen
+        return left;
+    }
+    const _seen = R.concat(seen, cacheObjs);
+    return R.cond(
+        [
+            // Arrays
+            [R.all(R.allPass([R.identity, R.prop('concat'), Array.isArray])),
+                ([l, r]) => {
+                    // The two arrays need to be equal size, so fill the smaller with undefineds
+                    const maxLength = Math.max(R.length(l), R.length(r));
+                    const [ll, rr] = R.map(
+                        lorR => {
+                            return R.concat(
+                                lorR,
+                                R.times(R.always(undefined), maxLength - R.length(lorR))
+                            );
+                        },
+                        [l, r]
+                    );
 
-          return R.addIndex(R.zipWith)(
-            (a, b, i) => {
-              return mergeDeepWithKeyRecurseArrayItems(fn, i, a, b, _seen);
-            },
-            ll, rr
-          );
-        }
-      ],
-      // Primitives
-      [R.complement(R.all)(isObject),
-        ([l, r]) => {
-          return fn(key, l, r);
-        }],
-      // Objects
-      [R.T, ([l, r]) => {
-        return R.mergeWithKey((k, ll, rr) => {
-          return mergeDeepWithKeyRecurseArrayItems(fn, k, ll, rr, _seen);
-        }, l, r);
-      }]
-    ]
-  )([left, right]);
+                    return R.addIndex(R.zipWith)(
+                        (a, b, i) => {
+                            return mergeDeepWithKeyRecurseArrayItems(fn, i, a, b, _seen);
+                        },
+                        ll, rr
+                    );
+                }
+            ],
+            // Primitives
+            [R.complement(R.all)(isObject),
+                ([l, r]) => {
+                    return fn(key, l, r);
+                }],
+            // Objects
+            [R.T, ([l, r]) => {
+                return R.mergeWithKey((k, ll, rr) => {
+                    return mergeDeepWithKeyRecurseArrayItems(fn, k, ll, rr, _seen);
+                }, l, r);
+            }]
+        ]
+    )([left, right]);
 };
 
 /**
@@ -309,7 +309,7 @@ export const mergeDeepWithKeyRecurseArrayItems = (fn, key, left, right, seen = [
  * @returns {Object} The deep-merged object
  */
 export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left, right) => {
-  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, null, left, right, null);
+    return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, null, left, right, null);
 });
 
 /**
@@ -334,7 +334,7 @@ export const mergeDeepWithRecurseArrayItemsByRight = R.curry((itemMatchBy, left,
  * @returns {Object} The deep-merged object
  */
 export const mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight = R.curry((itemMatchBy, mergeObject, left, right) => {
-  return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, mergeObject, left, right, null);
+    return _mergeDeepWithRecurseArrayItemsByRight(itemMatchBy, mergeObject, left, right, null);
 });
 
 /**
@@ -354,100 +354,100 @@ export const mergeDeepWithRecurseArrayItemsByAndMergeObjectByRight = R.curry((it
  */
 /* eslint-disable max-params */
 export const _mergeDeepWithRecurseArrayItemsByRight = (itemMatchBy, mergeObject, left, right, key, seen = []) => {
-  return R.cond(
-    [
-      // Arrays
-      [([l, r]) => {
-        return R.any(R.allPass([R.identity, R.prop('concat'), Array.isArray]))([l, r]);
-      },
-        ([l, r]) => {
-          // Null case, return the only array
-          if (!l || !r) {
-            return l || r;
-          }
-          // Create a lookup of l items. If the items don't resolve to an id, filter them out to indicate
-          // that they can't be matched by the right side items. This will leave them out of the merged array items,
-          // which is find because the right items should be the same if we want to keep them
-          const lItemsById = R.compose(
-            obj => filterWithKeys((v, k) => R.complement(R.equals)('__NULL__')(k), obj),
-            ll => R.indexBy(li => itemMatchBy(li, key) || '__NULL__', ll)
-          )(l || []);
-
-          const rItemIds = R.map(
-            rItem => {
-              return itemMatchBy(rItem, key);
+    return R.cond(
+        [
+            // Arrays
+            [([l, r]) => {
+                return R.any(R.allPass([R.identity, R.prop('concat'), Array.isArray]))([l, r]);
             },
-            r || []
-          );
+                ([l, r]) => {
+                    // Null case, return the only array
+                    if (!l || !r) {
+                        return l || r;
+                    }
+                    // Create a lookup of l items. If the items don't resolve to an id, filter them out to indicate
+                    // that they can't be matched by the right side items. This will leave them out of the merged array items,
+                    // which is find because the right items should be the same if we want to keep them
+                    const lItemsById = R.compose(
+                        obj => filterWithKeys((v, k) => R.complement(R.equals)('__NULL__')(k), obj),
+                        ll => R.indexBy(li => itemMatchBy(li, key) || '__NULL__', ll)
+                    )(l || []);
 
-          // Map each item of r
-          const rightItems = R.addIndex(R.zipWith)(
-            (rItem, rItemId, i) => {
-              // If the lookup of the r item matches one of l items' itemMatchBy value,
-              // recurse with both items. Else just return r
-              const hasMatchingLItem = R.has(rItemId, lItemsById);
-              return R.when(
-                () => hasMatchingLItem,
-                () => {
-                  const rItemInLItems = R.prop(rItemId, lItemsById);
-                  // Pass the index as a key
-                  return _mergeDeepWithRecurseArrayItemsByRight(
-                    itemMatchBy,
-                    mergeObject,
-                    rItemInLItems,
-                    rItem,
-                    i,
-                    seen
-                  );
+                    const rItemIds = R.map(
+                        rItem => {
+                            return itemMatchBy(rItem, key);
+                        },
+                        r || []
+                    );
+
+                    // Map each item of r
+                    const rightItems = R.addIndex(R.zipWith)(
+                        (rItem, rItemId, i) => {
+                            // If the lookup of the r item matches one of l items' itemMatchBy value,
+                            // recurse with both items. Else just return r
+                            const hasMatchingLItem = R.has(rItemId, lItemsById);
+                            return R.when(
+                                () => hasMatchingLItem,
+                                () => {
+                                    const rItemInLItems = R.prop(rItemId, lItemsById);
+                                    // Pass the index as a key
+                                    return _mergeDeepWithRecurseArrayItemsByRight(
+                                        itemMatchBy,
+                                        mergeObject,
+                                        rItemInLItems,
+                                        rItem,
+                                        i,
+                                        seen
+                                    );
+                                }
+                            )(rItem);
+                        },
+                        r || [],
+                        rItemIds || []
+                    );
+                    // If our mergeObject strategy supports concatting the old items to the new unique ones, do it here
+                    return mergeObject ? mergeObject(
+                        R.values(filterWithKeys((ll, lId) => {
+                            return !R.includes(lId, rItemIds);
+                        }, lItemsById)),
+                        rightItems
+                    ) : rightItems;
                 }
-              )(rItem);
-            },
-            r || [],
-            rItemIds || []
-          );
-          // If our mergeObject strategy supports concatting the old items to the new unique ones, do it here
-          return mergeObject ? mergeObject(
-            R.values(filterWithKeys((ll, lId) => {
-              return !R.includes(lId, rItemIds);
-            }, lItemsById)),
-            rightItems
-          ) : rightItems;
-        }
-      ],
-      // Primitives, dates: if neither is an Object or any is a Date, return without merging
-      // If either is an object it means 1 is null so keep merging
-      [R.either(R.none(isObject), R.any(R.is(Date))),
-        ([l, r]) => {
-          return r;
-        }
-      ],
-      // Objects and nulls
-      [R.T,
-        ([l, r]) => {
-          const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
-          if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
-            // Never recurse on an instance that has been seen
-            return l;
-          }
-          const _seen = R.concat(seen, cacheObjs);
-          return mergeObject ? mergeObject(l, r, _seen) : R.mergeWithKey(
-            (kk, ll, rr) => {
-              return _mergeDeepWithRecurseArrayItemsByRight(
-                itemMatchBy,
-                mergeObject,
-                ll,
-                rr,
-                kk,
-                _seen
-              );
-            },
-            l || {},
-            r || {}
-          );
-        }
-      ]
-    ]
-  )([left, right]);
+            ],
+            // Primitives, dates: if neither is an Object or any is a Date, return without merging
+            // If either is an object it means 1 is null so keep merging
+            [R.either(R.none(isObject), R.any(R.is(Date))),
+                ([l, r]) => {
+                    return r;
+                }
+            ],
+            // Objects and nulls
+            [R.T,
+                ([l, r]) => {
+                    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [l, r]));
+                    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+                        // Never recurse on an instance that has been seen
+                        return l;
+                    }
+                    const _seen = R.concat(seen, cacheObjs);
+                    return mergeObject ? mergeObject(l, r, _seen) : R.mergeWithKey(
+                        (kk, ll, rr) => {
+                            return _mergeDeepWithRecurseArrayItemsByRight(
+                                itemMatchBy,
+                                mergeObject,
+                                ll,
+                                rr,
+                                kk,
+                                _seen
+                            );
+                        },
+                        l || {},
+                        r || {}
+                    );
+                }
+            ]
+        ]
+    )([left, right]);
 };
 
 
@@ -473,19 +473,20 @@ export const applyDeep = R.curry((fn, obj) => mergeDeepWithRecurseArrayItems(fn,
  * @sig mergeDeepWithRecurseArrayItems:: (<k, v>, <k, v>, k) -> <k, v>
  */
 export const mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, left, right) =>
-  _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
+    _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, null, left, right)
 );
 
 /**
  * Same as mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but sends the same left and right value so fn is called on every key
- * of ob * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
+ * of obj
+ * @param {Function} fn The merge function string k, left l, right r:: k -> l -> r -> a
  * @param {Function} applyObj Function called with the current key and the result of each recursion that is an object.
  * @param {Object} obj The left and right side to merge (always the same)
  * @returns {Object} The deep-merged object
  * @sig applyDeepWithKeyWithRecurseArraysAndMapObjs:: (<k, v>, <k, v>, k) -> <k, v>j
  */
 export const applyDeepWithKeyWithRecurseArraysAndMapObjs = R.curry((fn, applyObj, obj) =>
-  mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
+    mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, obj, obj)
 );
 
 /**
@@ -498,84 +499,107 @@ export const applyDeepWithKeyWithRecurseArraysAndMapObjs = R.curry((fn, applyObj
  */
 /* eslint-disable max-params */
 const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, key, left, right, seen = []) => {
-    const result = R.cond(
-      [
-        // Arrays
-        [R.all(Array.isArray),
-          // Recurse on each array item. We pass the key without the index
-          lr => {
-            return R.apply(
-              R.zipWith(
-                (l, r) => R.compose(
-                  // For array items, take key and the result and call the applyObj func, but only if res is an Object
-                  v => R.when(
-                    // When it's an object and not an array call applyObj
-                    // typeof x === 'object' check because sometimes values that are objects are not returning true
-                    R.allPass([
-                      vv => typeof vv === 'object',
-                      vv => vv !== null,
-                      R.complement(R.is)(Array)
-                    ]),
-                    res => applyObj(key, res)
-                  )(v),
-                  ([kk, ll, rr]) => {
-                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr, seen);
-                  }
-                )([key, l, r])
-              )
-            )(lr);
-          }
-        ],
-        // Primitives: call the function with left and right as the first two args and key as the last
-        [R.complement(R.all)(x => isObject(x)), lr => {
-          return fn(...lr, key);
-        }],
-        // Always leave functions and dates alone.
-        [lr => R.all(R.either(R.is(Function), R.is(Date)), lr), ([l, _]) => {
-          return l;
-        }],
-        // Objects
-        [R.T,
-          lr => {
-            return R.apply(
-              R.mergeWithKey(
-                (k, l, r) => R.compose(
-                  // Take key and the result and call the applyObj func, but only if res is an Object
-                  v => R.when(
-                    // When it's an object and not an array call applyObj
-                    R.both(
-                      x => isObject(x),
-                      R.complement(R.is)(Array)
-                    ),
-                    res => applyObj(k, res)
-                  )(v),
-                  // First recurse on l and r
-                  ([kk, ll, rr]) => {
-                    const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [ll, rr]));
-                    if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
-                      // Never recurse on an instance that has been seen
-                      return ll;
+        const result = R.cond(
+            [
+                // Arrays
+                [R.all(Array.isArray),
+                    // Recurse on each array item. We pass the key without the index
+                    lr => {
+                        return R.apply(
+                            R.zipWith(
+                                (l, r) => R.compose(
+                                    // For array items, take key and the result and call the applyObj func, but only if res is an Object
+                                    v => R.when(
+                                        // When it's an object and not an array call applyObj
+                                        // typeof x === 'object' check because sometimes values that are objects are not returning true
+                                        R.allPass([
+                                            vv => typeof vv === 'object',
+                                            vv => vv !== null,
+                                            R.complement(R.is)(Array)
+                                        ]),
+                                        res => applyObj(key, res)
+                                    )(v),
+                                    ([kk, ll, rr]) => {
+                                        return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr, seen);
+                                    }
+                                )([key, l, r])
+                            )
+                        )(lr);
                     }
-                    return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr,
-                      // Build up our seen objects to prevent infinite recursion
-                      R.concat(seen, cacheObjs)
-                    );
-                  }
-                )([k, l, r])
-              ),
-              lr
-            );
-          }
-        ]
-      ]
-    )([left, right]);
-    // For the top level, call applyObj the result is an object
-    return R.when(obj => !R.length(seen) && isObject(obj),
-      obj => {
-        return applyObj(null, obj);
-      }
-    )(result);
-  }
+                ],
+                // Primitives: call the function with left and right as the first two args and key as the last
+                [R.complement(R.all)(x => isObject(x)), lr => {
+                    return fn(...lr, key);
+                }],
+                // Always leave functions and dates alone.
+                [lr => R.all(R.either(R.is(Function), R.is(Date)), lr), ([l, _]) => {
+                    return l;
+                }],
+                // Objects
+                [R.T,
+                    lr => {
+                        const lrWithoutReadOnly = R.map(
+                            lOrR => {
+                                const descriptors = Object.getOwnPropertyDescriptors(lOrR)
+                                const filtered = R.filter(descriptor => (descriptor.set || descriptor.writable), descriptors)
+                                return R.map(descriptor => descriptor.value, filtered)
+                            },
+                            lr
+                        )
+                        const merged = R.apply(
+                            R.mergeWithKey(
+                                (k, l, r) => R.compose(
+                                    // Take key and the result and call the applyObj func, but only if res is an Object
+                                    v => R.when(
+                                        // When it's an object and not an array call applyObj
+                                        R.both(
+                                            x => isObject(x),
+                                            R.complement(R.is)(Array)
+                                        ),
+                                        res => applyObj(k, res)
+                                    )(v),
+                                    // First recurse on l and r
+                                    ([kk, ll, rr]) => {
+                                        const cacheObjs = R.uniq(R.filter(R.either(Array.isArray, isObject), [ll, rr]));
+                                        if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+                                            // Never recurse on an instance that has been seen
+                                            return ll;
+                                        }
+                                        return _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(fn, applyObj, kk, ll, rr,
+                                            // Build up our seen objects to prevent infinite recursion
+                                            R.concat(seen, cacheObjs)
+                                        );
+                                    }
+                                )([k, l, r])
+                            ),
+                            lrWithoutReadOnly
+                        );
+                        // In order to preserve read-only getters, which were not merged...
+                        const [lGetters, rGetters] = R.map(
+                            lOrR => R.filter(descriptor => {
+                                return !(descriptor.set || descriptor.writable)
+                            }, Object.getOwnPropertyDescriptors(lOrR)),
+                            lr
+                        )
+                        return Object.create(
+                            Object.getPrototypeOf(merged),
+                            {
+                                ...lGetters,
+                                ...rGetters,
+                                ...Object.getOwnPropertyDescriptors(merged),
+                            }
+                        );
+                    }
+                ]
+            ]
+        )([left, right]);
+        // For the top level, call applyObj the result is an object
+        return R.when(obj => !R.length(seen) && isObject(obj),
+            obj => {
+                return applyObj(null, obj);
+            }
+        )(result);
+    }
 );
 
 
@@ -587,8 +611,8 @@ const _mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs = R.curry((fn, applyObj, 
  * @sig capitalize:: String -> String
  */
 export const capitalize = str => R.compose(
-  R.join(''),
-  R.juxt([R.compose(R.toUpper, R.head), R.tail])
+    R.join(''),
+    R.juxt([R.compose(R.toUpper, R.head), R.tail])
 )(str);
 
 /**
@@ -599,8 +623,8 @@ export const capitalize = str => R.compose(
  * @sig capitalize:: String -> String
  */
 export const lowercase = str => R.compose(
-  R.join(''),
-  R.juxt([R.compose(R.toLower, R.head), R.tail])
+    R.join(''),
+    R.juxt([R.compose(R.toLower, R.head), R.tail])
 )(str);
 
 /**
@@ -609,10 +633,10 @@ export const lowercase = str => R.compose(
  * @returns {String} The camel-cased string
  */
 export const camelCase = str =>
-  R.toLower(str).replace(
-    /[_.-](\w|$)/g,
-    (_, x) => x.toUpperCase()
-  );
+    R.toLower(str).replace(
+        /[_.-](\w|$)/g,
+        (_, x) => x.toUpperCase()
+    );
 
 /**
  * Merge a list of objects using the given concat function
@@ -621,15 +645,15 @@ export const camelCase = str =>
  * @sig mergeAllWithKey:: (String → a → a → a) → [{a}] → {a}
  */
 export const mergeAllWithKey = R.curry((fn, [head, ...rest]) =>
-  R.mergeWithKey( // call mergeWithKey on two objects at a time
-    fn,
-    head || {}, // first object is always the head
-    R.ifElse( // second object is the merged object of the recursion
-      R.isEmpty, // if no rest
-      () => R.empty({}), // end case empty object
-      mergeAllWithKey(fn) // else recurse with the rest
-    )(rest)
-  )
+    R.mergeWithKey( // call mergeWithKey on two objects at a time
+        fn,
+        head || {}, // first object is always the head
+        R.ifElse( // second object is the merged object of the recursion
+            R.isEmpty, // if no rest
+            () => R.empty({}), // end case empty object
+            mergeAllWithKey(fn) // else recurse with the rest
+        )(rest)
+    )
 );
 
 /**
@@ -639,15 +663,15 @@ export const mergeAllWithKey = R.curry((fn, [head, ...rest]) =>
  * @sig mapKeys :: (String -> String) -> Object -> Object
  */
 export const mapKeys = R.curry(
-  (fn, obj) => R.compose(
-    R.fromPairs,
-    pairs => R.map(
-      // Apply fn to index 0 of pair
-      pair => R.adjust(0, fn, pair),
-      pairs
-    ),
-    R.toPairs
-  )(obj)
+    (fn, obj) => R.compose(
+        R.fromPairs,
+        pairs => R.map(
+            // Apply fn to index 0 of pair
+            pair => R.adjust(0, fn, pair),
+            pairs
+        ),
+        R.toPairs
+    )(obj)
 );
 
 
@@ -658,8 +682,8 @@ export const mapKeys = R.curry(
  * @sig mapKeysForLens :: Lens -> ((String -> String) -> Object -> Object
  */
 export const mapKeysForLens = R.curry((lens, fn, obj) =>
-  // Sets the lens-focused objects to a new object with keys mapped according to the function
-  R.set(lens, mapKeys(fn, R.view(lens, obj)), obj)
+    // Sets the lens-focused objects to a new object with keys mapped according to the function
+    R.set(lens, mapKeys(fn, R.view(lens, obj)), obj)
 );
 
 /**
@@ -680,10 +704,10 @@ export const mapDefault = (keyName, module) => mapKeys(key => key === 'default' 
  * @sig mapDefault :: String -> <k,v> -> <k,v>
  */
 export const mapDefaultAndPrefixOthers = (defaultName, prefix, module) =>
-  mapKeys(
-    key => (key === 'default') ? defaultName : `${prefix}${capitalize(key)}`,
-    module
-  );
+    mapKeys(
+        key => (key === 'default') ? defaultName : `${prefix}${capitalize(key)}`,
+        module
+    );
 
 /**
  * Maps an object with a function that returns pairs and create and object therefrom
@@ -705,14 +729,14 @@ export const mapKeysAndValues = R.curry((f, container) => R.fromPairs(mapObjToVa
  * @sig filterWithKeys:: (v -> k -> True|False) -> <k,v> -> <k,v>
  */
 export const filterWithKeys = R.curry((pred, obj) => {
-  if (!obj) {
-    return obj;
-  }
-  return R.compose(
-    pairs => R.fromPairs(pairs),
-    R.filter(pair => R.apply(pred, R.reverse(pair))),
-    R.toPairs
-  )(obj);
+    if (!obj) {
+        return obj;
+    }
+    return R.compose(
+        pairs => R.fromPairs(pairs),
+        R.filter(pair => R.apply(pred, R.reverse(pair))),
+        R.toPairs
+    )(obj);
 });
 
 /**
@@ -722,12 +746,12 @@ export const filterWithKeys = R.curry((pred, obj) => {
  * @returns {Object} The object with transformed keys and the original values
  */
 export const transformKeys = R.curry((func, obj) =>
-  R.compose(
-    R.fromPairs,
-    R.map(([key, value]) =>
-      [func(key), value]),
-    R.toPairs
-  )(obj)
+    R.compose(
+        R.fromPairs,
+        R.map(([key, value]) =>
+            [func(key), value]),
+        R.toPairs
+    )(obj)
 );
 
 /**
@@ -739,11 +763,11 @@ export const transformKeys = R.curry((func, obj) =>
  * @param {Object} obj Object to traverse with the lens
  */
 export const renameKey = R.curry((lens, from, to, obj) => R.over(
-  lens,
-  target => mapKeys(
-    R.when(R.equals(from), R.always(to)),
-    target),
-  obj));
+    lens,
+    target => mapKeys(
+        R.when(R.equals(from), R.always(to)),
+        target),
+    obj));
 
 /**
  * Duplicates the key of the object specified by the lens and key, to the given list of keys or single key.
@@ -754,19 +778,19 @@ export const renameKey = R.curry((lens, from, to, obj) => R.over(
  * @param {Object} obj Object to traverse with the lens
  */
 export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
-  lens,
-  // convert the target of the lens to a merge of the target with copies of target[key]
-  target => R.mergeRight(
-    target,
-    R.fromPairs(
-      R.map(
-        toKey => [toKey, R.clone(target[key])],
-        toArrayIfNot(toKeys)
-      )
-    )
-  ),
-  // take the lens of this obj
-  obj)
+    lens,
+    // convert the target of the lens to a merge of the target with copies of target[key]
+    target => R.mergeRight(
+        target,
+        R.fromPairs(
+            R.map(
+                toKey => [toKey, R.clone(target[key])],
+                toArrayIfNot(toKeys)
+            )
+        )
+    ),
+    // take the lens of this obj
+    obj)
 );
 
 /**
@@ -775,7 +799,7 @@ export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
  * @returns {[*]} The scalar as an array or the untouched array
  */
 export const toArrayIfNot = arrayOrScalar => {
-  return R.unless(Array.isArray, Array.of)(arrayOrScalar);
+    return R.unless(Array.isArray, Array.of)(arrayOrScalar);
 };
 
 /**
@@ -786,20 +810,20 @@ export const toArrayIfNot = arrayOrScalar => {
  * @param {Object} obj Object to traverse with the lens
  */
 export const moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
-  lens,
-  // convert the target of the lens to a merge of the target with copies of target[key]
-  // and with target[key] itself removed
-  target => R.mergeRight(
-    R.omit([key], target),
-    R.fromPairs(
-      R.map(
-        toKey => [toKey, R.clone(target[key])],
-        toKeys
-      )
-    )
-  ),
-  // take the lens of this obj
-  obj)
+    lens,
+    // convert the target of the lens to a merge of the target with copies of target[key]
+    // and with target[key] itself removed
+    target => R.mergeRight(
+        R.omit([key], target),
+        R.fromPairs(
+            R.map(
+                toKey => [toKey, R.clone(target[key])],
+                toKeys
+            )
+        )
+    ),
+    // take the lens of this obj
+    obj)
 );
 
 /**
@@ -810,17 +834,17 @@ export const moveToKeys = R.curry((lens, key, toKeys, obj) => R.over(
  * @returns {Result} Result.Error if no matches or more than one, otherwise Result.Ok with the single matching item in an array/object
  */
 export const findOne = R.curry((predicate, obj) =>
-  R.ifElse(
-    // If path doesn't resolve
-    items => R.equals(R.length(R.keys(items)), 1),
-    // Return the resolved single key/value object
-    items => Result.Ok(items),
-    // Create a useful Error message
-    items => Result.Error({
-      all: obj,
-      matching: items
-    })
-  )(R.filter(predicate, obj))
+    R.ifElse(
+        // If path doesn't resolve
+        items => R.equals(R.length(R.keys(items)), 1),
+        // Return the resolved single key/value object
+        items => Result.Ok(items),
+        // Create a useful Error message
+        items => Result.Error({
+            all: obj,
+            matching: items
+        })
+    )(R.filter(predicate, obj))
 );
 
 /**
@@ -838,10 +862,10 @@ export const onlyOne = findOne(R.T);
  * @returns {Result} Result.Error if no items or more than one, otherwise Result.Ok with the single value
  */
 export const onlyOneValue = R.compose(
-  // Use R.map to operate on the value of Result without extracting it
-  R.map(R.head),
-  R.map(R.values),
-  findOne(R.T)
+    // Use R.map to operate on the value of Result without extracting it
+    R.map(R.head),
+    R.map(R.values),
+    findOne(R.T)
 );
 
 /**
@@ -860,16 +884,16 @@ export const mapToObjValue = R.curry((f, obj) => R.compose(R.fromPairs, R.map(v 
  * @returns {Result} An Result.Ok containing the value or an Result.Error if no value is found
  */
 export const findOneValueByParams = (param, items) => {
-  return findOne(
-    // Compare all the eqProps against each item
-    R.allPass(
-      // Create a eqProps for each prop of param
-      R.map(prop => R.eqProps(prop, param),
-        R.keys(param)
-      )
-    ),
-    R.values(items)
-  ).map(R.head);
+    return findOne(
+        // Compare all the eqProps against each item
+        R.allPass(
+            // Create a eqProps for each prop of param
+            R.map(prop => R.eqProps(prop, param),
+                R.keys(param)
+            )
+        ),
+        R.values(items)
+    ).map(R.head);
 };
 
 /**
@@ -879,16 +903,16 @@ export const findOneValueByParams = (param, items) => {
  * @returns {[Object]} items that pass
  */
 export const findByParams = (param, items) => {
-  return R.filter(
-    // Compare all the eqProps against each item
-    R.allPass(
-      // Create a eqProps for each prop of param
-      R.map(prop => R.eqProps(prop, param),
-        R.keys(param)
-      )
-    ),
-    items
-  );
+    return R.filter(
+        // Compare all the eqProps against each item
+        R.allPass(
+            // Create a eqProps for each prop of param
+            R.map(prop => R.eqProps(prop, param),
+                R.keys(param)
+            )
+        ),
+        items
+    );
 };
 
 /**
@@ -898,12 +922,12 @@ export const findByParams = (param, items) => {
  * @returns {*} The first mapped item value that is not nil
  */
 export const findMapped = (f, items) => {
-  return R.reduceWhile(
-    R.isNil,
-    (_, i) => f(i),
-    null,
-    items
-  );
+    return R.reduceWhile(
+        R.isNil,
+        (_, i) => f(i),
+        null,
+        items
+    );
 };
 
 /**
@@ -914,15 +938,15 @@ export const findMapped = (f, items) => {
  * @returns {Object} The fResolve value of the found item or null if no item is found
  */
 export const findMappedAndResolve = (fMap, fResolve, items) => {
-  return R.reduceWhile(
-    R.isNil,
-    (_, item) => {
-      // Call fMap on the item. If non-null, resolve the original item to something
-      return R.unless(R.isNil, () => fResolve(item), fMap(item));
-    },
-    null,
-    items
-  );
+    return R.reduceWhile(
+        R.isNil,
+        (_, item) => {
+            // Call fMap on the item. If non-null, resolve the original item to something
+            return R.unless(R.isNil, () => fResolve(item), fMap(item));
+        },
+        null,
+        items
+    );
 };
 
 /**
@@ -936,18 +960,18 @@ export const findMappedAndResolve = (fMap, fResolve, items) => {
  * @returns {[Object]} The items with the property update.
  */
 export const setMatchingMappedBoolAndResolve = (fMatches, fSetBool, items) => {
-  return R.map(
-    item => R.ifElse(
-      // Find the item in items that is true with fMatches and apply it to fSetBool
-      // Apply non matching items to !fSetBool
-      item => fMatches(item),
-      // Apply it to fSetBool
-      item => fSetBool(true, item),
-      // Apply it to !fSetBool
-      item => fSetBool(false, item)
-    )(item),
-    items
-  );
+    return R.map(
+        item => R.ifElse(
+            // Find the item in items that is true with fMatches and apply it to fSetBool
+            // Apply non matching items to !fSetBool
+            item => fMatches(item),
+            // Apply it to fSetBool
+            item => fSetBool(true, item),
+            // Apply it to !fSetBool
+            item => fSetBool(false, item)
+        )(item),
+        items
+    );
 };
 
 /**
@@ -966,7 +990,7 @@ export const alwaysFunc = maybeFunc => R.unless(R.is(Function), R.always)(maybeF
  * @return {[Object]} Mapped values
  */
 export const mapObjToValues = R.curry((f, obj) => {
-  return R.values(R.mapObjIndexed(f, obj));
+    return R.values(R.mapObjIndexed(f, obj));
 });
 
 /**
@@ -976,7 +1000,7 @@ export const mapObjToValues = R.curry((f, obj) => {
  * @return {Object} The filtered object values
  */
 export const filterObjToValues = R.curry((f, obj) => {
-  return R.values(filterWithKeys(f, obj));
+    return R.values(filterWithKeys(f, obj));
 });
 /**
  * Like mapObjToValues but chains the values when an array is returned for each mapping
@@ -985,7 +1009,7 @@ export const filterObjToValues = R.curry((f, obj) => {
  * @return {[Object]} Mapped flattened values
  */
 export const chainObjToValues = R.curry((f, obj) => {
-  return R.chain(R.identity, mapObjToValues(f, obj));
+    return R.chain(R.identity, mapObjToValues(f, obj));
 });
 
 
@@ -1001,26 +1025,26 @@ export const chainObjToValues = R.curry((f, obj) => {
  * @returns {Array|Object} All arrays of pairs are converted to objects. Arrays of non pairs are left as arrays
  */
 export const fromPairsDeep = deepPairs => R.cond(
-  [
-    // It's array of pairs or some other array
-    [Array.isArray, list =>
-      R.ifElse(
-        // Is the first item a two element array whose first item is a string?
-        ([first]) => R.allPass(
-          [
-            Array.isArray,
-            x => R.compose(R.equals(2), R.length)(x),
-            x => R.compose(R.is(String), R.head)(x)
-          ])(first),
-        // Yes, return an object whose keys are the first element and values are the result of recursing on the second
-        l => R.compose(R.fromPairs, R.map(([k, v]) => [k, fromPairsDeep(v)]))(l),
-        // No, recurse on each array item
-        l => R.map(v => fromPairsDeep(v), l)
-      )(list)
-    ],
-    // End case, return the given value unadulterated
-    [R.T, R.identity]
-  ])(deepPairs);
+    [
+        // It's array of pairs or some other array
+        [Array.isArray, list =>
+            R.ifElse(
+                // Is the first item a two element array whose first item is a string?
+                ([first]) => R.allPass(
+                    [
+                        Array.isArray,
+                        x => R.compose(R.equals(2), R.length)(x),
+                        x => R.compose(R.is(String), R.head)(x)
+                    ])(first),
+                // Yes, return an object whose keys are the first element and values are the result of recursing on the second
+                l => R.compose(R.fromPairs, R.map(([k, v]) => [k, fromPairsDeep(v)]))(l),
+                // No, recurse on each array item
+                l => R.map(v => fromPairsDeep(v), l)
+            )(list)
+        ],
+        // End case, return the given value unadulterated
+        [R.T, R.identity]
+    ])(deepPairs);
 
 
 /**
@@ -1036,14 +1060,14 @@ export const fromPairsDeep = deepPairs => R.cond(
  * @returns {Object} with the above transformation. Use replaceValuesAtDepthAndStringify to get a string
  */
 export function replaceValuesAtDepth(n, replaceStringOrFunc, obj) {
-  return R.ifElse(
-    // If we are above level 0 and we have an object
-    R.both(R.always(R.lt(0, n)), isObject),
-    // Then recurse on each object or array value
-    o => R.map(oo => replaceValuesAtDepth(n - 1, replaceStringOrFunc, oo), o),
-    // If at level 0 replace the value. If not an object or not at level 0, leave it alone
-    o => R.when(R.always(R.equals(0, n)), alwaysFunc(replaceStringOrFunc))(o)
-  )(obj);
+    return R.ifElse(
+        // If we are above level 0 and we have an object
+        R.both(R.always(R.lt(0, n)), isObject),
+        // Then recurse on each object or array value
+        o => R.map(oo => replaceValuesAtDepth(n - 1, replaceStringOrFunc, oo), o),
+        // If at level 0 replace the value. If not an object or not at level 0, leave it alone
+        o => R.when(R.always(R.equals(0, n)), alwaysFunc(replaceStringOrFunc))(o)
+    )(obj);
 }
 
 /** *
@@ -1059,7 +1083,7 @@ export function replaceValuesAtDepth(n, replaceStringOrFunc, obj) {
  * @returns {String} after the above replacement
  */
 export const replaceValuesAtDepthAndStringify = (n, replaceString, obj) => {
-  return JSON.stringify(replaceValuesAtDepth(n, replaceString, obj));
+    return JSON.stringify(replaceValuesAtDepth(n, replaceString, obj));
 };
 
 /**
@@ -1069,17 +1093,17 @@ export const replaceValuesAtDepthAndStringify = (n, replaceString, obj) => {
  * @returns {Object} after the above replacement
  */
 export const replaceValuesWithCountAtDepth = (n, obj) => {
-  return replaceValuesAtDepth(
-    n,
-    R.when(
-      isObject,
-      o => R.compose(
-        // Show arrays and objs different
-        R.ifElse(R.always(Array.isArray(o)), c => `[...${c}]`, c => `{...${c}}`),
-        R.length,
-        R.keys)(o)
-    ),
-    obj);
+    return replaceValuesAtDepth(
+        n,
+        R.when(
+            isObject,
+            o => R.compose(
+                // Show arrays and objs different
+                R.ifElse(R.always(Array.isArray(o)), c => `[...${c}]`, c => `{...${c}}`),
+                R.length,
+                R.keys)(o)
+        ),
+        obj);
 };
 
 /**
@@ -1089,7 +1113,7 @@ export const replaceValuesWithCountAtDepth = (n, obj) => {
  * @returns {String} after the above replacement
  */
 export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
-  return JSON.stringify(replaceValuesWithCountAtDepth(n, obj));
+    return JSON.stringify(replaceValuesWithCountAtDepth(n, obj));
 };
 
 /**
@@ -1099,7 +1123,7 @@ export const replaceValuesWithCountAtDepthAndStringify = (n, obj) => {
  * @returns {Object} The 1-D version of the object
  */
 export const flattenObj = obj => {
-  return R.fromPairs(_flattenObj({}, obj));
+    return R.fromPairs(_flattenObj({}, obj));
 };
 
 /**
@@ -1109,43 +1133,43 @@ export const flattenObj = obj => {
  * @return {Object} The flattened object
  */
 export const flattenObjUntil = (predicate, obj) => {
-  return R.fromPairs(_flattenObj({predicate}, obj));
+    return R.fromPairs(_flattenObj({predicate}, obj));
 };
 
 const _flattenObj = (config, obj, keys = [], seen = []) => {
-  const predicate = R.propOr(null, 'predicate', config);
-  return R.cond([
-    [
-      // Leave functions alone
-      o => R.is(Function, o),
-      o => [[R.join('.', keys), o]]
-    ],
-    // If we have an object
-    [
-      o => R.both(
-        isObject,
-        oo => R.when(
-          () => predicate,
-          ooo => R.complement(predicate)(ooo)
-        )(oo)
-      )(o),
-      // Then recurse on each object or array value
-      o => chainObjToValues((oo, k) => {
-        if ((R.is(Object, oo) || Array.isArray(oo)) && seen.includes(oo)) {
-          // can't continue infinitely
-          return [[R.join('.', keys), o]];
-        }
-        // Mark arrays and objects (references) to prevent recursion
-        const newSeen = (R.is(Object, oo) || Array.isArray(oo)) ? R.concat(seen, [oo]) : seen;
-        return _flattenObj(config, oo, R.concat(keys, [k]), newSeen);
-      }, o)
-    ],
-    // If not an object return flat pair
-    [
-      R.T,
-      o => [[R.join('.', keys), o]]
-    ]
-  ])(obj);
+    const predicate = R.propOr(null, 'predicate', config);
+    return R.cond([
+        [
+            // Leave functions alone
+            o => R.is(Function, o),
+            o => [[R.join('.', keys), o]]
+        ],
+        // If we have an object
+        [
+            o => R.both(
+                isObject,
+                oo => R.when(
+                    () => predicate,
+                    ooo => R.complement(predicate)(ooo)
+                )(oo)
+            )(o),
+            // Then recurse on each object or array value
+            o => chainObjToValues((oo, k) => {
+                if ((R.is(Object, oo) || Array.isArray(oo)) && seen.includes(oo)) {
+                    // can't continue infinitely
+                    return [[R.join('.', keys), o]];
+                }
+                // Mark arrays and objects (references) to prevent recursion
+                const newSeen = (R.is(Object, oo) || Array.isArray(oo)) ? R.concat(seen, [oo]) : seen;
+                return _flattenObj(config, oo, R.concat(keys, [k]), newSeen);
+            }, o)
+        ],
+        // If not an object return flat pair
+        [
+            R.T,
+            o => [[R.join('.', keys), o]]
+        ]
+    ])(obj);
 };
 
 /**
@@ -1154,8 +1178,8 @@ const _flattenObj = (config, obj, keys = [], seen = []) => {
  * @returns {[String]} The lens array containing string or integers
  */
 export const keyStringToLensPath = keyString => R.map(
-  R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt),
-  R.split('.', keyString)
+    R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt),
+    R.split('.', keyString)
 );
 
 /**
@@ -1164,7 +1188,7 @@ export const keyStringToLensPath = keyString => R.map(
  * @returns {Object} The original
  */
 export const unflattenObjNoArrays = obj => {
-  return _unflattenObj({allowArrays: false}, obj);
+    return _unflattenObj({allowArrays: false}, obj);
 };
 
 /**
@@ -1173,52 +1197,52 @@ export const unflattenObjNoArrays = obj => {
  * @returns {Object} The original
  */
 export const unflattenObj = obj => {
-  return _unflattenObj({allowArrays: true}, obj);
+    return _unflattenObj({allowArrays: true}, obj);
 };
 
 export const _unflattenObj = (config, obj) => {
-  return R.compose(
-    R.reduce(
-      (accum, [keyString, value]) => {
-        // Don't allow indices if allowArrays is false
-        const itemKeyPath = R.map(
-          key => {
-            return R.when(
-              () => R.not(R.prop('allowArrays', config)),
-              k => k.toString()
-            )(key);
-          },
-          keyStringToLensPath(keyString)
-        );
-        // Current item lens
-        const itemLensPath = R.lensPath(itemKeyPath);
-        // All but the last segment gives us the item container len
-        const constainerKeyPath = R.init(itemKeyPath);
-        const container = R.unless(
-          // If the path has any length (not []) and the value is set, don't do anything
-          R.both(R.always(R.length(constainerKeyPath)), R.view(R.lensPath(constainerKeyPath))),
-          // Else we are at the top level, so use the existing accum or create a [] or {}
-          // depending on if our item key is a number or not
-          x => R.defaultTo(
-            R.ifElse(
-              v => R.both(() => R.prop('allowArrays', config), R.is(Number))(v),
-              R.always([]),
-              R.always({})
-            )(R.head(itemKeyPath))
-          )(x)
-        )(accum);
-        // Finally set the container at the itemLensPath
-        return R.set(
-          itemLensPath,
-          value,
-          container
-        );
-      },
-      // null initial value
-      null
-    ),
-    R.toPairs
-  )(obj);
+    return R.compose(
+        R.reduce(
+            (accum, [keyString, value]) => {
+                // Don't allow indices if allowArrays is false
+                const itemKeyPath = R.map(
+                    key => {
+                        return R.when(
+                            () => R.not(R.prop('allowArrays', config)),
+                            k => k.toString()
+                        )(key);
+                    },
+                    keyStringToLensPath(keyString)
+                );
+                // Current item lens
+                const itemLensPath = R.lensPath(itemKeyPath);
+                // All but the last segment gives us the item container len
+                const constainerKeyPath = R.init(itemKeyPath);
+                const container = R.unless(
+                    // If the path has any length (not []) and the value is set, don't do anything
+                    R.both(R.always(R.length(constainerKeyPath)), R.view(R.lensPath(constainerKeyPath))),
+                    // Else we are at the top level, so use the existing accum or create a [] or {}
+                    // depending on if our item key is a number or not
+                    x => R.defaultTo(
+                        R.ifElse(
+                            v => R.both(() => R.prop('allowArrays', config), R.is(Number))(v),
+                            R.always([]),
+                            R.always({})
+                        )(R.head(itemKeyPath))
+                    )(x)
+                )(accum);
+                // Finally set the container at the itemLensPath
+                return R.set(
+                    itemLensPath,
+                    value,
+                    container
+                );
+            },
+            // null initial value
+            null
+        ),
+        R.toPairs
+    )(obj);
 };
 
 /**
@@ -1228,13 +1252,13 @@ export const _unflattenObj = (config, obj) => {
  * @param {Object} obj The object to process
  */
 export const overDeep = R.curry((func, obj) => mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(
-    // We are using a mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but we only need the second function
-    (l, r, k) => l,
-    func,
-    // Use obj twice so that all keys match and get called with the merge function
-    obj,
-    obj
-  )
+        // We are using a mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs but we only need the second function
+        (l, r, k) => l,
+        func,
+        // Use obj twice so that all keys match and get called with the merge function
+        obj,
+        obj
+    )
 );
 
 /**
@@ -1242,10 +1266,10 @@ export const overDeep = R.curry((func, obj) => mergeDeepWithKeyWithRecurseArrayI
  * on each dictionary that hasn't been removed by omit_deep at a higher level
  */
 export const omitDeep = R.curry(
-  (omit_keys, obj) => omitDeepBy(
-    (k, v) => R.includes(k, omit_keys),
-    obj
-  )
+    (omit_keys, obj) => omitDeepBy(
+        (k, v) => R.includes(k, omit_keys),
+        obj
+    )
 );
 
 /**
@@ -1255,31 +1279,31 @@ export const omitDeep = R.curry(
  * @param {Function} f Binary function accepting each key, value. Return non-nil to omit and false or nil to keep
  */
 export const omitDeepBy = R.curry(
-  (f, obj) => R.compose(
-    o => applyDeepWithKeyWithRecurseArraysAndMapObjs(
-      // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
-      // l and r are always the same value
-      (l, r, kk) => R.ifElse(
+    (f, obj) => R.compose(
+        o => applyDeepWithKeyWithRecurseArraysAndMapObjs(
+            // If k is in omit_keys return {} to force the applyObj function to call. Otherwise take l since l and r are always the same
+            // l and r are always the same value
+            (l, r, kk) => R.ifElse(
+                // Reject any function return value that isn't null or false
+                k => R.anyPass([R.isNil, R.equals(false)])(f(k, l)),
+                R.always(l),
+                () => ({})
+            )(kk),
+            // Called as the result of each recursion. Removes the keys at any level except the topmost level
+            (key, result) => filterWithKeys(
+                (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
+                result
+            ),
+            o
+        ),
+        // Omit at the top level. We have to do this because applyObj of applyDeepWithKeyWithRecurseArraysAndMapObjs only gets called starting
+        // on the object of each key
         // Reject any function return value that isn't null or false
-        k => R.anyPass([R.isNil, R.equals(false)])(f(k, l)),
-        R.always(l),
-        () => ({})
-      )(kk),
-      // Called as the result of each recursion. Removes the keys at any level except the topmost level
-      (key, result) => filterWithKeys(
-        (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
-        result
-      ),
-      o
-    ),
-    // Omit at the top level. We have to do this because applyObj of applyDeepWithKeyWithRecurseArraysAndMapObjs only gets called starting
-    // on the object of each key
-    // Reject any function return value that isn't null or false
-    o => filterWithKeys(
-      (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
-      o
-    )
-  )(obj)
+        o => filterWithKeys(
+            (v, k) => R.anyPass([R.isNil, R.equals(false)])(f(k, v)),
+            o
+        )
+    )(obj)
 );
 
 /**
@@ -1297,48 +1321,48 @@ export const omitDeepBy = R.curry(
  * @private
  */
 const _calculateRemainingPaths = (eliminateItemPredicate, paths, item, keyOrIndex) => {
-  // Keep paths that match keyOrIndex as the first item. Remove other paths
-  // since they can't match item or its descendants
-  const tailPathsStillMatchingItemPath = compact(R.map(
-    R.compose(
-      R.ifElse(
+    // Keep paths that match keyOrIndex as the first item. Remove other paths
+    // since they can't match item or its descendants
+    const tailPathsStillMatchingItemPath = compact(R.map(
         R.compose(
-          aKeyOrIndex => {
-            return R.ifElse(
-              // if keyOrIndex is a string and matches the shape of a regex: /.../[gim]
-              possibleRegex => R.both(R.is(String), str => R.test(regexToMatchARegex, str))(possibleRegex),
-              // Construct the regex with one or two, the expression and options (gim)
-              provenRegex => {
-                const args = compactEmpty(R.split('/', provenRegex));
-                return new RegExp(...args).test(keyOrIndex);
-              },
-              // If aKeyOrIndex is '*' or equals keyOrIndex always return true
-              str => R.includes(str, ['*', keyOrIndex])
-            )(aKeyOrIndex);
-          },
-          R.head
+            R.ifElse(
+                R.compose(
+                    aKeyOrIndex => {
+                        return R.ifElse(
+                            // if keyOrIndex is a string and matches the shape of a regex: /.../[gim]
+                            possibleRegex => R.both(R.is(String), str => R.test(regexToMatchARegex, str))(possibleRegex),
+                            // Construct the regex with one or two, the expression and options (gim)
+                            provenRegex => {
+                                const args = compactEmpty(R.split('/', provenRegex));
+                                return new RegExp(...args).test(keyOrIndex);
+                            },
+                            // If aKeyOrIndex is '*' or equals keyOrIndex always return true
+                            str => R.includes(str, ['*', keyOrIndex])
+                        )(aKeyOrIndex);
+                    },
+                    R.head
+                ),
+                // Matches the keyOrIndex at the head. Return the tail
+                R.tail,
+                // Mark null to remove from list
+                R.always(null)),
+            // Convert path to array with string keys and number indexes
+            keyStringToLensPath
         ),
-        // Matches the keyOrIndex at the head. Return the tail
-        R.tail,
-        // Mark null to remove from list
-        R.always(null)),
-      // Convert path to array with string keys and number indexes
-      keyStringToLensPath
-    ),
-    paths
-  ));
-  // For omit:
-  // If any path matches the path to the item return null so we can throw away the item
-  // If no path is down to zero length return the item and the paths
-  // For pick:
-  // If no path matches the path to the item return null so we can throw away the item
-  // If any path is not down to zero return the item and the paths, unless item is a primitive meaning it can't match
-  // a path
-  return R.ifElse(
-    tailPaths => eliminateItemPredicate(tailPaths, item),
-    R.always(null),
-    p => ({item: item, paths: R.map(R.join('.'), p)})
-  )(tailPathsStillMatchingItemPath);
+        paths
+    ));
+    // For omit:
+    // If any path matches the path to the item return null so we can throw away the item
+    // If no path is down to zero length return the item and the paths
+    // For pick:
+    // If no path matches the path to the item return null so we can throw away the item
+    // If any path is not down to zero return the item and the paths, unless item is a primitive meaning it can't match
+    // a path
+    return R.ifElse(
+        tailPaths => eliminateItemPredicate(tailPaths, item),
+        R.always(null),
+        p => ({item: item, paths: R.map(R.join('.'), p)})
+    )(tailPathsStillMatchingItemPath);
 };
 
 // This predicate looks for any path that's zero length, meaning it matches the path to an item and we should
@@ -1354,69 +1378,69 @@ const _omitDeepPathsEliminateItemPredicate = paths => R.any(R.compose(R.equals(0
  * @returns {Object} The object with the omitted paths
  */
 export const omitDeepPaths = (pathSet, obj, seen = []) => {
-  return R.cond([
-      // Arrays
-      [o => Array.isArray(o),
-        list => {
-          // Recurse on each array item that doesn't match the paths.
-          // We pass the key without the index
-          // If any path matches the path to the value we return the item and the matching paths
-          const survivingItems = compact(R.addIndex(R.map)(
-            (item, index) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, item, index),
-            list
-          ));
-          return R.map(({paths, item}) => {
-              return omitDeepPaths(paths, item, seen);
-            },
-            survivingItems);
-        }
-      ],
-      // Primitives always pass.
-      [R.complement(isObject), primitive => primitive],
-      // Leave the func alone
-      [R.is(Function), func => func],
-      // Objects
-      [R.T,
-        o => {
-          // Recurse on each object value that doesn't match the paths.
-          const survivingItems = compact(R.mapObjIndexed(
-            // If any path matches the path to the value we return the value and the matching paths
-            // If no path matches it we know the value shouldn't be omitted so we don't recurse on it below
-            (value, key) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, value, key),
-            o
-          ));
-          // Only recurse on items from the object that are still eligible for omitting
-          return R.map(
-            ({paths, item}) => {
-              const cacheObjs = R.filter(R.either(Array.isArray, isObject), [item]);
-              if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
-                // Never recurse on an instance that has been seen
-                return item;
-              }
-              return omitDeepPaths(paths, item, R.concat(seen, cacheObjs));
-            },
-            survivingItems
-          );
-        }
-      ]
-    ]
-  )(obj);
+    return R.cond([
+            // Arrays
+            [o => Array.isArray(o),
+                list => {
+                    // Recurse on each array item that doesn't match the paths.
+                    // We pass the key without the index
+                    // If any path matches the path to the value we return the item and the matching paths
+                    const survivingItems = compact(R.addIndex(R.map)(
+                        (item, index) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, item, index),
+                        list
+                    ));
+                    return R.map(({paths, item}) => {
+                            return omitDeepPaths(paths, item, seen);
+                        },
+                        survivingItems);
+                }
+            ],
+            // Primitives always pass.
+            [R.complement(isObject), primitive => primitive],
+            // Leave the func alone
+            [R.is(Function), func => func],
+            // Objects
+            [R.T,
+                o => {
+                    // Recurse on each object value that doesn't match the paths.
+                    const survivingItems = compact(R.mapObjIndexed(
+                        // If any path matches the path to the value we return the value and the matching paths
+                        // If no path matches it we know the value shouldn't be omitted so we don't recurse on it below
+                        (value, key) => _calculateRemainingPaths(_omitDeepPathsEliminateItemPredicate, pathSet, value, key),
+                        o
+                    ));
+                    // Only recurse on items from the object that are still eligible for omitting
+                    return R.map(
+                        ({paths, item}) => {
+                            const cacheObjs = R.filter(R.either(Array.isArray, isObject), [item]);
+                            if (R.any(cacheObj => seen.includes(cacheObj), cacheObjs)) {
+                                // Never recurse on an instance that has been seen
+                                return item;
+                            }
+                            return omitDeepPaths(paths, item, R.concat(seen, cacheObjs));
+                        },
+                        survivingItems
+                    );
+                }
+            ]
+        ]
+    )(obj);
 };
 
 // This eliminate predicate returns true if no path is left matching the item's path so the item should not
 // be picked. It also returns true if the there are paths with length greater than 0
 // but item is a primitive, meaning it can't match a path
 const _pickDeepPathsEliminateItemPredicate = (paths, item) => {
-  return R.either(
-    R.compose(R.equals(0), R.length),
-    pths => {
-      return R.both(
-        // Item is not an object
-        () => R.complement(R.is)(Object, item),
-        ps => R.any(R.compose(R.lt(0), R.length), ps)
-      )(pths);
-    }
-  )(paths);
+    return R.either(
+        R.compose(R.equals(0), R.length),
+        pths => {
+            return R.both(
+                // Item is not an object
+                () => R.complement(R.is)(Object, item),
+                ps => R.any(R.compose(R.lt(0), R.length), ps)
+            )(pths);
+        }
+    )(paths);
 };
 /**
  * Pick matching paths in a a structure. For instance pickDeepPaths(['a.b.c', 'a.0.1']) will pick only keys
@@ -1425,60 +1449,60 @@ const _pickDeepPathsEliminateItemPredicate = (paths, item) => {
  * to get all items 0 or 3 of c that is in all items of a, whether a is an object or array
  */
 export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
-      // Arrays
-      [o => Array.isArray(o),
-        list => {
-          // Recurse on each array item that doesn't match the paths. We pass the key without the index
-          // We pass the key without the index
-          // If any path matches the path to the value we return the item and the matching paths
-          const survivingItemsEachWithRemainingPaths = compact(R.addIndex(R.map)(
-            (item, index) => {
-              return _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index);
-            },
-            list
-          ));
-          return R.map(
-            R.ifElse(
-              // If the only paths are now empty we have a match with the items path and keep the item.
-              // Otherwise we pick recursively
-              ({paths}) => R.all(R.compose(R.equals(0), R.length), paths),
-              ({item}) => item,
-              ({item, paths}) => pickDeepPaths(paths, item)
-            ),
-            survivingItemsEachWithRemainingPaths
-          );
-        }
-      ],
-      // Primitives never match because we'd only get here if we have pathSets remaining and no path can match a primitive
-      [R.complement(isObject),
-        () => {
-          throw new Error('pickDeepPaths encountered a value that is not an object or array at the top level. This should never happens and suggests a bug in this function');
-        }
-      ],
-      // Objects
-      [R.T,
-        o => {
-          // Recurse on each array item that doesn't match the paths. We pass the key without the index
-          // If any path matches the path to the value we return the value and the matching paths
-          // If no path matches it we know the value shouldn't be picked so we don't recurse on it below
-          const survivingItems = compact(R.mapObjIndexed(
-            (item, key) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, key),
-            o
-          ));
-          return R.map(
-            R.ifElse(
-              // If the only path is now empty we have a match with the items path and keep the item.
-              // Otherwise we pick recursively
-              ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
-              R.prop('item'),
-              ({item, paths}) => pickDeepPaths(paths, item)
-            ),
-            survivingItems
-          );
-        }
-      ]
-    ]
-  )(obj)
+            // Arrays
+            [o => Array.isArray(o),
+                list => {
+                    // Recurse on each array item that doesn't match the paths. We pass the key without the index
+                    // We pass the key without the index
+                    // If any path matches the path to the value we return the item and the matching paths
+                    const survivingItemsEachWithRemainingPaths = compact(R.addIndex(R.map)(
+                        (item, index) => {
+                            return _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, index);
+                        },
+                        list
+                    ));
+                    return R.map(
+                        R.ifElse(
+                            // If the only paths are now empty we have a match with the items path and keep the item.
+                            // Otherwise we pick recursively
+                            ({paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+                            ({item}) => item,
+                            ({item, paths}) => pickDeepPaths(paths, item)
+                        ),
+                        survivingItemsEachWithRemainingPaths
+                    );
+                }
+            ],
+            // Primitives never match because we'd only get here if we have pathSets remaining and no path can match a primitive
+            [R.complement(isObject),
+                () => {
+                    throw new Error('pickDeepPaths encountered a value that is not an object or array at the top level. This should never happens and suggests a bug in this function');
+                }
+            ],
+            // Objects
+            [R.T,
+                o => {
+                    // Recurse on each array item that doesn't match the paths. We pass the key without the index
+                    // If any path matches the path to the value we return the value and the matching paths
+                    // If no path matches it we know the value shouldn't be picked so we don't recurse on it below
+                    const survivingItems = compact(R.mapObjIndexed(
+                        (item, key) => _calculateRemainingPaths(_pickDeepPathsEliminateItemPredicate, pathSet, item, key),
+                        o
+                    ));
+                    return R.map(
+                        R.ifElse(
+                            // If the only path is now empty we have a match with the items path and keep the item.
+                            // Otherwise we pick recursively
+                            ({item, paths}) => R.all(R.compose(R.equals(0), R.length), paths),
+                            R.prop('item'),
+                            ({item, paths}) => pickDeepPaths(paths, item)
+                        ),
+                        survivingItems
+                    );
+                }
+            ]
+        ]
+    )(obj)
 );
 
 /**
@@ -1488,11 +1512,11 @@ export const pickDeepPaths = R.curry((pathSet, obj) => R.cond([
  * @returns {[Object]} A pair of results
  */
 export const splitAtInclusive = (index, list) => {
-  const pair = R.splitAt(index, list);
-  return [
-    R.concat(R.head(pair), R.slice(0, 1, R.last(pair))),
-    R.last(pair)
-  ];
+    const pair = R.splitAt(index, list);
+    return [
+        R.concat(R.head(pair), R.slice(0, 1, R.last(pair))),
+        R.last(pair)
+    ];
 };
 
 /**
@@ -1501,5 +1525,5 @@ export const splitAtInclusive = (index, list) => {
  * @returns {any}
  */
 export const valuesToKeys = obj => {
-  return R.mapObjIndexed((v, k) => k, obj);
+    return R.mapObjIndexed((v, k) => k, obj);
 };

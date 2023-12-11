@@ -269,6 +269,49 @@ describe('helperFunctions', () => {
             {foo: 4, bar: {bizz: [5, {brewer: 10}]}}
         )).toEqual({foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19, key: 'BIZZ'}], buzz: 7}});
     });
+    test('mergeDeepWithRecurseArrayItemsAndMapObjsWithGetters', () => {
+        const merged = mergeDeepWithKeyWithRecurseArrayItemsAndMapObjs(
+            (l, r) => R.when(
+                R.is(Number),
+                R.add(l)
+            )(r),
+            // key is null at the top level
+            (key, obj) => {
+                if (key) {
+                    const clone = Object.create(
+                        Object.getPrototypeOf(obj),
+                        Object.getOwnPropertyDescriptors(obj)
+                    )
+                    clone['key'] = R.toUpper(key.toString())
+                    return clone
+                }
+                else {
+                    return obj
+                }
+            },
+            {
+                foo: 1, bar: {bizz: [2, {brewer: 9, get willy() {return 'willy'}}], buzz: 7}, get gogetter() {
+                    return 'fun'
+                }
+            },
+            {
+                foo: 4, bar: {bizz: [5, {brewer: 10}]}, get gogetter() {
+                    return 'bun'
+                },
+                get fofetter() {
+                    return 'fun'
+                }
+            }
+        )
+        expect(Object.getOwnPropertyDescriptors(merged).gogetter.get).not.toBeUndefined()
+        expect(Object.getOwnPropertyDescriptors(merged).fofetter.get).not.toBeUndefined()
+        expect(Object.getOwnPropertyDescriptors(merged.bar.bizz[1]).willy.get).not.toBeUndefined()
+        expect(merged).toEqual({
+            foo: 5, bar: {key: 'BAR', bizz: [7, {brewer: 19, key: 'BIZZ', willy: 'willy'}], buzz: 7},
+            // These getters get evaluated by jest
+            gogetter: 'bun', fofetter: 'fun'
+        });
+    });
 
     test('Should merge deep all objects', () => {
         expect(mergeDeepAll([
