@@ -794,12 +794,20 @@ export const duplicateKey = R.curry((lens, key, toKeys, obj) => R.over(
 );
 
 /**
- * Converts a scalar value (!Array.isArray) to array an array
+ * Converts a scalar value (!Array.isArray) to array an array.
+ * Null or undefined are converted to []
  * @param {*|[*]} arrayOrScalar An array or scalar
  * @returns {[*]} The scalar as an array or the untouched array
  */
 export const toArrayIfNot = arrayOrScalar => {
-    return R.unless(Array.isArray, Array.of)(arrayOrScalar);
+    return R.cond([
+        // Leave arrays alone
+        [Array.isArray, R.identity],
+        // Null/undefined to []
+        [R.isNil, R.always(Array.of())],
+        // scalar to [scalar]
+        [R.T, Array.of]
+    ])(arrayOrScalar)
 };
 
 /**

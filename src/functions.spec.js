@@ -1302,5 +1302,8 @@ describe('helperFunctions', () => {
         const eh = ['eh'];
         expect(toArrayIfNot(eh)).toBe(eh);
         expect(toArrayIfNot('eh')).toEqual(eh);
+        expect(toArrayIfNot(undefined)).toEqual([]);
+        // This is here because R.equals([], [undefined]) is true
+        expect(R.length(toArrayIfNot(undefined))).toEqual(R.length([]));
     });
 });
