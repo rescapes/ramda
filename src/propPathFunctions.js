@@ -1,41 +1,8 @@
 import * as R from 'ramda';
-import Maybe from 'folktale/maybe/index.js';
 import Result from 'folktale/result/index.js';
 import {mapMDeep} from "./monadHelpers.js";
-
-/**
- * Get a required path or return a helpful Error if it fails
- * @param {String} path A lensPath, e.g. ['a', 'b'] or ['a', 2, 'b']
- * @param {Object} obj The object to inspect
- * @returns {Result} Result the resolved value or an Error
- * @sig reqPath:: String -> {k: v} → Result
- */
-export const reqPath = R.curry((path, obj) => {
-    return R.compose(
-        R.ifElse(
-            // If path doesn't resolve
-            maybe => Maybe.Nothing.hasInstance(maybe),
-            // Create a useful Error message
-            () => Result.Error({
-                resolved: R.reduceWhile(
-                    // Stop if the accumulated segments can't be resolved
-                    (segments, segment) => R.not(R.isNil(R.path(R.concat(segments, [segment]), obj))),
-                    // Accumulate segments
-                    (segments, segment) => R.concat(segments, [segment]),
-                    [],
-                    path
-                ),
-                path: path
-            }),
-            // Return the resolved value
-            res => Result.Ok(res.value)
-        ),
-        // Try to resolve the value using the path and obj, returning Maybe
-        obj => {
-            return R.ifElse(R.isNil, Maybe.Nothing, Maybe.Just)(R.path(path, obj))
-        }
-    )(obj);
-});
+import {strPathOr} from "./strPathOr.js";
+import {reqPath} from "./reqPath.js";
 
 /**
  * Sample as strPathOr, but for a list of paths
@@ -71,21 +38,6 @@ export const reqStrPath = R.curry((str, props) => reqPath(R.split('.', str), pro
  */
 export const strPath = R.curry((str, props) => {
     return R.view(R.lensPath(R.split('.', str)), props);
-});
-
-/**
- * Like strPath but defaults to the given value
- * @param {Object} defaultValue. Default value if value is null undefined.
- * @param {String} str dot-separated prop path
- * @param {Object} props Object to resolve the path in
- * @return {function(*=)}
- */
-export const strPathOr = R.curry((defaultValue, str, props) => {
-    const result = R.view(R.lensPath(R.split('.', str)), props);
-    return R.when(
-        R.isNil,
-        R.always(defaultValue)
-    )(result);
 });
 
 /**

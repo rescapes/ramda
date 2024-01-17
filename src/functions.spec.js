@@ -32,7 +32,6 @@ import {
     fromPairsDeep,
     idOrIdFromObj,
     isObject,
-    keyStringToLensPath,
     mapDefault,
     mapDefaultAndPrefixOthers,
     mapKeys,
@@ -73,7 +72,9 @@ import {
     unflattenObjNoArrays
 } from './functions.js';
 import Result from 'folktale/result/index.js';
-import {reqStrPathThrowing} from './propPathFunctionsThrowing.js';
+
+import {reqStrPathThrowing} from "./reqStrPathThrowing.js";
+import {keyStringToLensPath} from "./keyStringToLensPath.js";
 
 const recurseMe = {
     the: {

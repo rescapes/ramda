@@ -19,8 +19,10 @@ import {
 } from './throwingFunctions.js';
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
-import {reqPath} from './propPathFunctions';
-import {reqPathPropEqThrowing, reqPathThrowing, reqStrPathThrowing} from './propPathFunctionsThrowing';
+import {reqPathPropEqThrowing} from './propPathFunctionsThrowing';
+import {reqStrPathThrowing} from "./reqStrPathThrowing.js";
+import {reqPathThrowing} from "./reqPathThrowing.js";
+import {reqPath} from "./reqPath.js";
 
 describe('throwingFunctions', () => {
   test('throwIfResultError', () => {

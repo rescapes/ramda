@@ -10,7 +10,7 @@ const config = {
     'src/functions.js',
     'src/throwingFunctions.js',
     'src/monadHelpers.js',
-    'src/nodeHelpers.js'
+    'src/nodeHelpers.js',
   ],
   plugins: []
 };

@@ -4,11 +4,9 @@ import {
   eqStrPath,
   hasStrPath,
   pathOr,
-  reqPath,
   reqPathPropEq,
   reqStrPath,
   strPath,
-  strPathOr,
   strPathOrNullOk,
   strPathsOr,
   strPathsOrNullOk,
@@ -16,6 +14,8 @@ import {
 } from './propPathFunctions.js';
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
+import {strPathOr} from "./strPathOr.js";
+import {reqPath} from "./reqPath.js";
 
 describe('propPathFunctions', () => {
   test('Required path', () => {

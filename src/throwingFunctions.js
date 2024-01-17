@@ -15,7 +15,8 @@ import {findOne, onlyOne, onlyOneValue} from './functions.js';
 import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 import {inspect} from 'util';
-import {reqPathThrowing} from './propPathFunctionsThrowing.js';
+
+import {reqPathThrowing} from "./reqPathThrowing.js";
 
 /**
  * Throw and exception if Result is Result.Error

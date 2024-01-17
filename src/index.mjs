@@ -21,11 +21,9 @@ export {
   strPathEq,
   eqAsSetsWith,
   hasStrPath,
-  reqPath,
   reqPathPropEq,
   strPath,
-  reqStrPath,
-  strPathOr
+  reqStrPath
 } from './propPathFunctions.js'
 
 export {
@@ -83,7 +81,6 @@ export {
   unflattenObj,
   filterObjToValues,
   overDeep,
-  keyStringToLensPath,
   omitDeep,
   omitDeepPaths,
   omitDeepBy,
@@ -107,9 +104,7 @@ export {
 } from './throwingFunctions.js';
 
 export {
-  reqPathPropEqThrowing,
-  reqPathThrowing,
-  reqStrPathThrowing
+  reqPathPropEqThrowing
 } from './propPathFunctionsThrowing.js'
 
 export {
@@ -170,3 +165,8 @@ export {objectDiff, prettyPrintObjectDiff} from './diffHelpers.js';
 export {stringifyError} from './errorHelpers.js';
 export {expectKeys, expectKeysAtPath, expectTask, resultToPromise} from './testHelpers.js';
 export {defaultNode} from './nodeHelpers.js'
+export {strPathOr} from "./strPathOr.js";
+export {reqStrPathThrowing} from "./reqStrPathThrowing.js";
+export {reqPathThrowing} from "./reqPathThrowing.js";
+export {reqPath} from "./reqPath.js";
+export {keyStringToLensPath} from "./keyStringToLensPath.js";

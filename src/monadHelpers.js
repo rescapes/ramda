@@ -16,8 +16,8 @@ import Maybe from 'folktale/maybe/index.js';
 import {stringifyError} from './errorHelpers.js';
 import {compact, isObject, toArrayIfNot} from './functions.js';
 import {inspect} from 'util';
-import {strPath, strPathOr} from './propPathFunctions.js';
-import {reqStrPathThrowing} from './propPathFunctionsThrowing.js';
+import {strPathOr} from "./strPathOr.js";
+import {reqStrPathThrowing} from "./reqStrPathThrowing.js";
 
 const {Just} = Maybe;
 const {fromPromised, of, rejected, task, waitAll} = T;

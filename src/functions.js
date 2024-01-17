@@ -22,6 +22,7 @@
 
 import * as R from 'ramda';
 import Result from 'folktale/result/index.js';
+import {keyStringToLensPath} from "./keyStringToLensPath.js";
 
 // https://stackoverflow.com/questions/17843691/javascript-regex-to-match-a-regex
 const regexToMatchARegex = /\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\/((?:g(?:im?|mi?)?|i(?:gm?|mg?)?|m(?:gi?|ig?)?)?)/;
@@ -1179,16 +1180,6 @@ const _flattenObj = (config, obj, keys = [], seen = []) => {
         ]
     ])(obj);
 };
-
-/**
- * Converts a key string like 'foo.bar.0.wopper' to ['foo', 'bar', 0, 'wopper']
- * @param {String} keyString The dot-separated key string
- * @returns {[String]} The lens array containing string or integers
- */
-export const keyStringToLensPath = keyString => R.map(
-    R.when(R.compose(R.complement(R.equals)(NaN), parseInt), parseInt),
-    R.split('.', keyString)
-);
 
 /**
  * Undoes the work of flattenObj. Does not allow number keys to become array indices
