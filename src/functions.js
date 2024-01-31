@@ -1155,13 +1155,15 @@ const _flattenObj = (config, obj, keys = [], seen = []) => {
         ],
         // If we have an object
         [
-            o => R.both(
+            o => R.allPass([
                 isObject,
+                // Arrays are acceptable unless empty. Empty arrays are returned with their keys
+                o =>  !Array.isArray(o) || R.length(o),
                 oo => R.when(
                     () => predicate,
                     ooo => R.complement(predicate)(ooo)
                 )(oo)
-            )(o),
+            ])(o),
             // Then recurse on each object or array value
             o => chainObjToValues((oo, k) => {
                 if ((R.is(Object, oo) || Array.isArray(oo)) && seen.includes(oo)) {

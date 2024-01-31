@@ -792,7 +792,13 @@ describe('helperFunctions', () => {
                 ]
             }
         })).toEqual({'fi.jojo.0.equals': 1});
+
+        // Leave empty arrays alone
+        expect(flattenObj({
+            fi: []
+        })).toEqual({'fi': []});
     });
+
 
     test('flattenObjUntil', () => {
         expect(flattenObjUntil(R.propOr(false, 'cow'),

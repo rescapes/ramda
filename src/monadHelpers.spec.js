@@ -231,7 +231,7 @@ describe('monadHelpers', () => {
     task(resolver => {
       // Result.Error should result in defaultOnRejected being called, which throws
       errors.push(new Error('Expect this warning about some bad Result'));
-      resolver.resolve(Result.Error('Oh noo!!!'));
+      resolver.resolve(Result.Error('Expected Error: Oh noo!!!'));
     }).run().listen(
       defaultRunToResultConfig({
         onResolved: resolve => {

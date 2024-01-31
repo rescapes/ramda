@@ -1,6 +1,7 @@
 import * as R from "ramda";
 
 import {reqPath} from "./reqPath.js";
+import {inspect} from 'util';
 
 /**
  * Calls functions.reqPath and throws if the reqPath does not resolve to a non-nil

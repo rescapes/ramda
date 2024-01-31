@@ -1,4 +1,6 @@
 import * as R from "ramda";
+import Maybe from 'folktale/maybe/index.js';
+import Result from 'folktale/result/index.js';
 
 /**
  * Get a required path or return a helpful Error if it fails

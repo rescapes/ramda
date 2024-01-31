@@ -16,8 +16,6 @@ import Result from 'folktale/result/index.js';
 import * as R from 'ramda';
 import {inspect} from 'util';
 
-import {reqPathThrowing} from "./reqPathThrowing.js";
-
 /**
  * Throw and exception if Result is Result.Error
  * @param {Result} result Result.Error value is an array of Errors to throw. Result.Ok value is success to return
